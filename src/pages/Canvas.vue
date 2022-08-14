@@ -5,6 +5,7 @@
             <a class="btn" :class="strokeMode==0?'btn-on':''" @click="onClickMoveTo">移动</a>
             <a class="btn" :class="strokeMode==1?'btn-on':''" @click="onClickLineTo">直线</a>
             <a class="btn" :class="strokeMode==2?'btn-on':''" @click="onClickCurveTo">曲线<i v-if="strokeMode==2">({{curveStep}})</i></a>
+            <a class="btn" :class="strokeMode==3?'btn-on':''" @click="onClickModify">修改</a>
             <br/>
             <a class="btn" @click="onClickPrevStep">上一步</a>
             <!-- <a class="btn" @click="onClickNextStep">下一步</a> -->
@@ -19,7 +20,8 @@
         </div>
         <div class="wrap op">
             <div class="cvs-bg">
-                <div class="pan-point" :style="{top:panPoint[1]+'px',left:panPoint[0]+'px'}"></div>
+                <div class="point pan-point" :style="{top:panPoint[1]+'px',left:panPoint[0]+'px'}"></div>
+                <div class="point modify-point" :style="{top:modifyPoint[1]+'px',left:modifyPoint[0]+'px'}" v-if="strokeMode==3&&modifyPointIndex>=0&&modifyStep==1"></div>
             </div>
             <canvas class="cvs" width="500" height="500" ref="cvs" @click="onClickCanvas" />
         </div>
@@ -42,13 +44,21 @@ export default {
 
             strokeMode: 0, // [0:移动|1:画直线|2:画曲线]
             panPoint: [0,0,], // 画点
+
             curveStep: 0, // [0:设置拐点|1:设置终点]
             curvePoint: [0,0,], // 拐点
+
+            modifyPointIndex: -1, // 修改目标点下标
+            modifyPoint: [0,0,], // 修改目标点
+            modifyStep: 0, // [0:选择修改点|1:修改]
 
             output: '',
 
             ctx: null,
             loading: false,
+
+            maleForeHairTemplates: [...CONFIG.generalForeHairTemplates,...CONFIG.maleForeHairTemplates,],
+            femaleForeHairTemplates: [...CONFIG.generalForeHairTemplates,...CONFIG.femaleForeHairTemplates,],
         };
     },
     mounted(){
@@ -83,17 +93,25 @@ export default {
             this.ctx.stroke();
         },
 
-        onClickMoveTo(e){ //
+        onClickMoveTo(e){ // 点击【移动】按钮
             this.strokeMode = 0;
             this.curveStep = 0;
+            this.modifyStep = 0;
         },
-        onClickLineTo(e){ //
+        onClickLineTo(e){ // 点击【直线】按钮
             this.strokeMode = 1;
             this.curveStep = 0;
+            this.modifyStep = 0;
         },
-        onClickCurveTo(e){ //
+        onClickCurveTo(e){ // 点击【曲线】按钮
             this.strokeMode = 2;
             this.curveStep = 0;
+            this.modifyStep = 0;
+        },
+        onClickModify(){ // 点击【修改】按钮
+            this.strokeMode = 3;
+            this.curveStep = 0;
+            this.modifyStep = 0;
         },
         onClickPrevStep(){ // 上一步
             console.log(`上一步`);
@@ -119,7 +137,7 @@ export default {
             this.input = JSON.parse(this.output);
             this.drawInput();
         },
-        onClickCanvas(e){ //
+        onClickCanvas(e){ // 点击【Canvas】
             let x = e.offsetX;
             let y = e.offsetY;
             switch(this.strokeMode){
@@ -130,9 +148,11 @@ export default {
                     else{
                         this.input.push([this.strokeMode,x,y]);
                     }
+                    this.panPoint = [x,y];
                 break;
                 case 1: // 画直线
                     this.input.push([this.strokeMode,x,y]);
+                    this.panPoint = [x,y];
                 break;
                 case 2: // 画曲线
                     if(this.curveStep==0){ // 设置拐点
@@ -143,9 +163,38 @@ export default {
                         this.input.push([this.strokeMode,this.curvePoint[0],this.curvePoint[1],x,y]);
                         this.curveStep = 0;
                     }
+                    this.panPoint = [x,y];
+                break;
+                case 3: // 修改
+                    if(this.modifyStep==0){ // 选择修改点
+                        let minDist = Infinity; // 最小路径
+                        let targetPointIndex = -1; // 目标点下标
+                        for(let i=0;i<this.input.length;i++){
+                            let option = this.input[i];
+                            let opl = option.length;
+                            let dist = Math.sqrt(Math.pow(x-option[opl-2],2)+Math.pow(y-option[opl-1],2));
+                            if(dist<minDist){
+                                minDist = dist;
+                                targetPointIndex = i;
+                            }
+                        }
+                        this.modifyPointIndex = targetPointIndex;
+                        if(this.modifyPointIndex>=0){
+                            let p = this.input[targetPointIndex];
+                            let pl = p.length;
+                            this.modifyPoint = [p[pl-2],p[pl-1]];
+                        }
+                        this.modifyStep = 1;
+                    }
+                    else{
+                        let opl = this.input[this.modifyPointIndex].length;
+                        this.input[this.modifyPointIndex][opl-2] = x;
+                        this.input[this.modifyPointIndex][opl-1] = y;
+                        this.modifyStep = 0;
+                    }
+
                 break;
             }
-            this.panPoint = [x,y];
             this.recordInput = [...this.input];
             this.drawInput();
         },
@@ -209,16 +258,19 @@ export default {
             }
         },
         onClickRandom(gender){ // 点击【随机脸】按钮
+            /* 生成 */
             // 生成基本脸
             let faceData = this.genRandomFaceData(gender);
             faceData.outline = this.formatPx(faceData.outline);
             // 生成头发
-            let hairData = this.genRandomHairData(faceData,gender);
-            hairData.outline = this.formatPx(hairData.outline);
-            console.log(faceData);
-            console.log(hairData);
+            let foreHairData = this.genRandomForeHairData(faceData,gender);
+            foreHairData.outline = this.formatPx(foreHairData.outline);
+            console.log('脸部数据',faceData);
+            console.log('前头发数据',foreHairData);
+
+            /* 画 */
             this.drawData(faceData);
-            this.drawData(hairData);
+            this.drawData(foreHairData);
         },
         formatPx(data){
             return Array.from(data,item=>{
@@ -243,7 +295,7 @@ export default {
                 e = [r(390,410),r(485,520)]; // 左眼下
                 f = [500,r(580,620)]; // 鼻下
                 g = [500,r(625,655)]; // 唇上
-                h = [r(410,425),r(700,720)]; // 颊左
+                h = [r(410,425),r(710,730)]; // 颊左
                 i = [500,r(740,770)]; // 下巴
                 let colorDeep = r(0,5);
                 color = `rgb(${r(250,255)-colorDeep},${r(239,245)-colorDeep},${r(229,234)-colorDeep})`;
@@ -292,9 +344,14 @@ export default {
 
             return res;
         },
-        genRandomHairData(faceData,gender){ // 随机生成发型
-            let res;
-            let rHair = CONFIG.maleHairTemplates[r(0,CONFIG.maleHairTemplates.length-1)];
+        genRandomForeHairData(faceData,gender){ // 随机生成发型
+            let res,rHair;
+            if(gender==1){ // 男
+                rHair = this.maleForeHairTemplates[r(0,this.maleForeHairTemplates.length-1)];
+            }
+            else{ // 女
+                rHair = this.femaleForeHairTemplates[r(0,this.femaleForeHairTemplates.length-1)];
+            }
             let center = [...rHair.center];
             let const_outline = [...rHair.outline];
             let outline = Array.from(const_outline,item=>{
@@ -310,7 +367,7 @@ export default {
                     return [Math.round(x-offset[0]*rate),Math.round(y-offset[1]*rate)];
                 }
             };
-            // 校准
+            // 对准
             let a = faceData.a;
             let offset = [a[0]-center[0],a[1]-center[1]];
             for(let option of outline){
@@ -325,10 +382,29 @@ export default {
                     option[4] += offset[1];
                 }
             }
+            // 缩放
+            let width = (500-faceData.c[0])*2; // 头部宽度
+            let height = faceData.b[1]-faceData.a[1]; // 头部高度
+            let widthScaleRate = width/400; // 水平缩放比率
+            let heightScaleRate = height/40; // 垂直缩放比率
+            console.log(`缩放`,widthScaleRate,heightScaleRate);
+            for(let option of outline){
+                if(option[0]!=2){
+                    option[1] = a[0]-Math.round((a[0]-option[1])*widthScaleRate);
+                    option[2] = a[1]-Math.round((a[1]-option[2])*heightScaleRate);
+                }
+                else{
+                    option[1] = a[0]-Math.round((a[0]-option[1])*widthScaleRate);
+                    option[2] = a[1]-Math.round((a[1]-option[2])*heightScaleRate);
+                    option[3] = a[0]-Math.round((a[0]-option[3])*widthScaleRate);
+                    option[4] = a[1]-Math.round((a[1]-option[4])*heightScaleRate);
+                }
+            }
+
             // 随机造型
             for(let option of outline){
-                let dr = r(105,130)/100;
-                console.log(dr);
+                let dr = r(100,104)/100;
+                // console.log(dr);
                 if(option[0]!=2){
                     let vector = _scale(option[1],option[2],center[0],center[1],dr);
                     option[1] = vector[0];
@@ -343,7 +419,7 @@ export default {
                     option[4] = vector2[1];
                 }
             }
-            console.log('=========>',outline);
+            // console.log('=========>',outline);
             // 输出
             res = {
                 color: `rgba(${r(0,200)},${r(0,200)},${r(0,200)})`,
@@ -426,13 +502,22 @@ export default {
         background-color: #ccc;
         z-index: 5;
     }
-    .pan-point{
+    .point{
         position: absolute;
+    }
+    .pan-point{
         width: 4px;
         height: 4px;
         border-radius: 2px;
         transform: translate(-50%,-50%);
         background-color: red;
+    }
+    .modify-point{
+        width: 6px;
+        height: 6px;
+        border-radius: 3px;
+        transform: translate(-50%,-50%);
+        border: 1px solid blue;
     }
     .cvs{
         position: absolute;
