@@ -1,0 +1,71 @@
+.head{
+    position: relative;
+    width: 100%;
+    height: 40px;
+    font-size: 14px;
+}
+.head .btn{
+    position: absolute;
+    width: 100px;
+    height: 30px;
+    line-height: 30px;
+    top: 5px;
+    left: 6px;
+    overflow: hidden;
+    white-space: nowrap;
+    word-break: keep-all;
+    font-weight: bold;
+    border: 1px solid #131313;
+}
+.head .tip{
+    position: absolute;
+    height: 100%;
+    line-height: 40px;
+    top: 0;
+    right: 0;
+    color: #666;
+    text-align: left;
+    white-space: nowrap;
+    word-break: keep-all;
+    padding-left: 20px;
+    width: calc( 100% - 112px );
+}
+.board{
+    height: 116px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    text-align: left;
+    padding-bottom: 20px;
+}
+.board .btn{
+    display: inline-block;
+    height: 30px;
+    width: 248px;
+    margin: 6px;
+    line-height: 30px;
+    font-size: 14px;
+    overflow: hidden;
+    text-align: center;
+    white-space: nowrap;
+    word-break: keep-all;
+    font-weight: bold;
+    border: 1px solid #131313;
+}
+.ban{
+    color: #888;
+    border: 1px solid #888 !important;
+    text-decoration: line-through;
+}
+.ban span{
+    color: #888;
+}
+.btn:not(.ban):hover{
+    background-color: #131313;
+    color: #fff;
+}
+.pow{
+    color: RoyalBlue;
+}
+.dmg{
+    color: OrangeRed;
+}

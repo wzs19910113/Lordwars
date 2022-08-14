@@ -1,0 +1,423 @@
+.caster-me{
+    animation: popup ease-in-out 1.2s forwards;
+}
+.caster-you{
+    animation: popdown ease-in-out 1.2s forwards;
+}
+@keyframes popup {
+    50%{
+        transform: translateY(-300%);
+    }
+    100%{
+        transform: translateY(0);
+    }
+}
+@keyframes popdown {
+    50%{
+        transform: translateY(300%);
+    }
+    100%{
+        transform: translateY(0);
+    }
+}
+.attacked{
+    animation: attacked ease-in-out .7s 1.15s forwards;
+}
+@keyframes attacked {
+    10%{
+        transform: translateX(-10%);
+    }
+    20%{
+        transform: translateX(10%);
+    }
+    30%{
+        transform: translateX(-5%);
+    }
+    40%{
+        transform: translateX(5%);
+    }
+    50%{
+        transform: translateX(-3%);
+    }
+    60%{
+        transform: translateX(3%);
+    }
+    70%{
+        transform: translateX(2%);
+    }
+    80%{
+        transform: translateX(-2%);
+    }
+    90%{
+        transform: translateX(1%);
+    }
+    100%{
+        transform: translateX(0);
+    }
+}
+.searched,.common{
+    animation: searched ease-in-out .7s 1.15s forwards;
+}
+@keyframes searched {
+    50%{
+        transform: scale(1.35);
+    }
+    100%{
+        transform: scale(1);
+    }
+}
+/* 割锯 */
+.cut-me::after,
+.cut-you::after{
+    content: '';
+    position: absolute;
+    opacity: 0;
+    top: 40%;
+    left: 0;
+    background-color: grey;
+    box-shadow: 0 0 20px 8px red;
+    height: 60px;
+    width: 60px;
+    border-radius: 30px;
+    z-index: 200;
+    transform: rotateZ(37deg) rotateX(136deg);
+    animation: cut ease-out .5s .7s forwards;
+}
+@keyframes cut {
+    20%{
+        transform: scale(3) rotateZ(37deg) rotateX(76deg);
+        opacity: 1;
+    }
+    100%{
+        transform: scale(1) rotateZ(37deg) rotateX(136deg);
+        opacity: 0;
+    }
+}
+/* 突刺 */
+.stab-me::after,
+.stab-you::after{
+    content: '';
+    position: absolute;
+    opacity: 0;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    width: 40px;
+    height: 40px;
+    border-top: 9px solid red;
+    border-right: 9px solid red;
+    z-index: 223;
+    /* box-shadow: 4px 4px 15px 6px grey; */
+}
+.stab-me::after{
+    top: -500%;
+    transform: rotateZ(135deg);
+    animation: stab-me ease-in .45s .8s forwards;
+}
+.stab-you::after{
+    top: 500%;
+    transform: rotateZ(-45deg);
+    animation: stab-you ease-in .45s .8s forwards;
+}
+@keyframes stab-me {
+    10%{
+        top: -150%;
+        opacity: .8;
+    }
+    25%{
+        top: 100%;
+        left: 55%;
+        opacity: 0;
+    }
+    34%{
+        top: -150%;
+        opacity: 0;
+    }
+    35%{
+        top: -148%;
+        opacity: .8;
+    }
+    60%{
+        top: 100%;
+        left: -35%;
+        opacity: 0;
+    }
+    69%{
+        top: -150%;
+        opacity: 0;
+    }
+    70%{
+        top: -148%;
+        opacity: .8;
+    }
+    100%{
+        top: 100%;
+        left: 0;
+        opacity: 0;
+    }
+}
+@keyframes stab-you {
+    10%{
+        top: 150%;
+        opacity: .8;
+    }
+    25%{
+        top: -100%;
+        left: -55%;
+        opacity: 0;
+    }
+    34%{
+        top: 150%;
+        opacity: 0;
+    }
+    35%{
+        top: 148%;
+        opacity: .8;
+    }
+    60%{
+        top: -100%;
+        left: 35%;
+        opacity: 0;
+    }
+    69%{
+        top: 150%;
+        opacity: 0;
+    }
+    70%{
+        top: 148%;
+        opacity: .8;
+    }
+    100%{
+        top: -100%;
+        left: 0;
+        opacity: 0;
+    }
+}
+/* 射击 */
+.shot-me::after,
+.shot-you::after{
+    content: '';
+    position: absolute;
+    opacity: 0;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    background-color: grey;
+    height: 160px;
+    width: 2px;
+    z-index: 200;
+    box-shadow: 0 0 15px 6px red;
+}
+.shot-me::after{
+    top: -500%;
+    animation: shot-me ease-in .3s .8s forwards;
+}
+.shot-you::after{
+    top: 500%;
+    animation: shot-you ease-in .3s .7s forwards;
+}
+@keyframes shot-me {
+    10%{
+        top: -50%;
+        opacity: 1;
+    }
+    100%{
+        top: 100%;
+        opacity: .25;
+        transform: scaleX(0);
+    }
+}
+@keyframes shot-you {
+    10%{
+        top: 50%;
+        opacity: 1;
+    }
+    100%{
+        top: -100%;
+        opacity: .25;
+        transform: scaleX(0);
+    }
+}
+/* 钝击 */
+.melee-punch-you::after,
+.melee-punch-me::after{
+    content: '';
+    position: absolute;
+    opacity: 0;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
+    background-color: red;
+    height: 66px;
+    width: 66px;
+    border-radius: 30px;
+    z-index: 200;
+    opacity: 0;
+}
+.melee-punch-you::after{
+    transform: translateY(400%) scale(1.5);
+    animation: melee-punch-you ease-out .3s .9s forwards;
+}
+.melee-punch-me::after{
+    transform: translateY(-400%) scale(1.5);
+    animation: melee-punch-me ease-out .3s .9s forwards;
+}
+@keyframes melee-punch-you {
+    50%{
+        transform: translateY(50%);
+        opacity: .5;
+    }
+    100%{
+        transform: translateY(-55%) scale(2.6) rotateX(85deg);
+        opacity: 0;
+    }
+}
+@keyframes melee-punch-me {
+    50%{
+        transform: translateY(-50%);
+        opacity: .5;
+    }
+    100%{
+        transform: translateY(55%) scale(2.6) rotateX(85deg);
+        opacity: 0;
+    }
+}
+/* 抽击 */
+.range-punch-you::after,
+.range-punch-me::after{
+    content: '';
+    position: absolute;
+    opacity: 0;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
+    height: 104px;
+    width: 104px;
+    z-index: 200;
+    opacity: 0;
+}
+.range-punch-you::after{
+    border-top-left-radius: 50px;
+    border-top-right-radius: 50px;
+    border-top: 20px solid red;
+    transform: translateY(300%) scale(1.5);
+    animation: range-punch-you ease-out .3s .85s forwards;
+}
+.range-punch-me::after{
+    border-bottom-left-radius: 50px;
+    border-bottom-right-radius: 50px;
+    border-bottom: 20px solid red;
+    transform: translateY(-300%) scale(1.5);
+    animation: range-punch-me ease-out .3s .85s forwards;
+}
+@keyframes range-punch-you {
+    20%{
+        transform: translateY(100%);
+        opacity: .2;
+    }
+    50%{
+        transform: translateY(50%) scale(2);
+        opacity: .5;
+    }
+    100%{
+        transform: translateY(50%) scale(2);
+        opacity: 0;
+    }
+}
+@keyframes range-punch-me {
+    20%{
+        transform: translateY(-100%);
+        opacity: .2;
+    }
+    50%{
+        transform: translateY(-50%) scale(2);
+        opacity: .5;
+    }
+    100%{
+        transform: translateY(-50%) scale(2);
+        opacity: 0;
+    }
+}
+
+/* 爆炸 */
+.blast-you::after,
+.blast-me::after{
+    content: '';
+    position: absolute;
+    opacity: 0;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
+    background-color: red;
+    box-shadow: 0 0 20px 8px DarkOrange;
+    height: 60px;
+    width: 60px;
+    border-radius: 30px;
+    z-index: 200;
+    opacity: 0;
+    transform: scale(0);
+    animation: blast ease-in .3s 1s forwards;
+}
+@keyframes blast {
+    50%{
+        transform: scale(1.5);
+        opacity: 1;
+    }
+    100%{
+        transform: scale(3);
+        opacity: 0;
+    }
+}
+
+/* 爆头 */
+.headshot{
+    position: absolute;
+    opacity: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 66px;
+    height: 66px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: auto;
+    z-index: 222;
+    animation: headblast ease-in-out .55s .8s forwards;
+}
+.headshot::after{
+    content: '爆';
+    color: red;
+    font-weight: bold;
+    font-size: 20px;
+    text-shadow: 0 0 15px red;
+}
+@keyframes headblast{
+    10%{
+        opacity: .9;
+        transform: scale(1);
+    }
+    30%{
+        opacity: .9;
+        transform: scale(5.6);
+    }
+    75%{
+        opacity: .9;
+        transform: scale(5.6);
+    }
+    95%{
+        opacity: .5;
+        transform: scale(2.6);
+    }
+    100%{
+        opacity: 0;
+        transform: scale(0);
+    }
+}
