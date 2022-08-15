@@ -67,6 +67,20 @@ export function getParentNode(ele,tagname='a'){
         return getParentNode(ele.parentNode,tagname);
     return false;
 }
+export function cloneObj(obj,und){ // 深度复制数据对象
+    if(!obj){
+        return und;
+    }
+    let newObj = {};
+    if (obj instanceof Array) {
+       newObj = [];
+    }
+    for(let key in obj){
+       let val = obj[key];
+       newObj[key] = typeof val === 'object'?cloneObj(val):val;
+    }
+    return newObj;
+}
 /*
  计算文本长度（汉字为2，英文和字符为1）
  */
