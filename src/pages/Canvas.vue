@@ -482,49 +482,29 @@ export default {
             let gender = this.person.gender;
             let { faceData, } = avatarData;
             let { color, grd, } = avatarData.hairColor;
-            let formatPx = data =>{
-                let rate = 2;
-                if(typeof data === 'object'){
-                    return Array.from(data,item=>{
-                        let res = [];
-                        if(item[0]==0||item[0]==1){
-                            res = [item[0],parseInt(item[1]/rate),parseInt(item[2]/rate)];
-                        }
-                        else if(item[0]==2){
-                            res = [item[0],parseInt(item[1]/rate),parseInt(item[2]/rate),parseInt(item[3]/rate),parseInt(item[4]/rate)];
-                        }
-                        else if(item[0]==3){
-                            res = [item[0],parseInt(item[1]/rate),parseInt(item[2]/rate),parseInt(item[3]/rate)];
-                        }
-                        return res;
-                    });
-                }
-                else{
-                    return parseInt(data/2);
-                }
-            }
+            let formatPx = this._formatPx, canvasSize = 500;
             if(hair.name&&hair.name!='/'){
                 this.hairStylePop = [];
                 switch(this.hairStyleMode){
                     case 1: // 前头发
                         let foreHairData = this.genForeHairData(faceData,gender,color,grd,hair.name);
-                        foreHairData.outline = formatPx(foreHairData.outline);
-                        foreHairData.topY = formatPx(foreHairData.topY);
+                        foreHairData.outline = formatPx(foreHairData.outline,canvasSize);
+                        foreHairData.topY = formatPx(foreHairData.topY,canvasSize);
                         foreHairData.bottomY = formatPx(foreHairData.bottomY);
                         avatarData.foreHairData = foreHairData;
                     break;
                     case 2: // 刘海
                         let bangsData = this.genBangsData(faceData,gender,color,grd,hair.name);
-                        bangsData.outline = formatPx(bangsData.outline);
-                        bangsData.topY = formatPx(bangsData.topY);
-                        bangsData.bottomY = formatPx(bangsData.bottomY);
+                        bangsData.outline = formatPx(bangsData.outline,canvasSize);
+                        bangsData.topY = formatPx(bangsData.topY,canvasSize);
+                        bangsData.bottomY = formatPx(bangsData.bottomY,canvasSize);
                         avatarData.bangsData = bangsData;
                     break;
                     case 3: // 后头发
                         let backHairData = this.genBackHairData(faceData,gender,color,grd,hair.name);
-                        backHairData.outline = formatPx(backHairData.outline);
-                        backHairData.topY = formatPx(backHairData.topY);
-                        backHairData.bottomY = formatPx(backHairData.bottomY);
+                        backHairData.outline = formatPx(backHairData.outline,canvasSize);
+                        backHairData.topY = formatPx(backHairData.topY,canvasSize);
+                        backHairData.bottomY = formatPx(backHairData.bottomY,canvasSize);
                         avatarData.backHairData = backHairData;
                     break;
                 }
@@ -790,27 +770,6 @@ export default {
             let res;
             let { abilities, personalities, gender, age, } = person;
             let emotion = Math.round(personalities[2]*.25+personalities[4]*.75); // 0-100
-            let formatPx = data =>{
-                let rate = 1000/canvasSize;
-                if(typeof data === 'object'){
-                    return Array.from(data,item=>{
-                        let res = [];
-                        if(item[0]==0||item[0]==1){
-                            res = [item[0],parseInt(item[1]/rate),parseInt(item[2]/rate)];
-                        }
-                        else if(item[0]==2){
-                            res = [item[0],parseInt(item[1]/rate),parseInt(item[2]/rate),parseInt(item[3]/rate),parseInt(item[4]/rate)];
-                        }
-                        else if(item[0]==3){
-                            res = [item[0],parseInt(item[1]/rate),parseInt(item[2]/rate),parseInt(item[3]/rate)];
-                        }
-                        return res;
-                    });
-                }
-                else{
-                    return parseInt(data/2);
-                }
-            }
             // 生成发色
             let hairColor = this.genHairColor(gender);
             let { color, grd, } = hairColor;
@@ -872,69 +831,82 @@ export default {
             }
 
             // 转化scale
-            faceData.outline = formatPx(faceData.outline);
+            let formatPx = this._formatPx;
+            faceData.outline = formatPx(faceData.outline,canvasSize);
+            faceData.radial.x1 = formatPx(faceData.radial.x1,canvasSize);
+            faceData.radial.y1 = formatPx(faceData.radial.y1,canvasSize);
+            faceData.radial.r1 = formatPx(faceData.radial.r1,canvasSize);
+            faceData.radial.x2 = formatPx(faceData.radial.x2,canvasSize);
+            faceData.radial.y2 = formatPx(faceData.radial.y2,canvasSize);
+            faceData.radial.r2 = formatPx(faceData.radial.r2,canvasSize);
 
-            earsData.outline = formatPx(earsData.outline);
+            earsData.outline = formatPx(earsData.outline,canvasSize);
 
-            browsData.outline = formatPx(browsData.outline);
+            browsData.outline = formatPx(browsData.outline,canvasSize);
 
-            eyesData.outline = formatPx(eyesData.outline);
-            eyesData.lineWidth = formatPx(eyesData.lineWidth);
+            eyesData.outline = formatPx(eyesData.outline,canvasSize);
+            eyesData.lineWidth = formatPx(eyesData.lineWidth,canvasSize);
 
             if(eyeskinsData){
-                eyeskinsData.outline = formatPx(eyeskinsData.outline);
-                eyeskinsData.lineWidth = formatPx(eyeskinsData.lineWidth);
+                eyeskinsData.outline = formatPx(eyeskinsData.outline,canvasSize);
+                eyeskinsData.lineWidth = formatPx(eyeskinsData.lineWidth,canvasSize);
             }
 
             if(lashData){
-                lashData.outline = formatPx(lashData.outline);
-                lashData.lineWidth = formatPx(lashData.lineWidth);
+                lashData.outline = formatPx(lashData.outline,canvasSize);
+                lashData.lineWidth = formatPx(lashData.lineWidth,canvasSize);
             }
 
-            eyeoutballsData.outline = formatPx(eyeoutballsData.outline);
-            eyeoutballsData.topY = formatPx(eyeoutballsData.topY);
-            eyeoutballsData.bottomY = formatPx(eyeoutballsData.bottomY);
+            eyeoutballsData.outline = formatPx(eyeoutballsData.outline,canvasSize);
+            eyeoutballsData.topY = formatPx(eyeoutballsData.topY,canvasSize);
+            eyeoutballsData.bottomY = formatPx(eyeoutballsData.bottomY,canvasSize);
 
             if(eyeinballsData){
-                eyeinballsData.outline = formatPx(eyeinballsData.outline);
-                eyeinballsData.topY = formatPx(eyeinballsData.topY);
-                eyeinballsData.bottomY = formatPx(eyeinballsData.bottomY);
+                eyeinballsData.outline = formatPx(eyeinballsData.outline,canvasSize);
+                eyeinballsData.topY = formatPx(eyeinballsData.topY,canvasSize);
+                eyeinballsData.bottomY = formatPx(eyeinballsData.bottomY,canvasSize);
             }
 
-            noseData.outline = formatPx(noseData.outline);
+            noseData.outline = formatPx(noseData.outline,canvasSize);
 
-            lipData.outline = formatPx(lipData.outline);
+            lipData.outline = formatPx(lipData.outline,canvasSize);
 
             if(bottomLipData){
-                bottomLipData.outline = formatPx(bottomLipData.outline);
+                bottomLipData.outline = formatPx(bottomLipData.outline,canvasSize);
             }
 
             if(topMoustacheData){
-                topMoustacheData.outline = formatPx(topMoustacheData.outline);
+                topMoustacheData.outline = formatPx(topMoustacheData.outline,canvasSize);
             }
 
             if(nasoData){
-                nasoData.outline = formatPx(nasoData.outline);
+                nasoData.outline = formatPx(nasoData.outline,canvasSize);
             }
 
-            bodyData.outline = formatPx(bodyData.outline);
+            bodyData.outline = formatPx(bodyData.outline,canvasSize);
+            bodyData.radial.x1 = formatPx(bodyData.radial.x1,canvasSize);
+            bodyData.radial.y1 = formatPx(bodyData.radial.y1,canvasSize);
+            bodyData.radial.r1 = formatPx(bodyData.radial.r1,canvasSize);
+            bodyData.radial.x2 = formatPx(bodyData.radial.x2,canvasSize);
+            bodyData.radial.y2 = formatPx(bodyData.radial.y2,canvasSize);
+            bodyData.radial.r2 = formatPx(bodyData.radial.r2,canvasSize);
 
             if(foreHairData){
-                foreHairData.outline = formatPx(foreHairData.outline);
-                foreHairData.topY = formatPx(foreHairData.topY);
-                foreHairData.bottomY = formatPx(foreHairData.bottomY);
+                foreHairData.outline = formatPx(foreHairData.outline,canvasSize);
+                foreHairData.topY = formatPx(foreHairData.topY,canvasSize);
+                foreHairData.bottomY = formatPx(foreHairData.bottomY,canvasSize);
             }
 
             if(bangsData){
-                bangsData.outline = formatPx(bangsData.outline);
-                bangsData.topY = formatPx(bangsData.topY);
-                bangsData.bottomY = formatPx(bangsData.bottomY);
+                bangsData.outline = formatPx(bangsData.outline,canvasSize);
+                bangsData.topY = formatPx(bangsData.topY,canvasSize);
+                bangsData.bottomY = formatPx(bangsData.bottomY,canvasSize);
             }
 
             if(backHairData){
-                backHairData.outline = formatPx(backHairData.outline);
-                backHairData.topY = formatPx(backHairData.topY);
-                backHairData.bottomY = formatPx(backHairData.bottomY);
+                backHairData.outline = formatPx(backHairData.outline,canvasSize);
+                backHairData.topY = formatPx(backHairData.topY,canvasSize);
+                backHairData.bottomY = formatPx(backHairData.bottomY,canvasSize);
             }
 
             res = {
@@ -961,7 +933,7 @@ export default {
         },
         paintAvatar(ctx,canvasSize,avatarData){ // 根据肖像数据进行绘制
             let drawData = data =>{ // 画
-                let { color, outline, topY, bottomY, grd, lineWidth, strokeColor, alpha, } = data;
+                let { color, outline, topY, bottomY, grd, rgrd, radial, lineWidth, strokeColor, alpha, } = data;
                 ctx.beginPath();
                 ctx.lineCap = 'round';
                 ctx.lineWidth = lineWidth||1;
@@ -991,10 +963,14 @@ export default {
                 ctx.stroke();
                 if(color){
                     let grdStyle;
-                    // 线性渐变
-                    if(grd){
+                    if(grd){ // 线性渐变
                         grdStyle = this.ctx.createLinearGradient(0,topY||100,0,bottomY||500);
                         grdStyle.addColorStop(0,grd);
+                        grdStyle.addColorStop(1,`rgba(${color.r},${color.g},${color.b},${alpha||1})`);
+                    }
+                    else if(rgrd){ // 扩散渐变
+                        grdStyle = this.ctx.createRadialGradient(radial.x1,radial.y1,radial.r1,radial.x2,radial.y2,radial.r2);
+                        grdStyle.addColorStop(0,rgrd);
                         grdStyle.addColorStop(1,`rgba(${color.r},${color.g},${color.b},${alpha||1})`);
                     }
                     else{
@@ -1084,6 +1060,27 @@ export default {
             }
             else if(rate>0){
                 return [Math.round(x-offset[0]*rate),Math.round(y-offset[1]*rate)];
+            }
+        },
+        _formatPx(data,canvasSize){
+            let rate = 1000/canvasSize;
+            if(typeof data === 'object'){
+                return Array.from(data,item=>{
+                    let res = [];
+                    if(item[0]==0||item[0]==1){
+                        res = [item[0],parseInt(item[1]/rate),parseInt(item[2]/rate)];
+                    }
+                    else if(item[0]==2){
+                        res = [item[0],parseInt(item[1]/rate),parseInt(item[2]/rate),parseInt(item[3]/rate),parseInt(item[4]/rate)];
+                    }
+                    else if(item[0]==3){
+                        res = [item[0],parseInt(item[1]/rate),parseInt(item[2]/rate),parseInt(item[3]/rate)];
+                    }
+                    return res;
+                });
+            }
+            else{
+                return parseInt(data/2);
             }
         },
 
@@ -1192,11 +1189,11 @@ export default {
                 a = [500,r(240,260)]; // 头顶 千分比
                 b = [500,a[1]+r(45,55)]; // 刘海中心
                 c = [r(300,320),r(410,440)]; // 脸左
-                d = [r(400,450),r(478,490)]; // 左眉毛中心
+                d = [r(410,440),r(478,490)]; // 左眉毛中心
                 e = [d[0],d[1]+r(60,80)]; // 左眼下
                 f = [500,r(630,660)]; // 鼻下
                 g = [500,r(675,725)]; // 唇上
-                h = [r(390,410),r(715,740)]; // 颊左
+                h = [r(400,420),r(715,740)]; // 颊左
                 i = [500,r(747,800)]; // 下巴
                 let colorDeep = r(0,15);
                 color = {
@@ -1205,13 +1202,25 @@ export default {
                     b: r(220,227)-colorDeep,
                 };
             }
+            let mirX = x =>{
+                return x+2*(500-x);
+            };
+            let radialX, radialY;
+            radialX = 500;
+            radialY = a[1]+r(0,(i[1]-a[1])/3);
             let res = {
                 a,b,c,d,e,f,g,h,i,
                 outline: [],
                 color,
-            };
-            let mirX = x =>{
-                return x+2*(500-x);
+                rgrd: `#fafafa`,
+                radial: {
+                    x1: radialX,
+                    y1: radialY,
+                    r1: 1,
+                    x2: radialX,
+                    y2: radialY,
+                    r2: 300,
+                },
             };
 
             // 生成头部轮廓
@@ -1223,7 +1232,7 @@ export default {
             }
             else{ // 男
                 cp1 = [r(c[0],c[0]+50),r(a[1],a[1]+20)];
-                cp2 = [r(c[0],c[0]+25),r(h[1]-65,h[1]-35)];
+                cp2 = [r(c[0]+10,c[0]+35),r(h[1]-65,h[1]-35)];
                 cp3 = [r(h[0]+10,h[0]+30),r(h[1]+20,h[1]+30)];
             }
             res.outline.push([0,a[0],a[1]]); // 移动
@@ -1242,27 +1251,36 @@ export default {
                 a = [faceData.g[0],faceData.g[1]];
                 b = [faceData.h[0]+r(3,10),faceData.g[1]];
                 c = [b[0]+(r(1,20)/100)*(500-b[0]),b[1]+r(60,100)];
-                d = [b[0]-(r(1,30)/100)*60-80,c[1]+r(80,100)];
+                d = [b[0]-(r(1,30)/100)*60-80,c[1]+r(80,90)];
                 e = [d[0]-(r(1,30)/100)*60-90,d[1]+r(0,5)];
                 f = [e[0]-(r(1,40)/100)*60-80,e[1]+(r(1,80)/200)*90+80];
                 g = [faceData.g[0],f[1]];
             }
             else{ // 男
                 a = [faceData.g[0],faceData.g[1]];
-                b = [faceData.h[0]+10,faceData.g[1]];
+                b = [faceData.h[0]+20,faceData.g[1]];
                 c = [b[0]+(r(1,20)/100)*(500-b[0]),b[1]+r(90,120)];
-                d = [b[0]-(r(1,30)/100)*60-80,c[1]+r(70,100)];
+                d = [b[0]-(r(1,30)/100)*60-80,c[1]+r(40,60)];
                 e = [d[0]-(r(1,30)/100)*80-100,d[1]+r(0,20)];
                 f = [e[0]-(r(1,40)/100)*80-100,e[1]+(r(1,80)/200)*90+80];
                 g = [faceData.g[0],f[1]];
             }
+            let mirX = x =>{
+                return x+2*(500-x);
+            };
             let res = {
                 a,b,c,d,e,f,g,
                 color: faceData.color,
                 outline: [],
-            };
-            let mirX = x =>{
-                return x+2*(500-x);
+                rgrd: `#777`,
+                radial: {
+                    x1: 500,
+                    y1: a[1]-100,
+                    r1: 1,
+                    x2: 500,
+                    y2: a[1]-100,
+                    r2: 300,
+                },
             };
 
             // 生成身体轮廓
