@@ -821,9 +821,9 @@ export default {
                 // 生成前发
                 foreHairData = this.genForeHairData(faceData,gender,color,grd);
                 // 生成刘海
-                if(r(0,100)<20||DEBUG){
-                    bangsData = this.genBangsData(faceData,gender,color,grd);
-                }
+                // if(r(0,100)<20||DEBUG){
+                //     bangsData = this.genBangsData(faceData,gender,color,grd);
+                // }
             }
             // 生成背发
             if(r(0,100)<50||DEBUG){
@@ -1279,7 +1279,7 @@ export default {
                     r1: 1,
                     x2: 500,
                     y2: a[1]-100,
-                    r2: 300,
+                    r2: 200,
                 },
             };
 
@@ -1357,16 +1357,16 @@ export default {
         genBrowsData(faceData,gender,color){ // 生成双眉
             let a,b,c,d;
             if(gender==2){ // 女
-                a = [faceData.d[0]+r(20,25),faceData.d[1]+r(-5,15)];
+                a = [faceData.d[0]+r(25,35),faceData.d[1]+r(-5,20)];
                 b = [faceData.d[0]+r(-5,5),faceData.d[1]-r(0,5)];
                 c = [faceData.d[0]-r(50,55),faceData.d[1]+r(-15,5)];
-                d = [faceData.d[0]+r(-5,5),faceData.d[1]+r(-5,5)];
+                d = [faceData.d[0]+r(-5,5),faceData.d[1]+r(0,8)];
             }
             else{ // 男
-                a = [faceData.d[0]+r(20,25),faceData.d[1]+r(-5,15)];
+                a = [faceData.d[0]+r(25,35),faceData.d[1]+r(-5,20)];
                 b = [faceData.d[0]+r(-5,5),faceData.d[1]-r(0,10)];
                 c = [faceData.d[0]-r(70,95),faceData.d[1]+r(-15,5)];
-                d = [faceData.d[0]+r(-5,5),faceData.d[1]+r(-5,5)];
+                d = [faceData.d[0]+r(-5,5),faceData.d[1]+r(0,8)];
             }
 
             let res = {
@@ -1381,7 +1381,7 @@ export default {
 
             // 生成双眉轮廓
             let cp1,cp2,cp3;
-            cp1 = [r(a[0]-5,a[0]),r(a[1]-8,a[1]-3)];
+            cp1 = [r(a[0]-10,a[0]-5),r(a[1]-8,a[1]-3)];
             cp2 = [r(c[0],c[0]+3),r(c[1]-10,c[1]-5)];
             cp3 = [r(d[0]-20,d[0]-10),r(d[1],c[1])];
 
@@ -1537,7 +1537,7 @@ export default {
             let xRange,yRange,xItv,yItv;
             if(lashMode==0){ // 睫毛在上部
                 xRange = [b[0]-12,a[0]-5];
-                yRange = [cp1[1]-eyeHeight/2,cp1[1]+eyeHeight/5];
+                yRange = [cp1[1]-eyeHeight/5,cp1[1]+eyeHeight/5];
             }
             else{ // 睫毛在下部
                 xRange = [b[0]-12,c[0]];
@@ -1553,7 +1553,7 @@ export default {
                     eps.push(newEp);
                 }
                 for(let i=0;i<2;i++){
-                    eps[i][1] += Math.round((c[1]-eps[i][1])*.5);
+                    eps[i][1] += Math.round((c[1]-eps[i][1])*.4);
                 }
                 // eps.push([b[0]-yItv,b[1]]);
             }
