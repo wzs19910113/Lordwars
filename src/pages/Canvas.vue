@@ -45,10 +45,17 @@
             <div class="cvs-bg">
                 <div class="hline"></div>
                 <div class="point pan-point" :style="{top:panPoint[1]+'px',left:panPoint[0]+'px'}"></div>
-                <div class="point modify-point" :style="{top:modifyPoint[1]+'px',left:modifyPoint[0]+'px'}" v-if="strokeMode==3&&modifyPointIndex>=0&&modifyStep==1"></div>
+                <div class="point modify-point" :style="{top:modifyPoint[2]+'px',left:modifyPoint[1]+'px'}" v-if="strokeMode==3&&modifyStep==1"></div>
+                <div class="point all-point" v-if="showAllPoints" :class="point[4]?'curve-point':''" v-for="point in allPoints" :style="{top:point[2]+'px',left:point[1]+'px'}"></div>
             </div>
             <canvas class="cvs" width="500" height="500" ref="cvs" @click="onClickCanvas" />
         </div>
+        <!-- <div class="wrap board">
+            {{JSON.stringify(allPoints)}}
+            <br/>
+            <br/>
+            {{JSON.stringify(modifyPoint)}}
+        </div> -->
         <div class="wrap board" v-if="person.name">
             <h4>{{person.name}}</h4>
             <div><label>性别：</label><span>{{person.gender==1?'男':'女'}}</span></div>
@@ -102,13 +109,15 @@ export default {
             curveStep: 0, // [0:设置拐点|1:设置终点]
             curvePoint: [0,0,], // 拐点
 
-            modifyPointIndex: -1, // 修改目标点下标
-            modifyPoint: [0,0,], // 修改目标点
+            modifyPoint: [0,0,0,0,0,], // 修改目标点 [mode,x,y,index,isCurvePoint]
             modifyStep: 0, // [0:选择修改点|1:修改]
 
             output: '',
 
             person: {},
+
+            showAllPoints: false, // 显示所有点
+            allPoints: [], // 所有点数组 [mode,x,y,index,isCurvePoint]
 
             hairStylePop: [],
             hairStyleMode: 0, // 修改发型模式[1:前头发|2:刘海|3:后头发]
@@ -125,7 +134,20 @@ export default {
             this.ctx = this.$refs.cvs.getContext(`2d`);
 		    this.ctx.width = 500;
 		    this.ctx.height = 500;
-            // this.drawInput();
+            this.initKeyboard();
+        },
+        initKeyboard(){ // 初始化键盘事件
+            if(!document.onkeyup){
+                document.onkeyup = event =>{
+                    let e = event||window.event||arguments.callee.caller.arguments[0];
+                    if(e&&e.keyCode==90){ // 按 Z
+                        this.onKeyupZ();
+                    }
+                };
+            }
+        },
+        onKeyupZ(){ // 按 A
+            this.showAllPoints = !this.showAllPoints;
         },
         drawInput(){
             this.ctx.clearRect(0,0,500,500);
@@ -162,6 +184,26 @@ export default {
             }
             else{
                 this.panPoint = [0,0];
+            }
+        },
+        asynAllPoints(){ // 同步拐点数组
+            let p = this.inputs[this.inputsIndex];
+            if(p){
+                let allPoints = [];
+                for(let i=0;i<p.length;i++){
+                    let option = p[i];
+                    if(option[0]==0||option[0]==1){
+                        allPoints.push([option[0],option[1],option[2],i,false]);
+                    }
+                    else if(option[0]==2){
+                        allPoints.push([option[0],option[1],option[2],i,true]);
+                        allPoints.push([option[0],option[3],option[4],i,false]);
+                    }
+                }
+                this.allPoints = allPoints;
+            }
+            else{
+                this.allPoints = [];
             }
         },
 
@@ -201,6 +243,7 @@ export default {
                 //     this.drawInput();
                 // }
                 this.asynPanPoint();
+                this.asynAllPoints();
                 this.drawInput();
             }
         },
@@ -213,42 +256,26 @@ export default {
             let x = e.offsetX;
             let y = e.offsetY;
             let setupNewInput = false;
-            let findClosetPointIndex = (x,y,points) =>{ // 寻找最近点的下标值
-                let targetPointIndex = -1; // 目标点下标
-                let minDist = Infinity; // 最小路径
-                for(let i=0;i<points.length;i++){
-                    let option = input[i];
-                    let opl = option.length;
-                    let dist = Math.sqrt(Math.pow(x-option[opl-2],2)+Math.pow(y-option[opl-1],2));
-                    if(dist<minDist){
-                        minDist = dist;
-                        targetPointIndex = i;
-                    }
-                }
-                return {
-                    distance: minDist,
-                    index: targetPointIndex,
-                };
-            };
             // 粘附
-            let closetPoint = findClosetPointIndex(x,y,input);
-            let stinkyPointDistance = closetPoint.distance;
-            let stinkyPointIndex = closetPoint.index;
-            let nx = x, ny = y;
-            if(stinkyPointDistance<2){
-                nx = input[stinkyPointIndex][input[stinkyPointIndex].length-2];
-                ny = input[stinkyPointIndex][input[stinkyPointIndex].length-1];
-            }
-            if(lastInput&&nx==lastInput[lastInput.length-2]&&ny==lastInput[lastInput.length-1]){
-                return;
-            }
-            else if(this.strokeMode==2&&this.curveStep==0){
-
-            }
-            else{
-                x = nx;
-                y = ny;
-            }
+            // let closetPoint = this.findClosetPointIndex(x,y,input);
+            // let stinkyPointDistance = closetPoint.distance;
+            // let stinkyPointIndex = closetPoint.index;
+            // let stinkyPointIsCurvePoint = closetPoint.isCurvePoint;
+            // let nx = x, ny = y;
+            // if(stinkyPointDistance<2){
+            //     nx = input[stinkyPointIndex][input[stinkyPointIndex].length-2];
+            //     ny = input[stinkyPointIndex][input[stinkyPointIndex].length-1];
+            // }
+            // if(lastInput&&nx==lastInput[lastInput.length-2]&&ny==lastInput[lastInput.length-1]){
+            //     return;
+            // }
+            // else if(this.strokeMode==2&&this.curveStep==0){
+            //
+            // }
+            // else{
+            //     x = nx;
+            //     y = ny;
+            // }
             switch(this.strokeMode){
                 case 0: // 移动
                     if(input[input.length-1]&&input[input.length-1][0]==0){
@@ -276,19 +303,24 @@ export default {
                 break;
                 case 3: // 修改
                     if(this.modifyStep==0){ // 选择修改点
-                        let targetPointIndex = findClosetPointIndex(x,y,input).index;
-                        this.modifyPointIndex = targetPointIndex;
-                        if(this.modifyPointIndex>=0){
-                            let p = input[targetPointIndex];
-                            let pl = p.length;
-                            this.modifyPoint = [p[pl-2],p[pl-1]];
-                        }
+                        let { distance, index, } = this.findClosetPointIndex(x,y,this.allPoints);
+                        this.modifyPoint = this.allPoints[index];
                         this.modifyStep = 1;
                     }
                     else{ // 修改
-                        let opl = input[this.modifyPointIndex].length;
-                        input[this.modifyPointIndex][opl-2] = x;
-                        input[this.modifyPointIndex][opl-1] = y;
+                        let isCurvePoint = this.modifyPoint[4];
+                        let pointIndex = this.modifyPoint[3];
+                        let point = input[pointIndex];
+                        if(isCurvePoint||this.modifyPoint[0]!=2){
+                            input[pointIndex][1] = x;
+                            input[pointIndex][2] = y;
+                            console.log('改1,2',input[pointIndex],this.modifyPoint);
+                        }
+                        else{
+                            input[pointIndex][3] = x;
+                            input[pointIndex][4] = y;
+                            console.log('改3,4',input[pointIndex],this.modifyPoint);
+                        }
                         this.modifyStep = 0;
                         setupNewInput = true;
                     }
@@ -300,6 +332,7 @@ export default {
                 this.inputs[this.inputsIndex] = input;
             }
             this.asynPanPoint();
+            this.asynAllPoints();
             this.drawInput();
         },
         onClickX2(e){ // 乘2
@@ -350,7 +383,7 @@ export default {
             if(!this.output)
                 return;
             let outputD = JSON.parse(this.output);
-            for(let k=0;k<outputD.length;k++){
+            for(let k=outputD.length-1;k>=0;k--){
                 let next = [...outputD[k]];
                 if(next[0]!=2){
                     next[1] = 500-next[1];
@@ -455,6 +488,7 @@ export default {
             this.inputsIndex++;
             this.inputs[this.inputsIndex] = JSON.parse(this.output);
             this.asynPanPoint();
+            this.asynAllPoints();
             this.drawInput();
         },
         onClickSelectHairStyle(flag){ // 点击【选择发型】按钮
@@ -530,6 +564,32 @@ export default {
             this.hairStylePop = [];
             this.hairStyleMode = 0;
         },
+        onClickRandom(gender){ // 点击【随机人物】按钮
+            let person = this.genRandomPerson({gender});
+            // let person = this.genRandomPerson({gender,level:r(0,3)});
+            let avatarData = this.genRandomAvatar(500,person);
+            person.avatarData = avatarData;
+            this.paintAvatar(this.ctx,500,avatarData);
+            this.person = person;
+            console.log(`生成一个人`,person);
+        },
+        findClosetPointIndex(x,y,points){ // 寻找最近点的下标值
+            let targetPointIndex = -1; // 目标点下标
+            let minDist = Infinity; // 最小路径
+            for(let i=0;i<points.length;i++){
+                let option = points[i];
+                let dist;
+                dist = Math.sqrt(Math.pow(x-option[1],2)+Math.pow(y-option[2],2));
+                if(dist<minDist){
+                    minDist = dist;
+                    targetPointIndex = i;
+                }
+            }
+            return {
+                distance: minDist,
+                index: targetPointIndex,
+            };
+        },
         genPersonalityTip(){
             let res = '-';
             if(this.person.name){
@@ -572,15 +632,6 @@ export default {
                 }
             }
             return res;
-        },
-        onClickRandom(gender){ // 点击【随机人物】按钮
-            let person = this.genRandomPerson({gender});
-            // let person = this.genRandomPerson({gender,level:r(0,3)});
-            let avatarData = this.genRandomAvatar(500,person);
-            person.avatarData = avatarData;
-            this.paintAvatar(this.ctx,500,avatarData);
-            this.person = person;
-            console.log(`生成一个人`,person);
         },
 
         /*
@@ -1532,7 +1583,7 @@ export default {
                 lashCount = r(6,9);
             }
             else{ // 睫毛在下部
-                lashCount = r(2,4);
+                lashCount = r(2,3);
             }
             let xRange,yRange,xItv,yItv;
             if(lashMode==0){ // 睫毛在上部
@@ -1543,11 +1594,11 @@ export default {
                 xRange = [b[0]-12,c[0]];
                 yRange = [c[1]+4,cp2[1]+5];
             }
-            xItv = Math.round((xRange[1]-xRange[0])/(lashCount+0));
-            yItv = Math.round((yRange[1]-yRange[0])/(lashCount+0));
             // 起始点为 a，终点为 ep
             let eps = [];
             if(lashMode==0){ // 睫毛在上部
+                xItv = Math.round((xRange[1]-xRange[0])/(lashCount+0));
+                yItv = Math.round((yRange[1]-yRange[0])/(lashCount+0));
                 for(let i=0;i<lashCount;i++){
                     let newEp = [xRange[1]-i*xItv-i*3,yRange[0]+i*yItv];
                     eps.push(newEp);
@@ -1555,9 +1606,10 @@ export default {
                 for(let i=0;i<2;i++){
                     eps[i][1] += Math.round((c[1]-eps[i][1])*.4);
                 }
-                // eps.push([b[0]-yItv,b[1]]);
             }
             else{ // 睫毛在下部
+                xItv = Math.round((xRange[1]-xRange[0])/(lashCount+0));
+                yItv = Math.round((yRange[1]-yRange[0])/(lashCount+2));
                 for(let i=0;i<lashCount;i++){
                     let newEp = [xRange[0]+i*xItv,yRange[0]+i*yItv];
                     eps.push(newEp);
@@ -2049,21 +2101,23 @@ export default {
                 }
             }
             // 随机造型
-            for(let option of outline){
-                let dr = r(100,104)/100;
-                // console.log(dr);
-                if(option[0]!=2){
-                    let vector = this._scale(option[1],option[2],center[0],center[1],dr);
-                    option[1] = vector[0];
-                    option[2] = vector[1];
-                }
-                else{
-                    let vector1 = this._scale(option[1],option[2],center[0],center[1],dr);
-                    let vector2 = this._scale(option[3],option[4],center[0],center[1],dr);
-                    option[1] = vector1[0];
-                    option[2] = vector1[1];
-                    option[3] = vector2[0];
-                    option[4] = vector2[1];
+            if(!rHair.fixed){
+                for(let option of outline){
+                    let dr = r(100,104)/100;
+                    // console.log(dr);
+                    if(option[0]!=2){
+                        let vector = this._scale(option[1],option[2],center[0],center[1],dr);
+                        option[1] = vector[0];
+                        option[2] = vector[1];
+                    }
+                    else{
+                        let vector1 = this._scale(option[1],option[2],center[0],center[1],dr);
+                        let vector2 = this._scale(option[3],option[4],center[0],center[1],dr);
+                        option[1] = vector1[0];
+                        option[2] = vector1[1];
+                        option[3] = vector2[0];
+                        option[4] = vector2[1];
+                    }
                 }
             }
             // 获取最高点和最低点
@@ -2165,18 +2219,20 @@ export default {
                 }
             }
             // 随机造型
-            for(let option of outline){
-                let dr = r(100,104)/100;
-                // console.log(dr);
-                if(option[0]!=2){
-                    let vector = this._scale(option[1],option[2],center[0],center[1],dr);
-                    option[1] = vector[0];
-                }
-                else{
-                    let vector1 = this._scale(option[1],option[2],center[0],center[1],dr);
-                    let vector2 = this._scale(option[3],option[4],center[0],center[1],dr);
-                    option[1] = vector1[0];
-                    option[3] = vector2[0];
+            if(!rHair.fixed){
+                for(let option of outline){
+                    let dr = r(100,104)/100;
+                    // console.log(dr);
+                    if(option[0]!=2){
+                        let vector = this._scale(option[1],option[2],center[0],center[1],dr);
+                        option[1] = vector[0];
+                    }
+                    else{
+                        let vector1 = this._scale(option[1],option[2],center[0],center[1],dr);
+                        let vector2 = this._scale(option[3],option[4],center[0],center[1],dr);
+                        option[1] = vector1[0];
+                        option[3] = vector2[0];
+                    }
                 }
             }
 
@@ -2334,6 +2390,18 @@ export default {
         border-radius: 3px;
         transform: translate(-50%,-50%);
         border: 1px solid blue;
+    }
+    .all-point{
+        width: 6px;
+        height: 6px;
+        border-top: 1px solid blue;
+        border-left: 1px solid blue;
+    }
+    .curve-point{
+        width: 6px;
+        height: 6px;
+        border-top: 1px solid orange;
+        border-left: 1px solid orange;
     }
     .cvs{
         position: absolute;
