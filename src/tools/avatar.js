@@ -1031,7 +1031,7 @@ function genEyesData(faceData,gender,personalities,abilities){ // 生成双眼
             min = a[1];
             max = b[1];
         }
-        lineWidth = r(7,10);
+        lineWidth = r(2,7);
     }
     else{ // 男
         a = [faceData.e[0]+r(45,60),faceData.e[1]-r(5,30)];

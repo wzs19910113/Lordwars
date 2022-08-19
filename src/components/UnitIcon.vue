@@ -323,7 +323,7 @@ export default {
         width: 140px;
         height: 140px;
         top: -32px;
-        left: -32px;
+        left: -30px;
         background-color: #333;
         opacity: 0;
         border-radius: 70px;

@@ -143,9 +143,9 @@ export default {
                 }
                 let person1 = {
                         id: 1,
-                        name: '阿奇',
+                        name: '阿琪',
                         age: 20,
-                        gender: 1, // [1:男|2:女]
+                        gender: 2, // [1:男|2:女]
                         personalities: [10,20,30,40,50,], // 性格（0-100）
                         abilities: [200,344,252,180,30], // 能力（>0） [力量，精准，速度，智力，经验]
                         hp: 220,
@@ -174,7 +174,7 @@ export default {
                             fixawareness: 7000,
                         }, // 副手武器
                         skills: skills1,
-                        isAI: false,
+                        isAI: true,
                         relations: [ // 与其他角色的关系
                             {
                                 id: 2, // 对应人物 ID

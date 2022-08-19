@@ -31,7 +31,7 @@ export default {
                     id: 0,
                     desc: `『键盘<b>F</b>』在意志低于 ${CONFIG.powRechargeTreshold} 点的条件下恢复 ${CONFIG.powRechargeValue} 点意志`,
                 },{
-                    name: '探查',
+                    name: '追踪',
                     id: 1,
                     desc: `『键盘<b>T</b>』提高敌方存在感最高的单位 ${Math.round(CONFIG.observeValue/100)}% 的存在感`,
                 },{

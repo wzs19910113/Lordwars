@@ -196,7 +196,7 @@ export default {
                 {
                     caster: {...unit,changes},
                     targets: [{...unit,changes},...],
-                    actionType: 1, // [0:其他|1:普通攻击|2:技能|3:探查]
+                    actionType: 1, // [0:其他|1:普通攻击|2:技能|3:追踪]
                 }
             */
 
@@ -751,8 +751,8 @@ export default {
                 // console.log(`敌方单位回合动作`,'集中');
                 this.execFocus();
             }
-            else if(commond.actionType==3){ // 探查
-                // console.log(`敌方单位回合动作`,'探查');
+            else if(commond.actionType==3){ // 追踪
+                // console.log(`敌方单位回合动作`,'追踪');
                 this.execObserve();
             }
         },
@@ -919,7 +919,7 @@ export default {
                 case 0: // 集中
                     this.execFocus();
                 break;
-                case 1: // 探查
+                case 1: // 追踪
                     this.execObserve();
                 break;
                 case 2: // 置后
@@ -1949,7 +1949,7 @@ export default {
             }
             this.endRound();
         },
-        execObserve(){ // 执行【探查】
+        execObserve(){ // 执行【追踪】
             let curUnit = this.curUnits[this.curUnitIndex];
             if(curUnit.pow>=CONFIG.observeConsume){
                 let enemyTeam = curUnit.side==1?this.meTeam:this.youTeam;
@@ -1986,8 +1986,8 @@ export default {
                         targets,
                         actionType: 3,
                     }
-                    // 播放探查动画
-                    this.playAnimation(caster,targets,'进行探查');
+                    // 播放追踪动画
+                    this.playAnimation(caster,targets,'进行追踪');
                 }
             }
             else{
@@ -2373,6 +2373,7 @@ export default {
         opacity: .8;
     }
     .top-block{
+        padding-top: 20px;
         height: 300px;
         display: flex;
         justify-content: space-around;

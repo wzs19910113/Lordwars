@@ -457,11 +457,11 @@ module.exports = {
 		switchWeaponMove: 7500, // 切换武器后得到的行动力
 		attackTypeNameMap: ['割锯','突刺','钝击','火炮','射击','抽击'],
 		equipItemNameMap: ['head','hands','body','legs','foots',],
-		observeValue: 1000, // 探查提供存在感增加值
-		observeConsume: 1, // 探查消耗意志值
+		observeValue: 1000, // 追踪提供存在感增加值
+		observeConsume: 1, // 追踪消耗意志值
 		escapeConsume: 1, // 逃跑消耗意志值
 		switchConsume: 1, // 切换武器消耗意志值
-		observeAwarenessIncrement: 1000, // 探查提升的存在感增量
+		observeAwarenessIncrement: 1000, // 追踪提升的存在感增量
 		powRechargeTreshold: 5, // 集中的意志触发条件阈值
 		powRechargeValue: 1, // 集中的意志补充值
 		powDamageFromStab: [20,30,40,50,60,70,80,90,100,], // 抽击减少行意志值

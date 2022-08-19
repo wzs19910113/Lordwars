@@ -4,7 +4,7 @@ import * as common from './common';
 
  /* 生成 AI 动作指令
  @return {
-    actionType: 0, // [0:攻击|1:技能|2:集中|3:探查]
+    actionType: 0, // [0:攻击|1:技能|2:集中|3:追踪]
     targets: [],
     attack: {
         type: 0, // 0-5
@@ -371,9 +371,9 @@ export function genActionCommand(unit,unitTeam,enemyTeam){
         pushToArray(actionPool,action,focusTrendIndex);
     }
 
-    // 生成探查指令
+    // 生成追踪指令
     let genObserveCommand = _ =>{
-        let observeTrendIndex = 0; // 探查倾向分数
+        let observeTrendIndex = 0; // 追踪倾向分数
         let action = {
             actionType: 3,
         };
@@ -450,7 +450,7 @@ function getActionDesc(action){
         res = '集中';
     }
     else if(action.actionType==3){
-        res = '探查';
+        res = '追踪';
     }
     return res;
 }
