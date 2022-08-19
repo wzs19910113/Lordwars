@@ -1,39 +1,35 @@
 <template>
     <a class="unit-icon" :class="{'dead':unit.dead}" @click="onClick(unit)" :style="{opacity:(this.unit.awareness<=0?`.6`:`1`)}">
         <div class="icon-wrap" :class="highlight?'hightlight':''">
-            <b class="icon" :class="meClass+' '+calcIconColor()">
-                <span class="icon-title" v-if="unit.title">{{unit.title}}</span>
-                <span class="icon-name">{{unit.name}}</span>
+            <div class="icon" :class="meClass">
+                <canvas class="cvs" width="141" height="141" ref="cvs" />
                 <span :class="`bonus-tags bonus-${tag}`" v-for="(tag,index) in bonusTags"></span>
-            </b>
-            <div class="weapon-name" v-if="unit.equipments.hands.name">{{unit.equipments.hands.name}}{{`${unit.equipments.hands.type==2?'(全)':''}`}}</div>
+                <div class="icon-name">{{unit.name}}</div>
+            </div>
+            <div class="weapon-name" v-if="unit.weapon.name">{{unit.weapon.name}}{{`${unit.weapon.type==2?'(全)':''}`}}</div>
             <div class="cur" v-if="unit.cursor==1&&!meClass"></div>
             <div v-for="(animateClass,index) in animates" :class="animateClass"></div>
             <div class="float minus" v-for="(gold,index) in changes.gold">{{changeFormat(gold)}}</div>
             <div class="acttime" :class="unit.dead?'':'acttime-flash'" v-if="unit.actTimePerRound>1">{{['精英','神将精英'][unit.actTimePerRound-2]}}</div>
         </div>
-        <Bar1 class="bar-1" title="生命" :type="1" :crt="unit.hp" :max="unit.maxhp" :changes="changes.hp" />
-        <Bar1 class="bar-2" title="意志" :type="2" :crt="unit.pow" :max="unit.maxpow" :changes="changes.pow" :checkSuffix="!unit.dead&&!unit.me&&unit.isCreep" />
-        <Bar1 class="bar-3" title="存在感" :type="3" :crt="unit.awareness" :changes="changes.awareness" />
-        <Bar1 class="bar-4" title="行动力" :type="4" :crt="unit.move" :changes="changes.move" :checkSuffix="!unit.dead&&!unit.me&&unit.isCreep" />
-        <Bar2 class="bar-5" title="力" :type="1" :crt="unit.str" :max="unit.fixstr" :changes="changes.str" />
-        <Bar2 class="bar-6" title="准" :type="2" :crt="unit.acr" :max="unit.fixacr" :changes="changes.acr" />
-        <Bar2 class="bar-7" title="速" :type="3" :crt="unit.dex" :max="unit.fixdex" :changes="changes.dex" />
+        <bar4 class="bar-1" title="存在感" :type="1" :crt="unit.awareness" :changes="changes.awareness" />
+        <Bar4 class="bar-2" title="行动力" :type="2" :crt="unit.move" :changes="changes.move" :checkSuffix="!unit.dead&&!unit.me&&unit.isCreep" />
         <div class="buff-wrap" v-if="!unit.dead">
             <BuffIcon :buff="buff" :key="index" :mouseon="showTip" :mouseoff="hideTip" v-for="(buff,index) in unit.buffs" />
             <span class="buff-tip" v-if="tip">{{tip}}<br/>{{tip2}}</span>
         </div>
         <div class="death-cover" v-if="unit.dead">战<br/>退</div>
-        <div class="miss-cover" v-if="changes.miss">未捕获目标</div>
+        <div class="miss-cover" v-if="changes.miss">未命中</div>
     </a>
 </template>
 <script>
-import Bar1 from '../components/Bar1';
-import Bar2 from '../components/Bar2';
+import Bar4 from '../components/Bar4';
 import BuffIcon from '../components/BuffIcon';
 import { query, r, bulbsort, getParentNode, getMatchList, removeFromList, } from '../tools/utils';
 import * as common from '../tools/common';
+import { genRandomAvatar, paintAvatar, genForeHairData, genBangsData, genBackHairData, } from '../tools/avatar';
 import { DEBUG, CONFIG, CACHE } from '../config/config';
+const CVSLEN = 141;
 export default {
     props:{
         state: Number, // 战场状态
@@ -63,6 +59,8 @@ export default {
                 miss: 0,
             },
 
+            ctx: null,
+
             tip: '',
             tip2: '',
 
@@ -82,26 +80,8 @@ export default {
     },
     methods: {
         init(){
-        },
-        calcIconColor(){
-            let res = '';
-            let unit = this.unit;
-            if((unit.isCreep&&!unit.isBoss&&unit.actTimePerRound==1)||(!unit.isCreep&&!unit.me)){
-                res = 'grey';
-            }
-            else if(unit.isBoss){
-                res = 'red';
-            }
-            else if(unit.isCreep&&unit.actTimePerRound==2){
-                res = 'blue';
-            }
-            else if(unit.isCreep&&unit.actTimePerRound==3){
-                res = 'darkblue';
-            }
-            else if(unit.me&&unit.standpoint!=4){
-                res = 'white';
-            }
-            return res;
+            this.ctx = this.$refs.cvs.getContext(`2d`);
+            paintAvatar(this.ctx,this.unit.avatarData,CVSLEN);
         },
         showTip(buff){
             this.tip = `${buff.name} [等级 ${buff.level}]：${buff.desc}`;
@@ -206,8 +186,7 @@ export default {
         },
     },
     components:{
-        Bar1,
-        Bar2,
+        Bar4,
         BuffIcon,
     },
 };
@@ -223,10 +202,11 @@ export default {
     .icon-wrap{
         position: absolute;
         top: 12px;
-        left: 8px;
-        height: 66px;
-        width: 66px;
+        left: 20px;
+        height: 80px;
+        width: 80px;
         z-index: 100;
+        /* border: 1px solid #000; */
     }
     .icon{
         position: absolute;
@@ -239,14 +219,16 @@ export default {
         align-items: center;
         flex-direction: column;
         text-align: center;
-        background-color: #111;
-        color: #fff;
-        box-shadow: 0 0 8px #fff;
-        border-radius: 33px;
-        z-index: 100;
+        background-color: transparent;
+        border-radius: 40px;
+        z-index: 102;
+    }
+    .cvs{
+        width: 141px;
+        height: 141px;
     }
     .hightlight{
-        border-radius: 33px;
+        border-radius: 50px;
         animation: intervalShadow .5s ease-in-out alternate infinite;
         z-index: 10001;
     }
@@ -258,60 +240,58 @@ export default {
             box-shadow: 0 0 50px 10px #000;
         }
     }
-    .grey{
-        /* background-color: #444; */
-    }
-    .red{
-        background-color: Crimson;
-        border: 2px solid Orange;
-        box-shadow: 0 0 12px 12px Purple;
-        text-shadow: 0 0 10px #fff;
-    }
-    .blue{
-        background-color: Purple;
-        border: 1px solid Purple;
-    }
-    .darkblue{
-        background-color: FireBrick;
-        box-shadow: 0 0 4px 4px Orange;
-    }
-    .white{
+    .icon-name{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: absolute;
+        bottom: -28px;
+        left: 0;
+        right: 0;
+        width: auto;
+        margin: 0 auto;
+        height: 20px;
+        line-height: 20px;
+        white-space: nowrap;
+        word-break: keep-all;
+        padding: 0 6px;
+        text-align: center;
+        font-size: 22px;
         color: #111;
-        border: 2px solid #111;
-        background-color: #ddd;
-    }
-    .icon-title{
-        display: block;
+        z-index: 103;
+        font-weight: bold;
+        text-shadow: 0 0 10px #fff;
+        /* background-color: #aaa; */
     }
     .weapon-name{
         position: absolute;
-        top: -4px;
-        left: 54px;
+        top: 115px;
+        left: 0;
+        width: 100%;
         height: 15px;
         line-height: 15px;
-        width: auto;
         white-space: nowrap;
         word-break: keep-all;
         padding: 0 2px;
-        text-align: left;
-        color: #111;
+        text-align: center;
+        font-size: 14px;
+        color: #666;
         z-index: 101;
-        font-weight: bold;
         text-shadow: 0 0 4px #fff;
-        border-bottom: 1px solid #666;
     }
     .acttime{
         position: absolute;
         display: inline-block;
         top: -4px;
-        right: -115px;
-        height: 16px;
+        left: -20px;
+        max-height: 74px;
         line-height: 16px;
-        max-width: 60px;
-        padding: 0 4px;
+        writing-mode: horizontal-tb;
+        max-width: 20px;
+        padding: 4px 0;
         text-align: center;
-        white-space: nowrap;
-        word-break: keep-all;
+        white-space: wrap;
+        word-break: break-all;
         background-color: Orange;
         color: #fff;
         z-index: 100;
@@ -340,13 +320,13 @@ export default {
     .cur{
         position: absolute;
         z-index: 90;
-        width: 120px;
-        height: 120px;
-        top: -27px;
-        left: -27px;
+        width: 140px;
+        height: 140px;
+        top: -32px;
+        left: -32px;
         background-color: #333;
         opacity: 0;
-        border-radius: 75px;
+        border-radius: 70px;
         animation: cur .5s infinite alternate;
     }
     @keyframes cur {
@@ -359,44 +339,24 @@ export default {
         transition: .1s all;
         transform: scale(1.22);
     }
-    .bar-1,.bar-2,.bar-3,.bar-4{
+    .bar-1,.bar-2{
         position: absolute;
-        left: 8px;
-    }
-    .bar-5,.bar-6,.bar-7{
-        position: absolute;
-        top: 30px;
+        top: 10px;
     }
     .bar-1{
-        top: 90px;
+        right: 42px;
     }
     .bar-2{
-        top: 110px;
-    }
-    .bar-3{
-        top: 130px;
-    }
-    .bar-4{
-        top: 150px;
-    }
-    .bar-5{
-        left: 70px;
-    }
-    .bar-6{
-        left: 107px;
-    }
-    .bar-7{
-        left: 144px;
+        right: 0;
     }
     .buff-wrap{
         position: absolute;
         left: 0;
         right: 0;
-        top: 164px;
+        top: 142px;
         /* bottom: 0; */
-        padding: 4px;
-        min-height: 72px;
-        max-height: 136px;
+        padding: 0;
+        height: 96px;
         width: 100%;
         margin: 0 auto;
         display: flex;
@@ -414,11 +374,11 @@ export default {
         background-color: #131313;
         border: 1px solid #131313;
         left: 0;
-        bottom: 70px;
+        bottom: 90px;
         color: #fff;
         font-size: 12px;
         padding: 0 6px;
-        z-index: 20;
+        z-index: 120;
     }
     .death-cover{
         position: absolute;
@@ -440,20 +400,19 @@ export default {
     }
     .miss-cover{
         position: absolute;
-        left: -25%;
-        right: -25%;
+        left: -35%;
         top: 30%;
         display: flex;
         justify-content: center;
         align-items: center;
-        width: 180%;
+        width: 170%;
         height: 80px;
         color: #fff;
         font-size: 28px;
         font-weight: bold;
         background-image: linear-gradient(to right, rgba(0,0,0,0), #000, rgba(0,0,0,0));
         text-shadow: 0 0 10px #000;
-        z-index: 90;
+        z-index: 130;
         animation: miss 2.5s ease-out forwards;
     }
     @keyframes miss{

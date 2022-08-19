@@ -94,7 +94,7 @@ import BuffIcon from '../components/BuffIcon';
 import SkillBoard from '../components/SkillBoard';
 import AttackBoard from '../components/AttackBoard';
 import OtherBoard from '../components/OtherBoard';
-import { query, r, rr, shuffle, bulbsort, getParentNode, getMatchList, removeFromList, removeFromNumberList, arrContains, } from '../tools/utils';
+import { query, r, rr, cloneObj, shuffle, bulbsort, getParentNode, getMatchList, removeFromList, removeFromNumberList, arrContains, } from '../tools/utils';
 import * as common from '../tools/common';
 import * as ai from '../tools/ai';
 import { DEBUG, CONFIG, CACHE } from '../config/config';
@@ -105,9 +105,61 @@ export default {
         game: Object,
         /*
         data: {
-            meTeam: [],
+            meTeam: [{
+                id: 1,
+                name: '阿奇',
+                age: 20,
+                gender: 1, // [1:男|2:女]
+                personalities: [10,20,30,40,50,], // 性格（0-100）
+                abilities: [222,444,222,180,30], // 能力（>0） [力量，精准，速度，智力，经验]
+                hp: 5000,
+                pow: 1000,
+                imm: 22, // 状态抗性
+                baseAttack: 8, // 基础攻击力
+                fixawareness: 1300, // 固有存在感（0-10000）
+                weapon: { // 武器
+                 	id: 1,
+                	name: '铁剑',
+                	dmg: [12,11,3,0,0,0,], // [0:割据|1:突刺|2:钝击|3:炮火|4:射击|5:抽击]
+                	buffLevels: [1,2,1,0,0,0], // 攻击对应buff等级
+                	consume: [4,3,2,0,0,0],
+                	type: 2, // [1:攻击单人|2:攻击全体]
+                },
+                viceWeapon: {}, // 副手武器
+                skills: [{ // 技能数组
+                	id: 1,
+                	name: '躲避',
+                	target: 4, // [1:我方单体|2:我方全体|4:自己|5:敌方单体|6:敌方全体]
+                	effects: [8], // [1:伤害|2:治疗|3:改变意志|7:改变行动力|8:改变存在感|9:添加状态|10:解除负面状态|11:解除正面状态]
+                	dmg: [0,0,0,0,0,0,], // [0:割锯|1:突刺|2:钝击|3:火炮|4:射击|5:抽击]
+                	cure: 0, // 固定治疗
+                	cureRate: 0, // 比率治疗
+                	powShift: 0, // 改变意志
+                	attrShift: 0, // 改变基础属性
+                	awaShift: -4000, // 改变存在感
+                	moveShift: 0, // 改变行动力
+                	buffs: [], // buff序号
+                	buffLevels: [], // buff等级(1-9)
+                	consume: 7, // 意志消耗
+                	fixawareness: 0,
+                	absolute: 0, // 必中，无视对方存在感
+                }],
+                isAI: false,
+                relations: [ // 与其他角色的关系
+                    {
+                        id: 2, // 对应人物 ID
+                        values: [0,0,0,], // [亲密度(0,无限),喜爱度(-无限,无限),信任度(-无限,无限) ]
+                    },
+                ]
+            }],
             youTeam: [],
-            mode: 1, // 战斗模式 [0:非战斗状态|1:过招|2:厮杀|3:观战|4:战前调整]
+            map: {
+
+            },
+            cell: {
+
+            },
+            mode: 1, // 战斗模式 [0:非战斗状态|1:过招|2:厮杀|3:观战]
         }
         */
         data: Object,
@@ -212,77 +264,17 @@ export default {
                 console.log('我的队伍',this.meTeam);
                 console.log('敌方队伍',this.youTeam);
                 console.log('模式',this.data.mode);
+                console.log('地图',this.data.map);
                 console.log('格子',this.data.cell);
-                console.log(this.data);
             }
             for(let unit of this.meTeam){
                 if(unit.isTempMember){
                     this._alert(`${unit.name} 援助作战`);
                 }
             }
-            if(this.data.mode==4){ // 调整模式，自动开始
-                this.onClickStartFight();
-
-                // TODO
-                // let allUnits = [...this.meTeam,...this.youTeam];
-                // let targets = [];
-                // for(let unit of allUnits){
-                //     let slots = unit.slots||[];
-                //     let newTarget = {
-                //         ...unit,
-                //         dmg: [0,0,0,0,0,0,],
-                //         changes: {
-                //             buffs: [],
-                //             removeBuffs: [],
-                //             removeCertainBuffs: [],
-                //         },
-                //     }
-                //     for(let i=1;i<9;i++){
-                //         let buff = this.genBuff(i,5);
-                //         newTarget.changes.buffs.push(buff);
-                //     }
-                //     targets.push(newTarget);
-                // }
-                // this.effectData = {
-                //     targets,
-                //     actionType: 2,
-                // }
-                // this.settleEffect(this.effectData);
-            }
-            else if(this.data.mode==2){ // 厮杀模式，启动光环效果
-                let allUnits = [...this.meTeam,...this.youTeam];
-                let targets = [];
-                for(let unit of allUnits){
-                    let slots = unit.slots||[];
-                    let newTarget = {
-                        ...unit,
-                        dmg: [0,0,0,0,0,0,],
-                        changes: {
-                            buffs: [],
-                            removeBuffs: [],
-                            removeCertainBuffs: [],
-                        },
-                    }
-                    for(let slot of slots){
-                        if(slot.id){ // 如果此槽位已填充
-                            let buff = this.genBuff(slot.buffId,slot.level);
-                            newTarget.changes.buffs.push(buff);
-                        }
-                    }
-                    targets.push(newTarget);
-                }
-
-                this.effectData = {
-                    targets,
-                    actionType: 2,
-                }
-
-                this.settleEffect(this.effectData);
-            }
             this.initKeyboard();
         },
         initKeyboard(){ // 初始化键盘事件
-            // if(!document.onkeyup&&this.data.mode!=4){ // 非调整模式
             if(!document.onkeyup){
                 document.onkeyup = event =>{
                     let e = event||window.event||arguments.callee.caller.arguments[0];
@@ -337,123 +329,42 @@ export default {
         },
         formatUnit(member,index,side){ // 单位战斗数据化
             let res = {};
-            let getEquip = ename =>{
-                let res = getMatchList(this.game.allEquips,[['id',member.equipments[ename].id]])[0]||{id:0};
-                if(ename=='hands'){
-                    if(res.id==0){
-                        res.dmg = null;
-                    }
-                }
-                return res;
-            }
-            let getViceWeapon = _ =>{
-                let res = getMatchList(this.game.allEquips,[['id',member.equipments.hands.viceid]])[0]||{id:0};
-                if(res.id==0){
-                    res.dmg = null;
-                }
-                return res;
-            }
-            let getSkills = _ =>{
-                let res = [];
-                let skillCount = this.data.mode!=4?CONFIG.maxSkillCountOnBattle:member.skills.length; // 非调整模式
-                for(let i=0;i<skillCount;i++){
-                    let skillID = member.skills[i];
-                    let skill = getMatchList(this.game.allSkills,[['id',skillID]])[0];
-                    if(skill){
-                        res.push(skill);
-                    }
-                }
-                return res;
-            }
-            let equipments;
-            if(member.isCreep){ // 如果是野怪
-                equipments = member.equipments;
-            }
-            else{ // 如果是角色
-                equipments = {
-                    head: getEquip('head'),
-                    hands: getEquip('hands'),
-                    body: getEquip('body'),
-                    legs: getEquip('legs'),
-                    foots: getEquip('foots'),
-                };
-            }
-            let me = (member.standpoint==4||member.isTempMember)?1:0;
+            let abilities = member.abilities;
             res = {
                 ...member,
-                str: member.fixstr,
-                acr: member.fixacr,
-                dex: member.fixdex,
+                awareness: common.calcAwareness(member),
+                fixstr: abilities[0],
+                fixacr: abilities[1],
+                fixdex: abilities[2],
+                str: abilities[0],
+                acr: abilities[1],
+                dex: abilities[2],
                 strFacts: [0,0,0,0,],
                 acrFacts: [0,0,0,0,],
                 dexFacts: [0,0,0,0,],
                 dead: false,
-                equipments,
-                vice: getViceWeapon(),
-                skills: getSkills(),
                 cooldowns: [],
                 move: 0,
-                me,
-                side,
+                side, // [1:敌人|2:我方]
                 cursor: 0,
                 buffs: [],
                 fixBuffs: [],
                 actTimePerRound: 1,
                 actTimeIndex: 0,
-                tempImmExp: 0,
                 switchCount: 0,
             };
 
             // 数组手动赋值防止指针重叠
-            let hands = member.equipments.hands;
-            if(hands.dmg){
-                res.equipments = {
-                    head:{id:0},
-                    hands:{
-                        fixawareness: hands.fixawareness,
-                        name: hands.name,
-                        type: hands.type,
-                        buffLevels: [],
-                        dmg: [],
-                        consume: [],
-                    },
-                    body:{id:0},
-                    legs:{id:0},
-                    foots:{id:0},
-                };
-                for(let i=0;i<6;i++){
-                    res.equipments.hands.dmg[i] = hands.dmg[i];
-                    res.equipments.hands.buffLevels[i] = hands.buffLevels[i];
-                    res.equipments.hands.consume[i] = hands.consume[i];
-                }
-            }
-            res.awareness = common.calcAwareness(res);
-            if(res.awareness>CONFIG.maxAwareness){
-                res.awareness = CONFIG.maxAwareness;
-            }
-            else if(res.awareness<0){
-                res.awareness = 0;
-            }
             if(member.isCreep&&!member.isBoss){
                 res.id = 10000+index;
             }
-            // if(member.isBoss){
-            //     res.hp = 100;
-            // }
             return res;
         },
-        calcHp(member){ // 计算hp
-            let {head,hands,body,legs,foots} = member.equipments;
-            return {
-                hp: member.hp,
-                maxhp: member.maxhp+(head.hp||0)+(hands.hp||0)+(body.hp||0)+(legs.hp||0)+(foots.hp||0),
-            }
-        },
         calcBanAttacks(unit){ // 返回‘禁用攻击’数组
-            let hands = unit.equipments.hands,
-                dmg = hands.dmg,
-                attackableTargetCount = common.getAliveUnitArr(this.youTeam).length, // 可攻击的敌人数量
-                res = [];
+            let hands = unit.weapon;
+            let dmg = hands.dmg;
+            let attackableTargetCount = common.getAliveUnitArr(this.youTeam).length; // 可攻击的敌人数量
+            let res = [];
             if(dmg){
                 for(let i=0;i<dmg.length;i++){
                     let thisDmg = dmg[i];
@@ -468,7 +379,7 @@ export default {
         },
         setOptionState(optionState,detailInform){ // 设置操作面板的步骤
             let curUnit = this.curUnits[this.curUnitIndex];
-            let weapon = getMatchList(this.game.allEquips,[['id',curUnit.equipments.hands.id]])[0];
+            let weapon = curUnit.weapon;
             this.detailInform = [((weapon&&weapon.lastAttackAction&&this.data.mode!=4)?'（按 A 键重复上一次攻击）':''),'选择攻击手段','选择目标','选择技能','选择目标',detailInform][optionState-1];
             this.optionState = optionState;
         },
@@ -535,15 +446,11 @@ export default {
                             nextChanges[valueName] = nValue-oValue;
                             this.playNumberAnimation([{...unit,changes:nextChanges,}]);
                         }
-                        // 领队效果
-                        // if(buff.id==17){
-                        //     unit.actTimePerRound = 1;
-                        // }
                     }
                 }
                 let buffObj;
                 // 如果是玩家单位，且正在逃亡
-                if(this.escapeTime>0&&unit.me){
+                if(this.escapeTime>0&&unit.side==2){
                     let escapeTime = this.escapeTime;
                     escapeTime -= unit.dex;
                     if(escapeTime<0){
@@ -688,7 +595,7 @@ export default {
         unitRound(unit,resetActTime){ // 单位回合动作
             // console.log(`单位回合动作`,unit.name);
             this.inform = `${unit.name}`;
-            let weapon = getMatchList(this.game.allEquips,[['id',unit.equipments.hands.id]])[0];
+            let weapon = unit.weapon;
             let targets = [];
             let buffs = unit.buffs;
             let canBeTarget = 0;
@@ -713,17 +620,6 @@ export default {
                 let { base, lvlup, level } = buff;
                 let increment = base+lvlup*(level-1);
                 let val = 0;
-                // if(buff.id==17&&resetActTime){ // 领队效果
-                //     canBeTarget = true;
-                //     let rt = r(0,100);
-                //     if(rt<=increment*100){
-                //         unit.actTimePerRound = 2;
-                //     }
-                //     else{
-                //         unit.actTimePerRound = 1;
-                //     }
-                //     unit.actTimeIndex = unit.actTimePerRound;
-                // }
                 if(buff.id==103){ // 内伤bufff
                     canBeTarget = true;
                     val = Math.round(1.5*(increment-1)+unit.maxhp*.001*increment);
@@ -766,18 +662,16 @@ export default {
                 this.endRound();
             }
             else{
-                if(unit.me){
-                    this.playerRound(unit);
+                if(unit.isAI){
+                    this.aiRound(unit);
                 }
                 else{
-                    this.aiRound(unit);
+                    this.playerRound(unit);
                 }
             }
         },
         playerRound(unit){ // 玩家操控单位回合动作
-            let { equipments, skills, } = unit,
-                { head, hands, body, legs, foots, } = equipments,
-                buffObj;
+            let buffObj;
             this.state = 3;
             unit.cursor = 1;
             if(buffObj=common.getBuffObj(unit,107)){ // 沉默bufff
@@ -951,13 +845,13 @@ export default {
             if(this.state==3){
                 if(this.optionState==3){ // 被选中为攻击对象
                     if(unit.dead) return;
-                    if(!unit.me){
+                    if(unit.side==1){
                         this.execAttack(curUnit,attack,[unit],0);
                     }
                 }
                 else if(this.optionState==5){ // 被选中为技能释放对象
-                    if((this.castingSkill.target==1&&unit.me)
-                        ||(this.castingSkill.target==5&&!unit.me)
+                    if((this.castingSkill.target==1&&unit.side==2)
+                        ||(this.castingSkill.target==5&&unit.side==1)
                         ||this.castingSkill.target==9){
                         this.execSkill(this.curUnits[this.curUnitIndex],this.castingSkill,[unit]);
                     }
@@ -966,12 +860,12 @@ export default {
         },
         onClickAttack(){ // 点击【攻击】按钮
             let curUnit = this.curUnits[this.curUnitIndex];
-            curUnit.equipments.hands.banAttacks = this.calcBanAttacks(curUnit);
+            curUnit.weapon.banAttacks = this.calcBanAttacks(curUnit);
             this.setOptionState(2);
         },
         onClickAttackType(attack){ // 点击【攻击类型】按钮
             let curUnit = this.curUnits[this.curUnitIndex];
-            if(curUnit&&curUnit.equipments.hands.type==2&&!common.getBuffObj(curUnit,22)){ // 全体攻击
+            if(curUnit&&curUnit.weapon.type==2&&!common.getBuffObj(curUnit,22)){ // 全体攻击
                 this.execAttack(curUnit,attack,common.getAliveUnitArr(this.youTeam),1);
             }
             else{ // 单体攻击
@@ -1148,9 +1042,9 @@ export default {
         onKeyupA(){ // 按下 A 键
             if(this.state==3&&this.data.mode!=4){ // 非调整模式
                 let curUnit = this.curUnits[this.curUnitIndex];
-                let weapon = getMatchList(this.game.allEquips,[['id',curUnit.equipments.hands.id]])[0]||{};
+                let weapon = curUnit.weapon;
                 let lastAttackAction = weapon.lastAttackAction;
-                if(curUnit&&curUnit.me&&lastAttackAction){
+                if(curUnit&&!curUnit.isAI&&lastAttackAction){
                     let action = lastAttackAction;
                     let newTargets = [];
                     if(action.actionType==0){ // 上一次行动为攻击
@@ -1275,7 +1169,7 @@ export default {
                                 hpChange = -ounit.hp;
                             }
                             let goldDiff = Math.ceil(hpChange*increment);
-                            if(!ounit.me){ // 电脑操控单位
+                            if(ounit.isAI){ // 电脑操控单位
                                 goldDiff *= -1;
                             }
                             this.bonusFix += goldDiff;
@@ -1449,13 +1343,6 @@ export default {
                         ounit.dex = ounit.level*10;
                     }
                 }
-
-                // 状态抗性经验结算
-                let hpDiff = initHp-ounit.hp;
-                let hpRatio = ounit.hp/ounit.maxhp;
-                if(hpDiff>0&&hpRatio>0){ // 造成了伤害
-                    ounit.tempImmExp += Math.ceil(hpDiff*hpRatio);
-                }
                 return {
                     unit: ounit,
                     changes: newChanges,
@@ -1484,7 +1371,7 @@ export default {
                         ...result.unit,
                         changes: result.changes,
                     });
-                    if(!targetChanges.miss&&targetUnit.me&&caster&&!caster.me&&effectData.actionType!=3){ // 取消逃跑状态
+                    if(!targetChanges.miss&&targetUnit.side==2&&caster&&caster.side==1&&effectData.actionType!=3){ // 取消逃跑状态
                         if(this.escapeTime>0){
                             this.escapeTime = 0;
                             this.maxEscapeTime = 0;
@@ -1549,16 +1436,16 @@ export default {
                 targetIDs = [],
                 actionName = '',
                 damage = 0,
-                buffLevels = curUnit.equipments.hands.buffLevels||[],
+                buffLevels = curUnit.weapon.buffLevels||[],
                 rd = 0,awarnessChange,consume,buffObj,
                 attackTypes = [];
-            let weapon = getMatchList(this.game.allEquips,[['id',curUnit.equipments.hands.id]])[0];
+            let weapon = curUnit.weapon;
             // 计算攻击者
             if(buffObj=common.getBuffObj(curUnit,12)){ // 如果有潜行bufff，则不提高存在感
                 awarnessChange = 0;
             }
             else{
-                awarnessChange = curUnit.fixawareness+(curUnit.equipments.hands.fixawareness||0)+1000;
+                awarnessChange = curUnit.fixawareness+(curUnit.weapon.fixawareness||0)+1000;
             }
             consume = common.calcAttackConsume(curUnit,attack.type);
             caster = {
@@ -1570,7 +1457,7 @@ export default {
                     awareness: awarnessChange,
                     buffs: [],
                 },
-                me: curUnit.me,
+                me: curUnit.side==2,
                 side: curUnit.side,
             }
             // 出血bufff
@@ -1735,7 +1622,7 @@ export default {
             let caster = {};
             let targets = [];
             let actionName = '';
-            let buffLevels = curUnit.equipments.hands.buffLevels||[];
+            let buffLevels = curUnit.weapon.buffLevels||[];
             let rd = 0,awarnessChange,consume,buffObj;
             let attackTypes = [];
             // 计算攻击者
@@ -1751,7 +1638,7 @@ export default {
                     awarnessChange = 0;
                 }
                 else{
-                    awarnessChange = curUnit.fixawareness+(skill.fixawareness||0)+(curUnit.equipments.hands.fixawareness||0);
+                    awarnessChange = curUnit.fixawareness+(skill.fixawareness||0)+(curUnit.weapon.fixawareness||0);
                 }
             }
             consume = common.calcSkillConsume(curUnit,skill);
@@ -1803,7 +1690,7 @@ export default {
                         switch(effect){
                             case 1: // 伤害技能
                                 newTarget.dmg = [...skill.dmg];
-                                let hands = caster.equipments.hands;
+                                let hands = caster.weapon;
                                 let ratio = 0;
                                 let damage = 0;
                                 for(let i=0;i<skill.dmg.length;i++){ // 遍历每种攻击类型
@@ -1976,7 +1863,7 @@ export default {
                                 }
                             break;
                             case 10: // 解除 n 个负面状态
-                                if(!caster.me){ // 电脑
+                                if(caster.isAI){ // 电脑
                                     let targetOriginBadBuffs = getMatchList(target.buffs,[['good',0]]);
                                     shuffleBuffs = shuffle(targetOriginBadBuffs);
                                     removeBuffs = [];
@@ -1995,7 +1882,7 @@ export default {
                                 }
                             break;
                             case 11: // 解除 n 个正面状态
-                                if(!caster.me){ // 电脑
+                                if(caster.isAI){ // 电脑
                                     let targetOriginGoodBuffs = getMatchList(target.buffs,[['good',1]]);
                                     shuffleBuffs = shuffle(targetOriginGoodBuffs);
                                     removeBuffs = [];
@@ -2051,12 +1938,12 @@ export default {
                     targets,
                 }
                 this.settleEffect(this.numberEffectData);
-                if(!unit.me){
+                if(unit.isAI){
                     this._alert(`${unit.name} 集中了精神`);
                 }
             }
             else{
-                if(!unit.me){
+                if(unit.isAI){
                     this._alert(`${unit.name} 跳过回合`);
                 }
             }
@@ -2138,14 +2025,14 @@ export default {
             }
 
             // 切换武器
-            let vice = {...unit.vice};
-            unit.vice = {...unit.equipments.hands};
-            unit.equipments.hands = vice;
+            let vice = cloneObj(unit.viceWeapon);
+            unit.viceWeapon = cloneObj(unit.weapon);
+            unit.weapon = vice;
             unit.switchCount += 1;
             // 删除记忆行动
             // unit.lastAction = null;
             // 属性调整
-            let finalData = common.calcRoleFinalData(unit,this.game.allEquips,this.game.allSkills);
+            let finalData = common.calcRoleFinalData(unit);
             unit.hp = finalData.hp;
             unit.maxhp = finalData.maxhp;
             unit.pow = finalData.pow;
@@ -2179,20 +2066,7 @@ export default {
                 }
             }
 
-            // 同步全局数据
-            let ounit = getMatchList(this.game.allRoles,[['id',unit.id]])[0];
-            if(ounit){
-                ounit.hp = finalData.hp;
-                ounit.maxhp = finalData.maxhp;
-                ounit.pow = finalData.pow;
-                ounit.maxpow = finalData.maxpow;
-                ounit.fixstr = finalData.fixstr;
-                ounit.fixacr = finalData.fixacr;
-                ounit.fixdex = finalData.fixdex;
-                ounit.awareness = unit.awareness;
-                ounit.equipments.hands.id = unit.equipments.hands.id;
-                ounit.equipments.hands.viceid = unit.vice.id;
-            }
+            // 同步全局数据 TODO
 
             this.settleEffect(this.numberEffectData);
             this._alert(`${unit.name} 切换了武器`);
@@ -2394,6 +2268,7 @@ export default {
             resultData = {
                 ...resultData,
                 cell: this.data.cell,
+                map: this.data.map,
                 mode: this.data.mode,
                 meTeam: this.meTeam,
                 youTeam: this.youTeam,
@@ -2410,7 +2285,7 @@ export default {
         showBuffTip(buff){ // 显示状态提示
             this.buffTip = buff.desc;
         },
-        hideBuffTip(){ // 隐藏状态提示
+        hideBuffTip(){ // 躲避状态提示
             this.buffTip = ``;
         },
         _alert(tip){ // 弹出框

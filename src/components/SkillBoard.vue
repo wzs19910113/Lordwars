@@ -44,7 +44,7 @@ export default {
                     let { increment, buff, } = buffObj;
                     consume -= Math.ceil(consume*increment);
                 }
-                if((consume+unit.consume)>unit.pow){
+                if((consume)>unit.pow){
 
                     let name = skill.name;
                     skill.name = 'JK';

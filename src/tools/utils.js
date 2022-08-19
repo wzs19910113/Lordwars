@@ -6,6 +6,10 @@ import { DEBUG, CONFIG } from '../config/config';
 export function r(min,max){
     return Math.floor(Math.random()*(min-max-1)+max+1);
 }
+export function exptr(min,max,exp){ // 指数随机
+    let v = r(min,max);
+    return Math.round((v-min)*Math.pow(v/(max-min),exp||1)+min);
+}
 /*
   冒泡排序
   @Param arr {Array} 要进行排序的数组 [{val:30,...},{val:10,...},{val:20,...},...]
@@ -161,6 +165,9 @@ export function avg(arr,valname){ // 数组平均值
 }
 export function percent(val,max){ // 百分比显示
     return Math.floor(val*100/max);
+}
+export function calcDistance(x1,y1,x2,y2){ // 计算两点距离
+    return Math.sqrt(Math.pow(x2-x1,2)+Math.pow(y2-y1,2));
 }
 
 function genName(arr1,arr2,arr3){ // 生成名字

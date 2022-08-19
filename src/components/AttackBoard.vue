@@ -2,7 +2,7 @@
     <div class="attackboard" :class="'st-'+type">
         <div class="head">
             <a class="btn" @click="onClickCancel">返回</a>
-            <p class="tip">{{unit.equipments.hands.name||'徒手'}}</p>
+            <p class="tip">{{unit.weapon.name||'徒手'}}</p>
         </div>
         <div class="board">
             <a class="btn" :class="{'ban':attack.ban}" v-for="(attack,index) in attackTypeArray" @click="_onClickAttack(attack)">{{attack.name}}:<span class="dmg">{{attack.dmg}}</span> (<span class="pow">{{attack.consume}}</span>)</a>
@@ -31,7 +31,7 @@ export default {
     },
     methods: {
         init(){
-            let hands = this.unit.equipments.hands,
+            let hands = this.unit.weapon,
                 attackTypes = hands.dmg,
                 banAttackTypes = hands.banAttacks;
             if(!hands.dmg){

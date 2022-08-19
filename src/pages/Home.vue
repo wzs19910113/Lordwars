@@ -17,6 +17,7 @@ import Scenepage from './Scenepage';
 import { query, r, rr, bulbsort, shuffle, getParentNode, getMatchList, removeFromList, arrContains, removeFromNumberList, } from '../tools/utils';
 import * as common from '../tools/common';
 import * as ai from '../tools/ai';
+import { genRandomAvatar, paintAvatar, genForeHairData, genBangsData, genBackHairData, formatPx, } from '../tools/avatar';
 import { DEBUG, CONFIG, CACHE } from '../config/config';
 export default {
     name: 'Home',
@@ -53,212 +54,184 @@ export default {
     methods: {
         init(){
             this._confirm('开始测试？',_=>{
-                this.sceneData = {
-                    meTeam: [{
+                let skills1 = [
+                    { // 技能数组
                         id: 1,
-                        name: '万绣', // 名字
-        				standpoint: 0, // 立场 [0:路人|1:相识|2:友好|3:同道|4:在队伍中]
-                        gender: 2, // 性别 [1:男|2:女]
-                        age: 34, // 年龄
-                        fixawareness: 1000, // 固有存在感
-                        basehp: 74, // 固定生命值
-                        basepow: 120, // 固定意志
-                        basestr: 171, // 固定力量
-                        baseacr: 166, // 固定精准
-                        basedex: 90, // 固定速度
-                        consume: 1, // 基础意志消耗
-        				imm: 75,
-        				immExp: 0,
-                        baseAttack: 60, // 基础攻击力
-        				level: 10,
-                        equipments: {
-                            head: {
-        				        name: '殿皇发簪',
-        						hp: 1200,
-        						pow: 700,
-        						strOffset: 44,
-        						acrOffset: 65,
-        						dexOffset: 15,
-        						fixawareness: 0,
-        						price: 500000,
-        						equipType: 0,
-                            },
-                            hands: {
-        				        name: '宫廷剑',
-        						pow: 1300,
-        						strOffset: 205,
-        				        dmg: [61,89,68,0,0,0,], // [0:割据|1:突刺|2:钝击|3:炮火|4:射击|5:抽击]
-        						buffLevels: [8,9,9,0,0,0], // 攻击对应buff等级
-        				        consume: [1,1,1,0,0,0],
-        				        type: 2, // [1:攻击单人|2:攻击全体]
-        				        fixawareness: 3300,
-        						price: 1000000, // 价格
-        						equipType: 1,
-        						vice: {
-        							id: 0,
-        						},
-                            },
-                            body: {
-        				        name: '帝后袍',
-        						hp: 13150,
-        						pow: 520,
-        						strOffset: 140,
-        						acrOffset: 65,
-        						dexOffset: 45,
-        						fixawareness: 8000,
-        						price: 2000000,
-        						equipType: 2,
-                            },
-                            legs: {
-        				        name: '绣龙裙尾',
-        						hp: 5200,
-        						pow: 317,
-        						strOffset: 156,
-        						acrOffset: 58,
-        						dexOffset: 175,
-        						fixawareness: 5000,
-        						price: 1800000,
-        						equipType: 3,
-                            },
-                            foots: {
-        				        name: '绣龙靴',
-        						hp: 1300,
-        						pow: 350,
-        						strOffset: 90,
-        						acrOffset: 46,
-        						dexOffset: 136,
-        						fixawareness: 900,
-        						price: 500000,
-        						equipType: 4,
-                            },
+                        name: '躲避',
+                        target: 4, // [1:我方单体|2:我方全体|4:自己|5:敌方单体|6:敌方全体]
+                        effects: [8], // [1:伤害|2:治疗|3:改变意志|7:改变行动力|8:改变存在感|9:添加状态|10:解除负面状态|11:解除正面状态]
+                        dmg: [0,0,0,0,0,0,], // [0:割锯|1:突刺|2:钝击|3:火炮|4:射击|5:抽击]
+                        cure: 0, // 固定治疗
+                        cureRate: 0, // 比率治疗
+                        powShift: 0, // 改变意志
+                        attrShift: 0, // 改变基础属性
+                        awaShift: -4000, // 改变存在感
+                        moveShift: 0, // 改变行动力
+                        buffs: [], // buff序号
+                        buffLevels: [], // buff等级(1-9)
+                        consume: 7, // 意志消耗
+                        fixawareness: 0,
+                        absolute: 0, // 必中，无视对方存在感
+                    },
+                    {
+                        name: '分连箭',
+                        target: 5, // [1:我方单体|2:我方全体|3:我方随机单体|4:自己|5:敌方单体|6:敌方全体|7:敌方随机单体|8:敌我全体|9:任一单体]
+                        effects: [1,3,9], // [1:伤害|2:治疗|3:调整意志|4:调整力量|5:调整精准|6:调整速度|7:调整行动力|8:调整存在感|9:添加状态|10:解除负面状态|11:解除正面状态]
+                        dmg: [0,0,0,10,44,32,], // [0:割锯|1:突刺|2:钝击|3:火炮|4:射击|5:抽击]
+                        cure: 0, // 治疗
+                        cureRate: 0, // 比率治疗
+                        powShift: -35, // 改变意志
+                        attrShift: 0, // 改变基础属性
+                        awaShift: 0, // 改变存在感
+                        moveShift: 0, // 改变行动力
+                        buffs: [102,114,], // buff序号 #出血 #干毒
+                        buffLevels: [9,9,], // buff等级(1-9)
+                        goodImpact: 1,
+                        badImpact: 1,
+                        consume: 40, // 意志消耗
+                        fixawareness: 10000,
+                        absolute: 1, // 必中，无视对方存在感
+                    }
+                ];
+                let skills2 = [
+                    { // 技能数组
+                        id: 1,
+                        name: '躲避',
+                        target: 4, // [1:我方单体|2:我方全体|4:自己|5:敌方单体|6:敌方全体]
+                        effects: [8], // [1:伤害|2:治疗|3:改变意志|7:改变行动力|8:改变存在感|9:添加状态|10:解除负面状态|11:解除正面状态]
+                        dmg: [0,0,0,0,0,0,], // [0:割锯|1:突刺|2:钝击|3:火炮|4:射击|5:抽击]
+                        cure: 0, // 固定治疗
+                        cureRate: 0, // 比率治疗
+                        powShift: 0, // 改变意志
+                        attrShift: 0, // 改变基础属性
+                        awaShift: -9000, // 改变存在感
+                        moveShift: 0, // 改变行动力
+                        buffs: [], // buff序号
+                        buffLevels: [], // buff等级(1-9)
+                        consume: 11, // 意志消耗
+                        fixawareness: 0,
+                        absolute: 0, // 必中，无视对方存在感,
+                    },
+                    { // 技能数组
+                        id: 1,
+                        name: '治愈',
+                        target: 4, // [1:我方单体|2:我方全体|4:自己|5:敌方单体|6:敌方全体]
+                        effects: [2,9], // [1:伤害|2:治疗|3:改变意志|7:改变行动力|8:改变存在感|9:添加状态|10:解除负面状态|11:解除正面状态]
+                        dmg: [0,0,0,0,0,0,], // [0:割锯|1:突刺|2:钝击|3:火炮|4:射击|5:抽击]
+                        cure: 100, // 固定治疗
+                        cureRate: 0, // 比率治疗
+                        powShift: 0, // 改变意志
+                        attrShift: 0, // 改变基础属性
+                        awaShift: 0, // 改变存在感
+                        moveShift: 0, // 改变行动力
+                        buffs: [1], // buff序号
+                        buffLevels: [4], // buff等级(1-9)
+                        consume: 30, // 意志消耗
+                        fixawareness: 0,
+                        absolute: 0, // 必中，无视对方存在感,
+                    }
+                ];
+                for(let i=0;i<skills1.length;i++){
+                    let trends = ai.getSkillTrends(skills1[i]);
+                    skills1[i].trends = trends;
+                    skills1[i].trend = ai.getSkillTrend(skills1[i],skills1[i].trends);
+                }
+                for(let i=0;i<skills1.length;i++){
+                    let trends = ai.getSkillTrends(skills2[i]);
+                    skills2[i].trends = trends;
+                    skills2[i].trend = ai.getSkillTrend(skills2[i],skills2[i].trends);
+                }
+                let person1 = {
+                        id: 1,
+                        name: '阿奇',
+                        age: 20,
+                        gender: 1, // [1:男|2:女]
+                        personalities: [10,20,30,40,50,], // 性格（0-100）
+                        abilities: [200,344,252,180,30], // 能力（>0） [力量，精准，速度，智力，经验]
+                        hp: 220,
+                        maxhp: 220,
+                        pow: 125,
+                        maxpow: 125,
+                        imm: 2, // 状态抗性
+                        baseAttack: 8, // 基础攻击力
+                        fixawareness: 1300, // 固有存在感（0-10000）
+                        weapon: { // 武器
+                            id: 1,
+                            name: '铁剑',
+                            dmg: [12,11,3,0,0,0,], // [0:割据|1:突刺|2:钝击|3:炮火|4:射击|5:抽击]
+                            buffLevels: [1,2,1,0,0,0], // 攻击对应buff等级
+                            consume: [4,3,2,0,0,0],
+                            type: 2, // [1:攻击单人|2:攻击全体]
+                            fixawareness: 4000,
                         },
-        				halos: [], // 光环数组
-        				slots: [], // 光环槽数组
-                        skills: [ // 技能id数组
-        					{
-        						name: '隐藏',
-        				        target: 4, // [1:我方单体|2:我方全体|3:我方随机单体|4:自己|5:敌方单体|6:敌方全体|7:敌方随机单体|8:敌我全体|9:任一单体]
-        				        effects: [8], // [1:伤害|2:治疗|3:调整意志|4:调整力量|5:调整精准|6:调整速度|7:调整行动力|8:调整存在感|9:添加状态|10:解除负面状态|11:解除正面状态]
-        				        dmg: [0,0,0,0,0,0,], // [0:割锯|1:突刺|2:钝击|3:火炮|4:射击|5:抽击]
-        				        cure: 0, // 治疗
-        						cureRate: 0, // 比率治疗
-        						powShift: 0, // 改变意志
-        				        attrShift: 0, // 改变基础属性
-        				        awaShift: -7500, // 改变存在感
-        				        moveShift: 0, // 改变行动力
-        						buffs: [], // buff序号
-        						buffLevels: [], // buff等级(1-9)
-        				        consume: 9, // 意志消耗
-        						fixawareness: 0,
-        						absolute: 0, // 必中，无视对方存在感
-        						level: 1, // 等级
-        						price: 0, // 价值（为 0 时代表固有技能，无法转让和售卖）
-        					},
-        					{
-        						name: '烫川花',
-        				        target: 6, // [1:我方单体|2:我方全体|3:我方随机单体|4:自己|5:敌方单体|6:敌方全体|7:敌方随机单体|8:敌我全体|9:任一单体]
-        				        effects: [1,3,9], // [1:伤害|2:治疗|3:调整意志|4:调整力量|5:调整精准|6:调整速度|7:调整行动力|8:调整存在感|9:添加状态|10:解除负面状态|11:解除正面状态]
-        				        dmg: [49,210,120,0,0,0,], // [0:割锯|1:突刺|2:钝击|3:火炮|4:射击|5:抽击]
-        				        cure: 0, // 治疗
-        						cureRate: 0, // 比率治疗
-        						powShift: -250, // 改变意志
-        				        attrShift: 0, // 改变基础属性
-        				        awaShift: 0, // 改变存在感
-        				        moveShift: 0, // 改变行动力
-        						buffs: [102,114,], // buff序号 #出血 #干毒
-        						buffLevels: [9,9,], // buff等级(1-9)
-        						goodImpact: 1,
-        						badImpact: 1,
-        				        consume: 165, // 意志消耗
-        						fixawareness: 10000,
-        						absolute: 0, // 必中，无视对方存在感
-        						level: 9, // 等级
-        						price: 10000, // 价值（为 0 时代表固有技能，无法转让和售卖）
-        					},
-        				],
-                        teamOrder: 1,
-                    },],
-                    youTeam: [{
+                        viceWeapon: {
+                            id: 1,
+                            name: '长弓',
+                            dmg: [0,0,0,0,18,16,], // [0:割据|1:突刺|2:钝击|3:炮火|4:射击|5:抽击]
+                            buffLevels: [0,0,0,0,2,1], // 攻击对应buff等级
+                            consume: [0,0,0,0,2,1],
+                            type: 1, // [1:攻击单人|2:攻击全体]
+                            fixawareness: 7000,
+                        }, // 副手武器
+                        skills: skills1,
+                        isAI: false,
+                        relations: [ // 与其他角色的关系
+                            {
+                                id: 2, // 对应人物 ID
+                                values: [0,0,0,], // [亲密度(0,无限),喜爱度(-无限,无限),信任度(-无限,无限) ]
+                            },
+                        ]
+                    };
+                let person2 = {
                         id: 2,
-                        name: '长官', // 名字
-        				standpoint: 0, // 立场 [0:路人|1:相识|2:友好|3:同道|4:在队伍中]
-                        gender: 1, // 性别 [1:男|2:女]
-                        age: 34, // 年龄
-                        fixawareness: 1000, // 固有存在感
-                        basehp: 74, // 固定生命值
-                        basepow: 120, // 固定意志
-                        basestr: 171, // 固定力量
-                        baseacr: 166, // 固定精准
-                        basedex: 90, // 固定速度
-                        consume: 1, // 基础意志消耗
-        				imm: 75,
-        				immExp: 0,
-                        baseAttack: 60, // 基础攻击力
-        				level: 10,
-                        equipments: {
-                            head: {
-                            },
-                            hands: {
-                            },
-                            body: {
-                            },
-                            legs: {
-                            },
-                            foots: {
-                            },
+                        name: '郭核',
+                        age: 20,
+                        gender: 1, // [1:男|2:女]
+                        personalities: [10,20,30,40,50,], // 性格（0-100）
+                        abilities: [200,104,222,180,30], // 能力（>0） [力量，精准，速度，智力，经验]
+                        hp: 225,
+                        maxhp: 225,
+                        pow: 100,
+                        maxpow: 100,
+                        imm: 5, // 状态抗性
+                        baseAttack: 8, // 基础攻击力
+                        fixawareness: 1000, // 固有存在感（0-10000）
+                        weapon: { // 武器
+                            id: 1,
+                            name: '铁剑',
+                            dmg: [12,11,3,0,0,0,], // [0:割据|1:突刺|2:钝击|3:炮火|4:射击|5:抽击]
+                            buffLevels: [1,2,1,0,0,0], // 攻击对应buff等级
+                            consume: [4,3,2,0,0,0],
+                            type: 2, // [1:攻击单人|2:攻击全体]
+                            fixawareness: 4000,
                         },
-        				halos: [], // 光环数组
-        				slots: [], // 光环槽数组
-                        skills: [ // 技能id数组
-        					{
-        						name: '隐藏',
-        				        target: 4, // [1:我方单体|2:我方全体|3:我方随机单体|4:自己|5:敌方单体|6:敌方全体|7:敌方随机单体|8:敌我全体|9:任一单体]
-        				        effects: [8], // [1:伤害|2:治疗|3:调整意志|4:调整力量|5:调整精准|6:调整速度|7:调整行动力|8:调整存在感|9:添加状态|10:解除负面状态|11:解除正面状态]
-        				        dmg: [0,0,0,0,0,0,], // [0:割锯|1:突刺|2:钝击|3:火炮|4:射击|5:抽击]
-        				        cure: 0, // 治疗
-        						cureRate: 0, // 比率治疗
-        						powShift: 0, // 改变意志
-        				        attrShift: 0, // 改变基础属性
-        				        awaShift: -3500, // 改变存在感
-        				        moveShift: 0, // 改变行动力
-        						buffs: [], // buff序号
-        						buffLevels: [], // buff等级(1-9)
-        				        consume: 7, // 意志消耗
-        						fixawareness: 0,
-        						absolute: 0, // 必中，无视对方存在感
-        						level: 1, // 等级
-        						price: 0, // 价值（为 0 时代表固有技能，无法转让和售卖）
-        					},
-        					{
-        						name: '激光炮',
-        				        target: 5, // [1:我方单体|2:我方全体|3:我方随机单体|4:自己|5:敌方单体|6:敌方全体|7:敌方随机单体|8:敌我全体|9:任一单体]
-        				        effects: [1,], // [1:伤害|2:治疗|3:调整意志|4:调整力量|5:调整精准|6:调整速度|7:调整行动力|8:调整存在感|9:添加状态|10:解除负面状态|11:解除正面状态]
-        				        dmg: [0,0,0,60,25,0,], // [0:割锯|1:突刺|2:钝击|3:火炮|4:射击|5:抽击]
-        				        cure: 0, // 治疗
-        						cureRate: 0, // 比率治疗
-        						powShift: 0, // 改变意志
-        				        attrShift: 0, // 改变基础属性
-        				        awaShift: 0, // 改变存在感
-        				        moveShift: 0, // 改变行动力
-        						buffs: [], // buff序号 #出血 #干毒
-        						buffLevels: [], // buff等级(1-9)
-        						goodImpact: 0,
-        						badImpact: 0,
-        				        consume: 44, // 意志消耗
-        						fixawareness: 10000,
-        						absolute: 1, // 必中，无视对方存在感
-        						level: 4, // 等级
-        						price: 2500, // 价值（为 0 时代表固有技能，无法转让和售卖）
-        					},
-        				],
-                        teamOrder: 1,
-                    },],
+                        viceWeapon: {}, // 副手武器
+                        skills: skills2,
+                        isAI: true,
+                        relations: [ // 与其他角色的关系
+                            {
+                                id: 3, // 对应人物 ID
+                                values: [0,0,0,], // [亲密度(0,无限),喜爱度(-无限,无限),信任度(-无限,无限) ]
+                            },
+                        ]
+                    };
+                let avatarData1 = genRandomAvatar(person1);
+                let avatarData2 = genRandomAvatar(person2);
+                person1.avatarData = avatarData1;
+                person2.avatarData = avatarData2;
+
+                this.sceneData = {
+                    meTeam: [person1,],
+                    youTeam:[person2,],
                     mode: 0, // 战斗模式 [0:非战斗状态|1:过招|2:厮杀|3:观战|4:战前调整]
                     cell: null,
                     map: null,
                 };
                 this.state = 2;
             });
+        },
+        onBattleEnd(data){
+            console.log(data);
         },
 
         _confirm(tip,onClickConfirm,hideCancel){ // 显示确认文本

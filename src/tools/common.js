@@ -71,14 +71,14 @@ export function calcAttrOffset(unit,valueName){ // 获取用于计算伤害的�
 }
 export function calcAttackConsume(unit,attackType){ // 计算攻击消耗
     let weaponConsume = 0;
-    if(unit.equipments&&unit.equipments.hands&&unit.equipments.hands.consume){
-        weaponConsume = unit.equipments.hands.consume[attackType]||0;
+    if(unit.weapon&&unit.weapon.consume){
+        weaponConsume = unit.weapon.consume[attackType]||0;
     }
-    return unit.consume+weaponConsume;
+    return weaponConsume;
 }
 export function calcSkillConsume(unit,skill){ // 计算技能消耗
     let buffObj;
-    let skillConsume = skill.consume+unit.consume;
+    let skillConsume = skill.consume;
     if(buffObj=getBuffObj(unit,3)){ // 如果有专注bufff
         let increment1 = buffObj.increment;
         skillConsume -= Math.ceil(skillConsume*increment1);
@@ -111,7 +111,7 @@ export function calcDmgRatio(unit,attackType){ // 计算伤害倍率
 export function calcAttackDmg(unit,attackType){ // 计算攻击最终伤害
     let res = 0;
     let ratio = calcDmgRatio(unit,attackType);
-    let dmg = unit.equipments.hands.dmg;
+    let dmg = unit.weapon.dmg;
     let bodyAtk = Math.ceil(unit.str/CONFIG.handsAttackDecay)+(unit.baseAttack||0);
     if(dmg){ // 有武器
         let handsDmgAddition = dmg[attackType];
@@ -144,19 +144,10 @@ export function calcAttackDmg(unit,attackType){ // 计算攻击最终伤害
     return res;
 };
 export function calcAwareness(unit){ // 计算一个单位的总固定存在感
-    let res = 0;
-    let equipments = unit.equipments;
-    let skills = unit.skills;
-    let { head, hands, body, legs, foots, } = equipments;
-    res += unit.fixawareness||0;
-    res += head.fixawareness||0;
-    res += hands.fixawareness||0;
-    res += body.fixawareness||0;
-    res += legs.fixawareness||0;
-    res += foots.fixawareness||0;
-    // for(let skill of skills){
-    //     res += skill.fixawareness||0;
-    // }
+    let res = unit.fixawareness||0;
+    if(unit.weapon.name){
+        res += unit.weapon.fixawareness;
+    }
     return res;
 }
 
@@ -394,11 +385,12 @@ export function genBossName(title){ // 生成boss名
     return `${BOSS_NAMES_1[r(0,BOSS_NAMES_1.length-1)]}${title||(BOSS_NAMES_2[r(0,BOSS_NAMES_2.length-1)])}`;
 }
 
-export function calcRoleFinalData(unit,allEquips,allSkills,log){ // 计算角色最终数据
+export function calcRoleFinalData(unit,log){ // 计算角色最终数据 TODO
     let res = {
             ...unit,
-        },
-        increments = {
+        };
+    let abilities = unit.abilities;
+    let increments = {
             hp: 0,
             maxhp: 0,
             pow: 0,
@@ -408,51 +400,13 @@ export function calcRoleFinalData(unit,allEquips,allSkills,log){ // 计算角色
             fixdex: 0,
             price: 0,
         };
-    let equipments = unit.equipments;
-    let partArr = CONFIG.equipItemNameMap;
-    for(let i=0;i<partArr.length;i++){
-        let equipID = equipments[partArr[i]].id;
-        if(equipID>0){
-            let equip = getMatchList(allEquips,[['id',equipID]])[0]||{};
-            if(equip){
-                increments.maxhp += equip.hp||0;
-                increments.maxpow += equip.pow||0;
-                increments.fixstr += equip.strOffset||0;
-                increments.fixacr += equip.acrOffset||0;
-                increments.fixdex += equip.dexOffset||0;
-                increments.price += equip.price||0;
-                if(equip.viceid){
-                    let viceWeapon = getMatchList(allEquips,[['id',viceid]])[0]||{};
-                    if(viceWeapon){
-                        increments.price += viceWeapon.price||0;
-                    }
-                }
-            }
-        }
-    }
-    for(let equipID of unit.bag){
-        let equip = getMatchList(allEquips,[['id',equipID]])[0]||{};
-        increments.price += equip.price||0;
-    }
-    for(let skillID of unit.skills){
-        let skill = getMatchList(allSkills,[['id',skillID]])[0]||{};
-        increments.price += skill.price||0;
-    }
-
-    // 记忆
-    let memoryData = calcMemoryEffects(res.brain,{str:1,acr:1,dex:1});
-    increments.fixstr += memoryData.str;
-    increments.fixacr += memoryData.acr;
-    increments.fixdex += memoryData.dex;
-
     res.hp = res.hp+increments.hp;
-    res.maxhp = res.basehp+increments.maxhp;
+    res.maxhp = res.maxhp+increments.maxhp;
     res.pow = res.pow+increments.pow;
-    res.maxpow = res.basepow+increments.maxpow;
-    res.fixstr = res.basestr+increments.fixstr;
-    res.fixacr = res.baseacr+increments.fixacr;
-    res.fixdex = res.basedex+increments.fixdex;
-    res.price = res.basePrice+increments.price;
+    res.maxpow = res.maxpow+increments.maxpow;
+    res.fixstr = abilities[0]+increments.fixstr;
+    res.fixacr = abilities[1]+increments.fixacr;
+    res.fixdex = abilities[2]+increments.fixdex;
     if(res.hp>res.maxhp){
         res.hp = res.maxhp;
     }
@@ -467,389 +421,104 @@ export function calcRoleFinalData(unit,allEquips,allSkills,log){ // 计算角色
     }
     return res;
 }
-export function calcRoleFinalDataPurely(unit){ // 单纯计算角色最终数据（忽略价格）
-    let res = {
-            ...unit,
-        },
-        increments = {
-            hp: 0,
-            maxhp: 0,
-            pow: 0,
-            maxpow: 0,
-            fixstr: 0,
-            fixacr: 0,
-            fixdex: 0,
-        };
-    let equipments = unit.equipments;
-    let partArr = CONFIG.equipItemNameMap;
-    for(let i=0;i<partArr.length;i++){
-        let equip = equipments[partArr[i]];
-        if(equip){
-            increments.maxhp += equip.hp||0;
-            increments.maxpow += equip.pow||0;
-            increments.fixstr += equip.strOffset||0;
-            increments.fixacr += equip.acrOffset||0;
-            increments.fixdex += equip.dexOffset||0;
+
+export function genAbilityTip(person){ // 生成角色属性介绍
+    let res = '';
+    let abilityTitles = ['体能强','力量大','专修精准','速度型','智力型','经验丰富'];
+    let personTitles = ['战斗人员','工作人员','全能选手'];
+    let abilityRates = [0,0,0,0,0,0,0,]; // [hp,pow,str,acr,dex,itl,exp]
+    let {hp,pow,abilities} = person;
+    abilityRates = [
+        hp/10000,
+        abilities[0]/1000,
+        abilities[1]/1000,
+        abilities[2]/1000,
+        abilities[3]/1000,
+        abilities[4]/1000,
+    ];
+
+    let maxAbiIndex1, maxAbiIndex2;
+    let maxVal1 = 0, maxVal2 = 0;
+    for(let i=0;i<abilityRates.length;i++){
+        if(maxVal1<abilityRates[i]){
+            maxVal1 = abilityRates[i];
+            maxAbiIndex1 = i;
         }
+    }
+    for(let i=0;i<abilityRates.length;i++){
+        if(i!=maxAbiIndex1&&maxVal2<abilityRates[i]){
+            maxVal2 = abilityRates[i];
+            maxAbiIndex2 = i;
+        }
+    }
+    if((maxVal2/maxVal1)<.6){
+        maxVal2 = undefined;
     }
 
-    // 记忆
-    let memoryData = calcMemoryEffects(res.brain,{str:1,acr:1,dex:1});
-    increments.fixstr += memoryData.str;
-    increments.fixacr += memoryData.acr;
-    increments.fixdex += memoryData.dex;
+    let personTitleIndex;
 
-    res.hp = res.hp+increments.hp;
-    res.maxhp = res.basehp+increments.maxhp;
-    res.pow = res.pow+increments.pow;
-    res.maxpow = res.basepow+increments.maxpow;
-    res.fixstr = res.basestr+increments.fixstr;
-    res.fixacr = res.baseacr+increments.fixacr;
-    res.fixdex = res.basedex+increments.fixdex;
-    if(res.hp>res.maxhp){
-        res.hp = res.maxhp;
-    }
-    else if(res.hp<0){
-        res.hp = 0;
-    }
-    if(res.pow>res.maxpow){
-        res.pow = res.maxpow;
-    }
-    else if(res.pow<0){
-        res.pow = 0;
-    }
-    return res;
-}
-export function calcRoleAwareness(unit,allEquips){ // 计算角色战斗初始存在感
-    let res = unit.fixawareness;
-    let equipments = unit.equipments;
-    let partArr = CONFIG.equipItemNameMap;
-    for(let i=0;i<partArr.length;i++){
-        let equipID = equipments[partArr[i]].id;
-        if(equipID>0){
-            let equip = getMatchList(allEquips,[['id',equipID]])[0]||{};
-            if(equip){
-                res += equip.fixawareness||0;
-            }
-        }
-    }
-    if(res>CONFIG.maxAwareness){
-        res = CONFIG.maxAwareness;
-    }
-    else if(res<0){
-        res = 0;
-    }
-    return res;
-}
-export function calcRoleAwarenessPurely(unit){ // 单纯计算角色战斗初始存在感
-    let res = unit.fixawareness;
-    let equipments = unit.equipments;
-    let partArr = CONFIG.equipItemNameMap;
-    for(let i=0;i<partArr.length;i++){
-        let equip = equipments[partArr[i]];
-        if(equip.fixawareness){
-            res += equip.fixawareness||0;
-        }
-    }
-    if(res>CONFIG.maxAwareness){
-        res = CONFIG.maxAwareness;
-    }
-    else if(res<0){
-        res = 0;
-    }
-    return res;
-}
-export function calcEquipPrice(equipment){ // 计算装备价格
-    let res = 0;
-    res += (equipment.hp||0);
-    res += (equipment.pow||0)*4;
-    res += (equipment.strOffset||0)*15;
-    res += (equipment.acrOffset||0)*15;
-    res += (equipment.dexOffset||0)*25;
-    res += ((CONFIG.maxAwareness-equipment.fixawareness)/125);
-    if(equipment.equipType==1){ // 如果是武器
-        res *= equipment.type==2?2.5:1;
-        res += Math.max(...equipment.dmg)*50;
-        res += Math.max(...equipment.buffLevels)*125;
-    }
-    res = Math.round(res);
-    return res;
-}
-export function calcCreepPrice(creep){ // 计算野怪的价值
-    let res = 0;
-    res += creep.maxhp*5;
-    res += creep.maxpow*5;
-    res += creep.fixstr*3;
-    res += creep.fixacr*3;
-    res += creep.fixdex*3;
-    let dmg = creep.equipments.hands.dmg;
-    if(dmg){
-        for(let d of dmg){
-            res += d*5;
-        }
-    }
-    res += creep.baseAttack*5;
-    for(let skill of creep.skills){
-        res += 10;
-    }
-    return res;
-}
-export function calcRankScore(role,allEquips,allSkills){ // 计算战力排行分数
-    role.rankScoreDetail = {
-        hp: 0,
-        pow: 0,
-        baseAttack: 0,
-        imm: 0,
-        weaponDmg: 0,
-        weaponBuff: 0,
-        skill: 0,
-        dmgSkill: 0,
-        otherSkill: 0,
-        dex: 0,
-    };
-    role.rankScoreDetail.hp = Math.round(role.maxhp*.2);
-    role.rankScoreDetail.pow = Math.round(role.maxpow*.4);
-    role.rankScoreDetail.baseAttack = Math.round(role.baseAttack*2.5);
-    role.rankScoreDetail.imm = Math.round(role.imm*.5);
-    role.rankScoreDetail.halo = 0;
-    let res = role.rankScoreDetail.hp+role.rankScoreDetail.pow+role.rankScoreDetail.baseAttack+role.rankScoreDetail.imm;
-    // let awareness = calcRoleAwareness(role,allEquips);
-    // role.rankScoreDetail.awareness = Math.round((CONFIG.maxAwareness-awareness)/40);
-    // res += role.rankScoreDetail.awareness;
-    // 武器
-    let weaponID = role.equipments.hands.id;
-    let maxDmg = 0, maxAttackType = 2, weaponDmg = [];
-    let maxAttr;
-    if(weaponID>0){
-        let weapon = getMatchList(allEquips,[['id',weaponID]])[0];
-        if(weapon){
-            let { dmg, buffLevels, consume, type, } = weapon;
-            weaponDmg = dmg;
-            // 求最大值和最大值索引
-            for(let i=0;i<dmg.length;i++){
-                let d = dmg[i];
-                if(d>maxDmg){
-                    maxDmg = d;
-                    maxAttackType = i;
-                }
-            }
-            let buffLevel = buffLevels[maxAttackType]; // 最高攻击类型对应的特效等级
-            role.rankScoreDetail.weaponBuff += (buffLevel-1)*100;
-            res += role.rankScoreDetail.weaponBuff;
-        }
-    }
-    maxAttr = maxAttackType<3?role.fixstr:role.fixacr;
-    // console.log(role.name,maxDmg);
-    role.rankScoreDetail.weaponDmg = Math.round(maxDmg*maxAttr*.035);
-    res += role.rankScoreDetail.weaponDmg;
-    // role.maxDmg = maxDmg;
-    // 技能
-    let skillArr = []
-    for(let skillID of role.skills){
-        let skill = getMatchList(allSkills,[['id',skillID]])[0];
-        if(skill){
-            skillArr.push(skill);
-        }
-    }
-    skillArr = bulbsort(skillArr,'price',2);
-    // if(role.isHero){
-    //     console.log(skillArr);
-    // }
-    for(let i=0;i<4;i++){
-        let skill = skillArr[i];
-        if(skill){
-            let { effects, target, dmg, price, cure, buffs, buffLevels, } = skill;
-            for(let eff of effects){
-                if(eff==1&&(skill.trend==2||skill.trend==3)){ // 伤害效果
-                    for(let i=0;i<dmg.length;i++){
-                        let skillDmgVal = dmg[i];
-                        let weaponDmgVal = weaponDmg[i];
-                        maxAttr = i<3?role.fixstr:role.fixacr;
-                        if(skillDmgVal&&weaponDmgVal){
-                            let skillScore = Math.round((skillDmgVal+weaponDmgVal)*maxAttr*.0035);
-                            if(skill.absolute){
-                                skillScore += Math.ceil(skillScore*.7);
-                            }
-                            role.rankScoreDetail.dmgSkill += skillScore;
-                            skillScore -= Math.floor(skill.consume*1.1);
-                            res += skillScore;
-                        }
-                    }
-                }
-                else{ // 其他效果
-                    let skillScore = Math.round(skill.trends[skill.trend]*.1);
-                    role.rankScoreDetail.otherSkill += skillScore;
-                    if(arrContains(skill.effects,11)!=-1&&(skill.trend==2||skill.trend==3)){ // 伤害和弱化
-                        skillScore += skill.goodImpact*150;
-                    }
-                    else if(arrContains(skill.effects,10)!=-1&&(skill.trend==1||skill.trend==2)){ // 保护和强化
-                        skillScore += skill.badImpact*150;
-                    }
-                    if(skill.absolute){
-                        skillScore += Math.ceil(skillScore*.1);
-                    }
-                    skillScore -= Math.floor(skill.consume*.5);
-                    res += skillScore;
-                }
-            }
-        }
-    }
-    for(let skill of skillArr){
-        role.rankScoreDetail.skill += Math.round(skill.price/500);
-        res += role.rankScoreDetail.skill;
-    }
-    role.rankScoreDetail.dex = Math.round(res*role.fixdex/500);
-    res += role.rankScoreDetail.dex;
-    // 光环
-    let halos = role.halos||[];
-    let onHalo;
-    for(let halo of halos){
-        if(halo.on){
-            onHalo = halo;
-        }
-    }
-    if(onHalo){
-        let haloScore = 45+onHalo.level*onHalo.level*onHalo.level*5;
-        res += haloScore;
-        role.rankScoreDetail.halo = haloScore;
-    }
-    return Math.ceil(res);
-}
-export function calcRankScorePurely(role){ // 单纯计算战力排行分数
-    role.rankScoreDetail = {
-        hp: 0,
-        pow: 0,
-        baseAttack: 0,
-        imm: 0,
-        weaponDmg: 0,
-        weaponBuff: 0,
-        skill: 0,
-        dmgSkill: 0,
-        otherSkill: 0,
-        dex: 0,
-    };
-    role.rankScoreDetail.hp = Math.round(role.maxhp*.2);
-    role.rankScoreDetail.pow = Math.round(role.maxpow*.4);
-    role.rankScoreDetail.baseAttack = Math.round(role.baseAttack*2.5);
-    role.rankScoreDetail.imm = Math.round(role.imm*.5);
-    role.rankScoreDetail.halo = 0;
-    let res = role.rankScoreDetail.hp+role.rankScoreDetail.pow+role.rankScoreDetail.baseAttack+role.rankScoreDetail.imm;
-    // 武器
-    let weapon = role.equipments.hands;
-    let maxDmg = 0, maxAttackType = 2, weaponDmg = [];
-    let maxAttr;
-    if(weapon.name){
-        let { dmg, buffLevels, consume, type, } = weapon;
-        weaponDmg = dmg;
-        // 求最大值和最大值索引
-        for(let i=0;i<dmg.length;i++){
-            let d = dmg[i];
-            if(d>maxDmg){
-                maxDmg = d;
-                maxAttackType = i;
-            }
-        }
-        let buffLevel = buffLevels[maxAttackType]; // 最高攻击类型对应的特效等级
-        role.rankScoreDetail.weaponBuff += (buffLevel-1)*100;
-        res += role.rankScoreDetail.weaponBuff;
-    }
-    maxAttr = maxAttackType<3?role.fixstr:role.fixacr;
-    // console.log(role.name,maxDmg);
-    role.rankScoreDetail.weaponDmg = Math.round(maxDmg*maxAttr*.035);
-    res += role.rankScoreDetail.weaponDmg;
-    // role.maxDmg = maxDmg;
-    // 技能
-    let skillArr = []
-    for(let skill of role.skills){
-        if(skill){
-            skillArr.push(skill);
-        }
-    }
-    skillArr = bulbsort(skillArr,'price',2);
-    // if(role.isHero){
-    //     console.log(skillArr);
-    // }
-    for(let i=0;i<4;i++){
-        let skill = skillArr[i];
-        if(skill){
-            let { effects, target, dmg, price, cure, buffs, buffLevels, } = skill;
-            for(let eff of effects){
-                if(eff==1&&(skill.trend==2||skill.trend==3)){ // 伤害效果
-                    for(let i=0;i<dmg.length;i++){
-                        let skillDmgVal = dmg[i];
-                        let weaponDmgVal = weaponDmg[i];
-                        maxAttr = i<3?role.fixstr:role.fixacr;
-                        if(skillDmgVal&&weaponDmgVal){
-                            let skillScore = Math.round((skillDmgVal+weaponDmgVal)*maxAttr*.0035);
-                            role.rankScoreDetail.dmgSkill += skillScore;
-                            if(skill.absolute){
-                                skillScore += Math.ceil(skillScore*.15);
-                            }
-                            skillScore -= Math.floor(skill.consume*.5);
-                            res += skillScore;
-                        }
-                    }
-                }
-                else{ // 其他效果
-                    let skillScore = Math.round(skill.trends[skill.trend]*.1);
-                    role.rankScoreDetail.otherSkill += skillScore;
-                    if(skill.absolute){
-                        skillScore += Math.ceil(skillScore*.1);
-                    }
-                    skillScore -= Math.floor(skill.consume*.5);
-                    res += skillScore;
-                }
-            }
-        }
-    }
-    for(let skill of skillArr){
-        role.rankScoreDetail.skill += Math.round(skill.price/500);
-        res += role.rankScoreDetail.skill;
-    }
-    role.rankScoreDetail.dex = Math.round(res*role.fixdex/500);
-    res += role.rankScoreDetail.dex;
-    // 光环
-    let halos = role.halos||[];
-    let onHalo;
-    for(let halo of halos){
-        if(halo.on){
-            onHalo = halo;
-        }
-    }
-    if(onHalo){
-        let haloScore = 45+onHalo.level*onHalo.level*onHalo.level*5;
-        res += haloScore;
-        role.rankScoreDetail.halo = haloScore;
-    }
-    return Math.ceil(res);
-}
-export function calcMemoryEffects(brain,{str,acr,dex}){ // 计算记忆块效果
-    let res = {};
-    let resstr = 0, resacr = 0, resdex = 0;
-    for(let cell of brain){
-        if(cell.type==1&&str){
-            resstr += CONFIG.memoryStrMap[cell.level-1];
-        }
-        else if(cell.type==2&&acr){
-            resacr += CONFIG.memoryAcrMap[cell.level-1];
-        }
-        else if(cell.type==3&&dex){
-            resdex += CONFIG.memoryDexMap[cell.level-1];
-        }
-    }
-    if(str){
-        res.str = resstr;
-    }
-    if(acr){
-        res.acr = resacr;
-    }
-    if(dex){
-        res.dex = resdex;
-    }
-    return res;
-}
 
-export function genSkillTip(skill,showDetails){
+    if(maxVal1&&maxVal2){ // 双高
+        if((maxVal2/maxVal1)>.8){
+            if((maxAbiIndex1>3&&maxAbiIndex2<=3)||(maxAbiIndex2>3&&maxAbiIndex1<=3)){ // 全能选手
+                personTitleIndex = 2;
+            }
+        }
+        if(personTitleIndex!=2){
+            personTitleIndex = maxAbiIndex1>3?1:0;
+        }
+        res = `${abilityTitles[maxAbiIndex1]}和${abilityTitles[maxAbiIndex2]}的${personTitles[personTitleIndex]}`;
+    }
+    else{ // 单高
+        personTitleIndex = maxAbiIndex1>3?1:0;
+        res = `${abilityTitles[maxAbiIndex1]}的${personTitles[personTitleIndex]}`;
+    }
+    return res;
+}
+export function genPersonalityTip(person){ // 生成角色性格介绍
+    let res = '-';
+    if(person.name){
+        res = '';
+        let psnlt = person.personalities;
+        let adjs = [
+            ['有野心','无欲'],
+            ['恶念','善良'],
+            ['自卑','自信'],
+            ['鲁莽','冷静'],
+            ['沉闷','开朗'],
+        ];
+        for(let p=0;p<psnlt.length;p++){
+            let newAdj = '';
+            if(psnlt[p]<=5){
+                newAdj = `过于常人的${adjs[p][0]}`;
+            }
+            else if(psnlt[p]<=20){
+                newAdj = `${adjs[p][0]}`;
+            }
+            else if(psnlt[p]<35){
+                newAdj = `较${adjs[p][0]}`;
+            }
+            else if(psnlt[p]<65){
+
+            }
+            else if(psnlt[p]<80){
+                newAdj = `较${adjs[p][1]}`;
+            }
+            else if(psnlt[p]<95){
+                newAdj = `${adjs[p][1]}`;
+            }
+            else{
+                newAdj = `过于常人的${adjs[p][1]}`;
+            }
+            if(newAdj){
+                // res += `${newAdj}(${psnlt[p]})，`;
+                res += `${newAdj}，`;
+            }
+        }
+    }
+    return res;
+}
+export function genSkillTip(skill,showDetails){ // 技能介绍
     let res = '';
     let powSuffix = skill.powShift>=0?'提升':'降低';
     let attrSuffix = skill.attrShift>=0?'提升':'降低';
@@ -928,9 +597,6 @@ export function genSkillTip(skill,showDetails){
     }
     return res;
 }
-export function getImmExpRequire(imm){ // 根据当前状态抗性获得升级所需抗性经验
-    return Math.round(Math.pow(imm,CONFIG.immExpLevelMap.factor)*CONFIG.immExpLevelMap.inc)+CONFIG.immExpLevelMap.base;
-}
 
 export function moneyFormat(money,dollar){ // 金币格式
     let res = '';
@@ -959,774 +625,39 @@ export function moneyFormat(money,dollar){ // 金币格式
     return res;
 }
 
-export function genSkill({level,dmg,bias,ownerType}){ // 生成技能
-    /*
-    dmg: 伤害表 [x,x,x,x,x,x,]
-    bias: 属性倾向 ['str'|'acr']
-    ownerType：拥有者类别 [0:非指定|1:NPC|2:野怪|3:BOSS]
-    */
-    let res;
-    let rEffectIndex = flag =>{ // [1:伤害|2:治疗|3:调整意志|4:调整力量|5:调整精准|6:调整速度|7:调整行动力|8:调整存在感|9:添加状态|10:解除负面状态|11:解除正面状态]
-        let res = 0;
-        let r1 = r(1,100);
-        if(flag&&flag==1){ // 增益可选效果 [2,7,8,9,10]
-            if(r1<=17){ // 治疗
-                res = 0;
-            }
-            else if(r1<=27){ // 影响存在感
-                res = 2;
-            }
-            else{ // 状态
-                res = 3;
-            }
-        }
-        else if(flag&&flag==2){ // 减益可选效果 [1,3,7,8,9,11]
-            if(r1<=20){ // 伤害
-                res = 0;
-            }
-            else if(r1<=25){ // 调整意志
-                res = 1;
-            }
-            else if(r1<=40){ // 影响存在感
-                res = 3;
-            }
-            else{ // 状态
-                res = 4;
-            }
-        }
-        else{ // 通用可选效果 [1,2,3,7,8,9,10,11]
-            if(r1<=20){ // 伤害
-                res = 0;
-            }
-            else if(r1<=25){ // 意志
-                res = 2;
-            }
-            else if(r1<=75){ // 状态
-                res = 5;
-            }
-            else if(r1<=90){ // 治疗
-                res = 1;
-            }
-            else{ // 影响存在感
-                res = 4;
-            }
-        }
-        return res;
-    }
-    let good = r(0,1);
-    res = {
-        target: r(1,9), // [1:我方单体|2:我方全体|3:我方随机单体|4:自己|5:敌方单体|6:敌方全体|7:敌方随机单体|8:敌我全体|9:任一单体]
-        effects: [], // [1:伤害|2:治疗|3:调整意志|4:调整力量|5:调整精准|6:调整速度|7:调整行动力|8:调整存在感|9:添加状态|10:解除负面状态|11:解除正面状态]
-        dmg: [0,0,0,0,0,0,], // [0:割锯|1:突刺|2:钝击|3:火炮|4:射击|5:抽击]
-        cure: 0, // 治疗
-        cureRate: 0, // 百分比治疗
-        powShift: 0, // 改变意志
-        attrShift: 0, // 改变基础属性
-        awaShift: 0, // 改变存在感
-        moveShift: 0, // 改变行动力
-        buffs: [], // buff序号
-        buffLevels: [], // buff等级(1-9)
-        goodImpact: 1, // 解除正面状态数
-        badImpact: 1, // 解除负面状态数
-        fixawareness: 0, // 固有提升存在感
-        absolute: 0, // 必中，无视对方存在感
-        price: 0,
-        level,
-    }
-    let effectCount = [1,1,1,1,1,1,2,2,3][r(0,8)];
-    res.fixawareness = r(effectCount,effectCount*40)*100;
-    let availableEffectArr = [1,2,3,7,8,9,10,11];
-    let rEffectIndexFlag = 0;
-    if(ownerType==3){ // boss
-        if(good){ // 增益效果
-            availableEffectArr = [2,7,8,9,10];
-            rEffectIndexFlag = 1;
-            res.badImpact = r(1,3);
-        }
-        else{ // 减益效果
-            availableEffectArr = [1,3,7,8,9,11];
-            rEffectIndexFlag = 2;
-            res.goodImpact = r(2,3);
-        }
-        if(effectCount<2){
-            effectCount = 2;
-        }
-    }
-    for(let i=0;i<effectCount;i++){
-        let effect = availableEffectArr[rEffectIndex(rEffectIndexFlag)];
-        let i1 = 0;
-        while(arrContains(res.effects,effect)!=-1&&i1<10000){
-            effect = availableEffectArr[rEffectIndex(rEffectIndexFlag)];
-            i1 += 1;
-        }
-        if(arrContains(res.effects,1)!=-1&&effect==2){
 
-        }
-        else if(arrContains(res.effects,2)!=-1&&effect==1){
 
-        }
-        else{
-            addAnEffectOnSkill({skill:res,good,effect,level,dmg,ownerType});
-        }
-    }
-    if(effectCount<3){ // 行动力为附加效果
-        let r1 = r(0,99);
-        if(r1<15){
-            addAnEffectOnSkill({skill:res,good,effect:7,level,dmg,ownerType});
-        }
-    }
-    if(res.awaShift>0){ // 提升存在感，必中
-        res.absolute = 1;
-    }
-    if(arrContains(res.buffs,116)!=-1){ // 有锁定效果，必中
-        res.absolute = 1;
-    }
-    if(res.dmg[3]>0){ // 有炮击伤害，必中
-        res.absolute = 1;
-    }
-    if(res.fixawareness>CONFIG.maxAwareness){
-        res.fixawareness = CONFIG.maxAwareness;
-    }
 
-    // 效果调整
-    let strikingLevel = arrContains(res.buffs,116);
-    if(strikingLevel!=-1&&res.awaShift<=0){ // 有‘锁定’效果，再添加‘提高存在感’效果
-        res.awaShift = r(1000,10000);
-        if(arrContains(res.effects,8)==-1){
-            res.effects.push(8);
-        }
-    }
-    let sneakLevel = arrContains(res.buffs,12);
-    if(sneakLevel!=-1&&res.awaShift>=0){ // 有‘潜行’效果，再添加‘降低存在感’效果
-        res.awaShift = -r(1000,10000);
-        if(arrContains(res.effects,8)==-1){
-            res.effects.push(8);
-        }
-    }
 
-    // 计算价格，消耗，名字
-    let trends = ai.getSkillTrends(res);
-    let valueFact = Math.max(...trends);
-    let goodTrend = 0, badTrend = 0;
-    for(let i=0;i<trends.length;i++){
-        let trend = trends[i];
-        if(i<2){
-            goodTrend += trend;
-        }
-        else{
-            badTrend += trend;
-        }
-    }
-    if(goodTrend>badTrend){ // 偏向于保护技能
-        res.target = [1,2,3,4][r(0,3)];
-        if(ownerType==3&&level>4&&arrContains(res.effects,10)==-1){ // boss技能解除负面状态
-            res.effects.push(10);
-        }
-        if(ownerType==1&&r(1,100)<=level*4){ // NPC添加随机消除buff效果
-            res.effects.push(10);
-        }
-    }
-    else{ // 偏向于伤害技能
-        res.target = [5,6,7][r(0,2)];
-        if(ownerType==3&&level>4&&arrContains(res.effects,11)==-1){ // boss技能解除正面状态
-            res.effects.push(11);
-        }
-        if(ownerType==3&&level>9&&arrContains(res.effects,1)==-1){ // 如果此boss技能没有对敌伤害，则添加伤害效果
-            res.absolute = 0;
-            addAnEffectOnSkill({skill:res,good,effect:1,level,dmg,ownerType});
-        }
-        if(ownerType==1&&r(1,100)<=level*4){ // NPC添加随机消除buff效果
-            res.effects.push(11);
-        }
-    }
 
-     // boss 技能调整
-    if(ownerType==3){
-        // 技能包含伤害
-        if(arrContains(res.effects,1)!=-1){
-            if(res.target==6){ // 全体伤害向下调整
-                for(let i=0;i<res.dmg.length;i++){
-                    res.dmg[i] -= Math.floor(res.dmg[i]*.4);
-                }
-            }
-        }
-    }
 
-    // 如果技能包含buff，并且有倾向
-    if((arrContains(res.effects,9)!=-1)&&bias){
-        if((goodTrend>badTrend)){ // 技能倾向为保护或强化
-            if(bias=='str'){ // 如果是力量型选手，调整保护状态为力量增强
-                for(let bx=0;bx<res.buffs.length;bx++){
-                    if(res.buffs[bx]==6){
-                        res.buffs[bx] = 5;
-                    }
-                    else if(res.buffs[bx]==9){
-                        res.buffs[bx] = 8;
-                    }
-                }
-            }
-            else if(bias=='acr'){ // 如果是精准型选手，调整保护状态为精准增强
-                for(let bx=0;bx<res.buffs.length;bx++){
-                    if(res.buffs[bx]==5){
-                        res.buffs[bx] = 6;
-                    }
-                    else if(res.buffs[bx]==8){
-                        res.buffs[bx] = 9;
-                    }
-                }
-            }
-        }
-    }
 
-    trends = ai.getSkillTrends(res); // 再进行一次倾向计算
-    res.trends = trends;
-    res.trend = ai.getSkillTrend(res,trends);
-    let rt = r(1,100);
-    if(rt<=10){
-        if(rt<=2){
-            res.target = 8;
-        }
-        else{
-            res.target = 9;
-        }
-    }
-    res.price = Math.ceil(ai.getSkillValue(res)*30);
-    res.consume = (Math.floor(level/3))+r(1,Math.ceil(level/2))+Math.ceil(Math.sqrt(valueFact)*2);
-    res.name = genSkillName(res);
 
-    // 消耗调整
-    if(res.target==2||res.target==6){ // 目标为阵营全体
-        res.consume = Math.round(res.consume*2.4);
-    }
-    else if(res.target==1||res.target==5||res.target==9){ // 目标为指定单位
-        res.consume = Math.round(res.consume*1.4);
-    }
 
-    return res;
-}
-export function genHideSkill(){ // 生产隐藏类型技能
-    let level = r(20,200);
-    let res = {
-        target: 4,
-        effects: [8],
-        dmg: [0,0,0,0,0,0,],
-        cure: 0,
-        powShift: 0,
-        attrShift: 0,
-        awaShift: -level*50,
-        moveShift: 0,
-        buffs: [],
-        buffLevels: [],
-        fixawareness: 0,
-        absolute: 0,
-        price: 0,
-        level: 1,
-        trend: 0,
-        consume: 5+Math.ceil(level/40),
-        name: '隐藏',
-    };
-    res.trends = ai.getSkillTrends(res);
-    res.trend = ai.getSkillTrend(res,res.trends);
-    return res;
-}
-function addAnEffectOnSkill({skill,good,effect,level,dmg,ownerType}){ // 给技能添加一个效果种类
-    skill.effects.push(effect);
-    if(effect==1){ // 伤害
-        let dmgLevel = level;
-        skill.dmg = [rr(6,dmgLevel*18,dmgLevel*25),rr(6,dmgLevel*18,dmgLevel*25),rr(6,dmgLevel*18,dmgLevel*25),rr(6,dmgLevel*18,dmgLevel*25),rr(6,dmgLevel*18,dmgLevel*25),rr(6,dmgLevel*18,dmgLevel*25),];
-        if(dmg){ // 适应武器的伤害类型
-            for(let i=0;i<dmg.length;i++){ // 遍历武器类型
-                let d = dmg[i];
-                if(d>0&&skill.dmg[i]<=0){
-                    if(ownerType==3){
-                        skill.dmg[i] = r(dmgLevel*18,dmgLevel*25);
-                    }
-                    else{
-                        skill.dmg[i] = rr(2,dmgLevel*18,dmgLevel*25);
-                    }
-                }
-            }
-        }
-        let maxDmg = Math.max(...skill.dmg);
-        if(maxDmg==0){
-            skill.dmg[r(0,5)] = r(dmgLevel*20,dmgLevel*30);
-        }
-    }
-    else if(effect==2){ // 治疗
-        let levelOffset;
-        if(ownerType==3){ // 如果技能拥有者是BOSS
-            levelOffset = CONFIG.creepPowerMap[level-1];
-            skill.cure = r(levelOffset*125,levelOffset*185);
-        }
-        else{
-            levelOffset = level*level*2;
-            skill.cure = r(levelOffset*13,levelOffset*18);
-            if(r(0,100)<levelOffset){
-                skill.cureRate = r(level*2,levelOffset+10)-1;
-                if(skill.cureRate>99){
-                    skill.cureRate = r(70,99);
-                }
-            }
-        }
-    }
-    else if(effect==3){ // 意志
-        if(ownerType!=2){ // 如果技能拥有者不是野怪，则强化意志影响的威力
-            skill.powShift = -r(level*15,level*30);
-        }
-        else{
-            skill.powShift = -r(level*5,level*10);
-        }
-    }
-    else if(effect==7){ // 行动力调整
-        if(ownerType==3){
-            if(good){
-                skill.moveShift = r(level*300,level*500);
-            }
-            else{
-                skill.moveShift = -r(level*300,level*500);
-            }
-        }
-        else{
-            if(r(0,1)){
-                skill.moveShift = r(-level*500,-200);
-            }
-            else{
-                skill.moveShift = r(200,level*500);
-            }
-        }
-        if(skill.moveShift>4000){
-            skill.moveShift = 4000;
-        }
-        else if(skill.moveShift<-4000){
-            skill.moveShift = -4000;
-        }
-    }
-    else if(effect==8){ // 存在感调整
-        if(ownerType==3){
-            if(good){
-                skill.awaShift = -r(level*2000,level*3000);
-            }
-            else{
-                skill.awaShift = r(level*2000,level*3000);
-            }
-        }
-        else{
-            skill.awaShift = (r(0,1)?1:-1)*r(2000,level*3000);
-        }
-        if(skill.awaShift>10000){
-            skill.awaShift = 10000;
-        }
-        else if(skill.awaShift<-10000){
-            skill.awaShift = -10000;
-        }
-    }
-    else if(effect==9){ // 添加状态
-        let buffCount = [1,1,1,1,1,1,2,2,3][r(0,8)];
-        let shuffleBuffs;
-        if(ownerType==3){ // boss
-            let goodBuffs = getMatchList(CONFIG.buffs,[['good',1]]);
-            let badBuffs = getMatchList(CONFIG.buffs,[['good',0]]);
-            if(level<=6){
-                buffCount = [2,3,][r(0,1)];
-            }
-            else{
-                buffCount = 3;
-            }
-            shuffleBuffs = shuffle(good?goodBuffs:badBuffs);
-        }
-        else{
-            shuffleBuffs = shuffle(CONFIG.buffs);
-        }
-        for(let i=0;i<buffCount;i++){
-            let buff = shuffleBuffs[i];
-            let buffLevel = r(Math.ceil(level/2),level);
-            if(buffLevel>9){
-                buffLevel = 9;
-            }
-            skill.buffs.push(buff.id);
-            skill.buffLevels.push(buffLevel);
-        }
-    }
-    return skill;
-}
-export function genEquipment({level,equipType,bias,alite}){ // 生成装备
-    let res;
-    let levelOffset = level;
-    let mix = {
-        strOffset: 0,
-        acrOffset: 0,
-        dexOffset: 0,
-        fixawareness: 0,
-        hp: 0,
-        pow: 0,
-        name: '',
-        type: 0, // 攻击类型[0:非武器|1:单体攻击|2:全体攻击]
-        equipType, // 装备位置类型[1:头部|2:手持|3:副手持|4:上身|5:下身|6:脚部]
-        level: levelOffset,
-    };
-    let weaponType;
-    let attrFact1 = 0, attrFact2 = 0, attrFact3 = 0;
-    let hpFact1 = 0, hpFact2 = 0, hpFact3 = 0;
-    let powFact1 = 0, powFact2 = 0, powFact3 = 0;
-    switch(equipType){
-        case 0: // 头部
-            attrFact1 = 3;
-            attrFact2 = 3;
-            attrFact3 = 5;
-            hpFact1 = 5;
-            hpFact2 = 4;
-            hpFact3 = 5;
-            powFact1 = 5;
-            powFact2 = 6;
-            powFact3 = 5;
-            mix.fixawareness = r(-10,50)*50;
-            mix.name = genHelmetName();
-        break;
-        case 1: // 手持
-            attrFact1 = 1;
-            attrFact2 = 25;
-            attrFact3 = 1;
-            mix.fixawareness = r(1,20)*250;
-            mix.type = r(1,2);
-            // 参考属性偏向，随机决定武器类型
-            if(bias=='str'){
-                weaponType = r(0,3);
-            }
-            else if(bias=='acr'){
-                weaponType = r(4,7);
-            }
-            else{
-                weaponType = r(0,7);
-            }
-            let { dmg, buffLevels, consume, } = this.genDmgsOfWeapon(levelOffset,weaponType,mix.type,1,0);
-            mix.dmg = dmg;
-            mix.buffLevels = buffLevels;
-            mix.consume = consume;
-            mix.name = genWeaponName(weaponType);
-        break;
-        case 2: // 身体
-            attrFact1 = 3;
-            attrFact2 = 5;
-            attrFact3 = 5;
-            hpFact1 = 1;
-            hpFact2 = 5;
-            hpFact3 = 10;
-            powFact1 = 1;
-            powFact2 = 8;
-            powFact3 = 10;
-            mix.fixawareness = r(-8,30)*250;
-            mix.name = genArmorName();
-        break;
-        case 3: // 腿部
-            attrFact1 = 3;
-            attrFact2 = 3;
-            attrFact3 = 5;
-            hpFact1 = 2;
-            hpFact2 = 8;
-            hpFact3 = 5;
-            powFact1 = 2;
-            powFact2 = 10;
-            powFact3 = 5;
-            mix.fixawareness = r(-20,100)*50;
-            mix.name = genPantsName();
-        break;
-        case 4: // 脚
-            attrFact1 = 5;
-            attrFact2 = 3;
-            attrFact3 = 5;
-            hpFact1 = 2;
-            hpFact2 = 5;
-            hpFact3 = 5;
-            powFact1 = 2;
-            powFact2 = 8;
-            powFact3 = 5;
-            mix.fixawareness = r(-10,30)*50;
-            mix.name = genShoesName();
-        break;
-    }
-    let lowpoint = levelOffset*(attrFact2-10); // 随机属性最小值
-    if(lowpoint<1){
-        lowpoint = 1;
-    }
-    if(mix.type!=2){ // 非全体攻击装备，则添加速度属性
-        if(bias){
-            let offsetRate = offsetRate/2;
-            if(level>4){
-                offsetRate = 1;
-            }
-            mix.dexOffset = Math.ceil(rr(offsetRate,lowpoint,levelOffset*attrFact2)*attrFact3*2/3)+r(1,8);
-        }
-        else{
-            mix.dexOffset = Math.ceil(rr(attrFact1,lowpoint,levelOffset*attrFact2)*attrFact3/2)+r(1,4);
-        }
-    }
-    if((mix.type==2&&level>=5)||mix.type!=2){ // 大于5级的全体攻击武器，或非全体攻击武器，则添加力量\精准属性
-        if(bias){
-            let offsetRate = 2;
-            if(level>4){
-                offsetRate = 1;
-            }
-            mix[`${bias}Offset`] = rr(offsetRate,lowpoint,levelOffset*attrFact2)*attrFact3;
-        }
-        else{
-            mix.strOffset = rr(attrFact1,lowpoint,levelOffset*attrFact2)*attrFact3;
-            mix.acrOffset = rr(attrFact1,lowpoint,levelOffset*attrFact2)*attrFact3;
-        }
-    }
-    if(equipType!=1){ // 如果非武器
-        // 生命值
-        if(bias){
-            let hpLevelOffset = levelOffset;
-            if(level>5){
-                hpLevelOffset = Math.round(hpLevelOffset*(1+(level-4)/5));
-            }
-            mix.hp = rr(hpFact1,levelOffset,hpLevelOffset*hpLevelOffset*hpFact2)*hpFact3;
-        }
-        else{
-            mix.hp = rr(hpFact1,levelOffset,levelOffset*levelOffset*hpFact2)*hpFact3;
-        }
-        // 意志
-        if(bias){
-            let powLevelOffset = levelOffset;
-            if(level>5){
-                powLevelOffset = Math.round(powLevelOffset*(1+(level-4)/5));
-            }
-            mix.pow = rr(powFact1,powLevelOffset,powLevelOffset*powFact2)*powFact3;
-        }
-        else{
-            mix.pow = rr(powFact1,levelOffset,levelOffset*powFact2)*powFact3;
-        }
-    }
-    else{ // 如果是武器，则纠正与武器类型不匹配的属性
-        if(weaponType<4){
-            if(mix.acrOffset>0){
-                mix.strOffset += mix.acrOffset;
-                mix.acrOffset = 0;
-            }
-        }
-        else{
-            if(mix.strOffset>0){
-                mix.acrOffset += mix.strOffset;
-                mix.strOffset = 0;
-            }
-        }
-    }
-    res = {
-        ...mix,
-    }
-    res.price = calcEquipPrice(res);
-    return res;
-}
-export function genDmgsOfWeapon(level,weaponType,type,ownerType,stable){ // 根据武器类型和等级，生成武器对应的伤害、buff和消耗数组
-    let mix = {
-        dmg: [0,0,0,0,0,0,],
-        buffLevels: [0,0,0,0,0,0,],
-        consume: [0,0,0,0,0,0,],
-    }
-    let buffLevel = level;
-    if(buffLevel>9){
-        buffLevel = 9;
-    }
-    switch(weaponType){
-        case 0: // 剑
-            if(stable){
-                mix.dmg = [r(9*level,10*level),r(9*level,10*level),0,0,0,0];
-            }
-            else{
-                mix.dmg = [r(0,5*level),r(5*level,10*level),0,0,0,0];
-            }
-            mix.buffLevels = [r(1,buffLevel),r(1,buffLevel),0,0,0,0];
-            // mix.consume = (type==2?[4,4,0,0,0,0]:[r(0,2),r(0,2),0,0,0,0,]);
-        break;
-        case 1: // 刀
-            if(stable){
-                mix.dmg = [r(8*level,9*level),r(8*level,9*level),r(8*level,9*level),0,0,0];
-            }
-            else{
-                mix.dmg = [r(5*level,10*level),r(0,10*level),r(0,10*level),0,0,0];
-            }
-            mix.buffLevels = [r(1,buffLevel),r(1,buffLevel),r(1,buffLevel),0,0,0];
-            // mix.consume = (type==2?[4,3,2,0,0,0]:[r(0,3),r(0,2),r(0,1),0,0,0,]);
-        break;
-        case 2: // 锤
-            if(stable){
-                mix.dmg = [0,0,r(12*level,14*level),0,0,0];
-            }
-            else{
-                mix.dmg = [0,0,r(7*level,14*level),0,0,0];
-            }
-            mix.buffLevels = [0,0,r(1,buffLevel),0,0,0];
-            // mix.consume = (type==2?[0,0,4,0,0,0]:[0,0,r(0,2),0,0,0,]);
-        break;
-        case 3: // 斧
-            if(stable){
-                mix.dmg = [r(9*level,10*level),0,r(9*level,10*level),0,0,0];
-            }
-            else{
-                mix.dmg = [r(5*level,10*level),0,r(5*level,10*level),0,0,0];
-            }
-            mix.buffLevels = [r(1,buffLevel),0,r(1,buffLevel),0,0,0];
-            // mix.consume = (type==2?[4,0,4,0,0,0]:[r(0,2),0,r(0,2),0,0,0,]);
-        break;
-        case 4: // 枪
-            if(stable){
-                mix.dmg = [0,0,0,r(9*level,10*level),r(9*level,11*level),0];
-            }
-            else{
-                mix.dmg = [0,0,0,r(0,2*level),r(5*level,11*level),0];
-            }
-            mix.buffLevels = [0,0,0,r(1,buffLevel),r(1,buffLevel),0];
-            // mix.consume = (type==2?[0,0,0,2,4,0]:[0,0,0,r(0,1),r(0,2),0]);
-        break;
-        case 5: // 炮
-            if(stable){
-                mix.dmg = [0,0,0,r(12*level,14*level),0,0];
-            }
-            else{
-                mix.dmg = [0,0,0,r(7*level,14*level),0,0];
-            }
-            mix.buffLevels = [0,0,0,r(1,buffLevel),0,0];
-            // mix.consume = (type==2?[0,0,0,4,0,0]:[0,0,0,r(0,2),0,0,]);
-        break;
-        case 6: // 弓
-            if(stable){
-                mix.dmg = [0,0,0,r(8*level,9*level),r(8*level,9*level),r(8*level,9*level)];
-            }
-            else{
-                mix.dmg = [0,0,0,r(5*level,10*level),r(0*level,10*level),r(0,10*level)];
-            }
-            mix.buffLevels = [0,0,0,r(1,buffLevel),r(1,buffLevel),r(1,buffLevel)];
-            // mix.consume = (type==2?[0,0,0,0,4,2]:[0,0,0,0,r(0,2),r(0,1),]);
-        break;
-        case 7: // 鞭
-            if(stable){
-                mix.dmg = [0,0,0,0,r(9*level,10*level),r(9*level,10*level)];
-            }
-            else{
-                mix.dmg = [0,0,0,0,r(0,2*level),r(5*level,10*level)];
-            }
-            mix.buffLevels = [0,0,0,0,r(1,buffLevel),r(1,buffLevel)];
-            // mix.consume = (type==2?[0,0,0,0,2,4]:[0,0,0,0,r(0,1),r(0,2),]);
-        break;
-    }
 
-     // BOSS
-    if(ownerType==3){
-        if(type==2){
-            for(let i=0;i<mix.dmg.length;i++){
-                if(mix.dmg[i]>0){
-                    mix.dmg[i] = Math.ceil(mix.dmg[i]*.5);
-                }
-            }
-        }
-    }
-    else if(!stable){
-        for(let i=0;i<mix.dmg.length;i++){
-            if(mix.dmg[i]>0){
-                mix.dmg[i] += r(level*2,level*4);
-            }
-        }
-    }
 
-    // 设置消耗
-    let dmgIndexArr = [];
-    for(let i=0;i<mix.dmg.length;i++){
-        if(mix.dmg[i]>0){
-            dmgIndexArr.push({
-                type: i,
-                value: mix.dmg[i],
-            });
-        }
-    }
-    if(type==2){ // 全攻击武器
-        let startConsume = 4;
-        dmgIndexArr = bulbsort(dmgIndexArr,'value');
-        for(let i=0;i<dmgIndexArr.length;i++){
-            let dmgObj = dmgIndexArr[i];
-            mix.consume[dmgObj.type] = startConsume--;
-        }
-    }
-    else{ // 单攻击武器
-        let startConsume = r(0,1);
-        dmgIndexArr = bulbsort(dmgIndexArr,'value',0);
-        for(let i=0;i<dmgIndexArr.length;i++){
-            let dmgObj = dmgIndexArr[i];
-            mix.consume[dmgObj.type] = startConsume++;
-        }
-    }
 
-    // if(level==1){
-    //     console.log(type==2?'全':'单');
-    //     console.log('武器伤害：',mix.dmg);
-    //     console.log('武器伤害排序',dmgIndexArr);
-    //     console.log('武器消耗',mix.consume);
-    //     console.log(`========================`);
-    // }
-    return mix;
-}
-export function genRandomGrids(length){ // 生成随机连续格子
-    let map = [{x:0,y:0}];
-    for(let i=0;i<length-1;i++){
-        let rGrid = map[r(0,map.length-1)];
-        map.push(getRandomRoundGrid({map,x:rGrid.x,y:rGrid.y}));
-    }
-    return map;
-}
-export function getRandomRoundGrid({map,x,y,boundary,mainDir}){ // 在地图 map 中获取坐标（x,y）四周可用坐标中的随机一个
-    let res;
-    let roundPosArr = []; // 四周的坐标数组
-    let availablePosArr = []; // 四周的空坐标数组
-    let potentPos = [[0,-1],[-1,0],[1,0],[0,1],];
-    for(let i=0;i<potentPos.length;i++){
-        let pc = potentPos[i];
-        let tx = x+pc[0], ty = y+pc[1];
-        if(boundary){ // 如果有边界
-            if(tx>=0&&tx<boundary&&ty>=0&&ty<boundary){
-                roundPosArr.push({x:tx,y:ty});
-            }
-        }
-        else{
-            roundPosArr.push({x:tx,y:ty});
-        }
-    }
-    // console.log(`四周的空坐标数组`,roundPosArr);
-    let occupiedPosArr = []; // 已经被占据的坐标数组
-    for(let pos of roundPosArr){ // 筛选已经被占据的坐标
-        let grid = getMatchList(map,[['x',pos.x],['y',pos.y]])[0];
-        if(grid){
-            occupiedPosArr.push({x:pos.x,y:pos.y});
-        }
-    }
-    // console.log(`筛选已经被占据的坐标`,occupiedPosArr);
-    for(let pos of roundPosArr){ // 从四周坐标数组中过滤掉已经被占据的坐标
-        let grid = getMatchList(occupiedPosArr,[['x',pos.x],['y',pos.y]])[0];
-        if(!grid){
-            availablePosArr.push({x:pos.x,y:pos.y});
-        }
-    }
-    // console.log(`从四周坐标数组中过滤掉已经被占据的坐标`,availablePosArr);
-    if(availablePosArr.length==0){ // 如果四周都没有空坐标，则选择一个已经被占据的坐标，并递归获取其四周随机一个可用坐标
-        let randomOccupiedPos = occupiedPosArr[r(0,occupiedPosArr.length-1)];
-        let newPos = getRandomRoundGrid({map,x:randomOccupiedPos.x,y:randomOccupiedPos.y,boundary});
-        availablePosArr.push(newPos);
-    }
-    // console.log(`可用坐标数组`,availablePosArr);
-    if(mainDir){ // 如果有优先方向倾向
-        let trendX = x, trendY = y;
-        switch(mainDir){
-            case 1: trendX = x-1;break; // 左
-            case 2: trendY = y-1;break; // 上
-            case 3: trendX = x+1;break; // 右
-            case 4: trendY = y+1;break; // 下
-        }
-        for(let pos of availablePosArr){
-            if(pos.x==trendX&&pos.y==trendY){
-                res = pos;
-            }
-        }
-    }
-    if(!res){
-        res = availablePosArr[r(0,availablePosArr.length-1)];
-    }
-    return res;
-};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//

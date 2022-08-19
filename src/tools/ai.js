@@ -36,13 +36,12 @@ import * as common from './common';
 }
 */
 export function genActionCommand(unit,unitTeam,enemyTeam){
-    let { equipments, skills, } = unit,
-        { head, hands, body, legs, foots, } = equipments,
-        actionType = 0;
+    let { weapon, skills, } = unit;
+    let actionType = 0;
     let aliveUnitTeam = common.getAliveUnitArr(unitTeam); // 我方阵营存活单位数组
     let aliveEnemyTeam = common.getAliveUnitArr(enemyTeam); // 敌方阵营存活单位数组
     let allAliveUnits = [...aliveUnitTeam,...aliveEnemyTeam]; // 所有存活单位数组
-    let attackType, attackAll = hands.type==2;
+    let attackType, attackAll = weapon.type==2;
     let enemyTotalAwareness = 0; // 敌方存在感总数
     let enemyMaxAwareness = 0; // 敌方存在感最大值
     let actionPool = [];
@@ -63,20 +62,20 @@ export function genActionCommand(unit,unitTeam,enemyTeam){
         let potentAttackType = []; // 潜在攻击类型可选项
         let potentTargets = []; // 潜在攻击对象
         let consume;
-        if(hands.id==0){ // 没有武器，默认攻击类型为“钝击”
-            if(unit.consume<=unit.pow){
+        if(!weapon.name){ // 没有武器，默认攻击类型为“钝击”
+            if(unit.pow>0){
                 potentAttackType = [2];
                 attackTrendIndex += 1;
             }
         }
         else{ // 有武器，选择攻击类型
-            for(let i=0;i<hands.dmg.length;i++){
-                if(hands.dmg[i]>0&&(hands.consume[i]+unit.consume<=unit.pow)){
-                    pushToArray(potentAttackType,i,int(hands.dmg[i]));
+            for(let i=0;i<weapon.dmg.length;i++){
+                if(weapon.dmg[i]>0&&(weapon.consume[i]<=unit.pow)){
+                    pushToArray(potentAttackType,i,int(weapon.dmg[i]));
                 }
             }
         }
-        if(hands.type==1){ // 单体攻击
+        if(weapon.type==1){ // 单体攻击
             for(let target of aliveEnemyTeam){
                 if(target.awareness>0){
                     let ceilAwareness = int(target.awareness/5000);
@@ -95,10 +94,10 @@ export function genActionCommand(unit,unitTeam,enemyTeam){
                 attackType = randInArr(potentAttackType);
                 let attack = {
                     type: attackType,
-                    name: (hands.type==2?'全·':'')+CONFIG.attackTypeNameMap[attackType],
+                    name: (weapon.type==2?'全·':'')+CONFIG.attackTypeNameMap[attackType],
                     consume,
                 };
-                if(hands.type==1){
+                if(weapon.type==1){
                     attackTargets = [randInArr(potentTargets)];
                 }
                 let action = {
@@ -150,10 +149,10 @@ export function genActionCommand(unit,unitTeam,enemyTeam){
 
             // 判断是否应该使用此技能
             let buffObj = common.getBuffObj(unit,116); // 锁定bufff
-            if(buffObj&&skill.name=='隐藏'){
+            if(buffObj&&skill.name=='躲避'){
                 shouldUse = false;
             }
-            if(unit.awareness<=0&&skill.name=='隐藏'){
+            if(unit.awareness<=0&&skill.name=='躲避'){
                 shouldUse = false;
             }
 
