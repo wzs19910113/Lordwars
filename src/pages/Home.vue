@@ -174,7 +174,7 @@ export default {
                             fixawareness: 7000,
                         }, // 副手武器
                         skills: skills1,
-                        isAI: true,
+                        isAI: false,
                         relations: [ // 与其他角色的关系
                             {
                                 id: 2, // 对应人物 ID

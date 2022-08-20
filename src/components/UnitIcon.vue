@@ -14,6 +14,8 @@
         </div>
         <bar4 class="bar-1" title="存在感" :type="1" :crt="unit.awareness" :changes="changes.awareness" />
         <Bar4 class="bar-2" title="行动力" :type="2" :crt="unit.move" :changes="changes.move" :checkSuffix="!unit.dead&&!unit.me&&unit.isCreep" />
+        <div class="cirtip cirtip1" :class="(!unit.dead&&unit.hp<unit.maxhp/4)?'critical-cirtip':''" v-if="unit.hp<unit.maxhp/2">危</div>
+        <div class="cirtip cirtip2" :class="(!unit.dead&&unit.pow<unit.maxpow/4)?'critical-cirtip':''" v-if="unit.pow<unit.maxpow/2">疲</div>
         <div class="buff-wrap" v-if="!unit.dead">
             <BuffIcon :buff="buff" :key="index" :mouseon="showTip" :mouseoff="hideTip" v-for="(buff,index) in unit.buffs" />
             <span class="buff-tip" v-if="tip">{{tip}}<br/>{{tip2}}</span>
@@ -344,10 +346,10 @@ export default {
         top: 10px;
     }
     .bar-1{
-        right: 42px;
+        right: 62px;
     }
     .bar-2{
-        right: 0;
+        right: 32px;
     }
     .buff-wrap{
         position: absolute;
@@ -521,6 +523,53 @@ export default {
         100%{
             opacity: 0;
             transform: translateY(30%);
+        }
+    }
+
+    /* 危和疲 */
+    .cirtip{
+        position: absolute;
+        right: 5px;
+        width: 30px;
+        height: 30px;
+        line-height: 30px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        font-weight: bold;
+        font-size: 24;
+        color: #fff;
+        border-radius: 15px;
+        opacity: .5;
+    }
+    .cirtip1{
+        top: 20px;
+        background-color: Red;
+    }
+    .cirtip2{
+        top: 58px;
+        background-color: RoyalBlue;
+    }
+    .critical-cirtip{
+        opacity: 1;
+        animation: critical 1.2s ease-in-out infinite;
+    }
+    @keyframes critical {
+        69%{
+            transform: scale(1);
+        }
+        70%{
+            transform: scale(1.3);
+        }
+        80%{
+            transform: scale(1);
+        }
+        90%{
+            transform: scale(1.3);
+        }
+        100%{
+            transform: scale(1);
         }
     }
 </style>

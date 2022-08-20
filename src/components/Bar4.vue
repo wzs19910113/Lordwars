@@ -69,7 +69,7 @@ export default {
 </script>
 <style scoped>
     .bar4{
-        width: 42px;
+        width: 22px;
         height: 134px;
         line-height: 18px;
         display: flex;

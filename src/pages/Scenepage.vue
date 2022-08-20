@@ -145,12 +145,6 @@ export default {
                 	absolute: 0, // 必中，无视对方存在感
                 }],
                 isAI: false,
-                relations: [ // 与其他角色的关系
-                    {
-                        id: 2, // 对应人物 ID
-                        values: [0,0,0,], // [亲密度(0,无限),喜爱度(-无限,无限),信任度(-无限,无限) ]
-                    },
-                ]
             }],
             youTeam: [],
             map: {
