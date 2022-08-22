@@ -65,6 +65,19 @@ export function genRandomAvatar(person){ // 随机生成肖像
         backHairData = genBackHairData(faceData,gender,color,grd);
     }
 
+    let glassData;
+    // 生成眼镜
+    if(r(0,100)<0){
+        let glassColor = genGlassColor(gender);
+        glassData = genGlassData(faceData,glassColor);
+    }
+
+    let clothData;
+    // 生成衣服
+    if(r(0,100)<0){
+        clothData = genClothData(bodyData,gender);
+    }
+
     res = {
         faceData,
         earsData,
@@ -83,33 +96,19 @@ export function genRandomAvatar(person){ // 随机生成肖像
         backHairData,
         foreHairData,
         bangsData,
+        clothData,
+        glassData,
         hairColor,
     }
     return res;
 }
 export function paintAvatar(ctx,avatarData,canvasSize,showBg){ // 根据肖像数据进行绘制
-    let drawData = data =>{ // 画
-        let { color, outline, topY, bottomY, grd, rgrd, radial, lineWidth, strokeColor, alpha, } = data;
-        ctx.beginPath();
-        ctx.lineCap = 'round';
-        ctx.lineWidth = lineWidth||1;
-        for(let option of outline){
-            let mode = option[0];
-            switch(mode){
-                case 0: // 移动
-                    ctx.moveTo(option[1],option[2],);
-                break;
-                case 1: // 直线
-                    ctx.lineTo(option[1],option[2],);
-                break;
-                case 2: // 曲线
-                    ctx.quadraticCurveTo(option[1],option[2],option[3],option[4],);
-                break;
-                case 3: // 圆
-                    ctx.arc(option[2],option[3],option[1],0,4*Math.PI);
-                break;
-            }
-        }
+    let fill = (data,flag) =>{ // 填充
+        let {
+            color, strokeColor, alpha,
+            grd, topY, bottomY,
+            rgrd, radial,
+        } = data;
         if(strokeColor){
             ctx.strokeStyle = `rgba(${strokeColor.r},${strokeColor.g},${strokeColor.b},${alpha||1})`;
         }
@@ -135,6 +134,34 @@ export function paintAvatar(ctx,avatarData,canvasSize,showBg){ // 根据肖像�
             ctx.fillStyle = grdStyle;
             ctx.fill();
         }
+    };
+    let drawData = data =>{ // 画
+        let { color, outline, topY, bottomY, grd, rgrd, radial, lineWidth, strokeColor, alpha, } = data;
+        ctx.beginPath();
+        ctx.lineCap = 'round';
+        ctx.lineWidth = lineWidth||1;
+        for(let option of outline){
+            let mode = option[0];
+            switch(mode){
+                case 0: // 移动
+                    ctx.moveTo(option[1],option[2],);
+                break;
+                case 1: // 直线
+                    ctx.lineTo(option[1],option[2],);
+                break;
+                case 2: // 曲线
+                    ctx.quadraticCurveTo(option[1],option[2],option[3],option[4],);
+                break;
+                case 3: // 圆
+                    ctx.arc(option[2],option[3],option[1],0,4*Math.PI);
+                break;
+                // case 9: // 画
+                //     ctx.closePath();
+                //     fill(option[1]);
+                // break;
+            }
+        }
+        fill(data);
     }
     let transferedData = transferAvatarSize(avatarData,canvasSize);
     let {
@@ -155,6 +182,8 @@ export function paintAvatar(ctx,avatarData,canvasSize,showBg){ // 根据肖像�
         backHairData,
         foreHairData,
         bangsData,
+        clothData,
+        glassData,
         hairColor,
     } = transferedData;
 
@@ -205,6 +234,13 @@ export function paintAvatar(ctx,avatarData,canvasSize,showBg){ // 根据肖像�
         drawData(nasoData);
     }
 
+    if(glassData){
+        drawData(glassData);
+    }
+    if(clothData){
+        drawData(clothData);
+    }
+
     if(foreHairData){
         drawData(foreHairData);
     }
@@ -230,6 +266,8 @@ function transferAvatarSize(data,canvasSize){
     let backHairData = cloneObj(data.backHairData);
     let foreHairData = cloneObj(data.foreHairData);
     let bangsData = cloneObj(data.bangsData);
+    let glassData = cloneObj(data.glassData);
+    let clothData = cloneObj(data.clothData);
     let hairColor = cloneObj(data.hairColor);
 
     faceData.outline = formatPx(faceData.outline,canvasSize);
@@ -309,6 +347,14 @@ function transferAvatarSize(data,canvasSize){
         backHairData.bottomY = formatPx(backHairData.bottomY,canvasSize);
     }
 
+    if(glassData){
+        glassData.outline = formatPx(glassData.outline,canvasSize);
+    }
+
+    if(clothData){
+        clothData.outline = formatPx(clothData.outline,canvasSize);
+    }
+
     return {
         faceData,
         earsData,
@@ -327,6 +373,8 @@ function transferAvatarSize(data,canvasSize){
         backHairData,
         foreHairData,
         bangsData,
+        glassData,
+        clothData,
         hairColor,
     };
 }
@@ -352,6 +400,9 @@ function formatPx(data,canvasSize){
             }
             else if(item[0]==3){
                 res = [item[0],parseInt(item[1]/rate),parseInt(item[2]/rate),parseInt(item[3]/rate)];
+            }
+            else{
+                res = cloneObj(item);
             }
             return res;
         });
@@ -381,9 +432,6 @@ export function genForeHairData(faceData,gender,color,grd,hairName){ // 生成�
         else{ // 女
             rHair = femaleForeHairTemplates[r(0,femaleForeHairTemplates.length-1)];
         }
-    }
-    if(DEBUG){
-        rHair = CONFIG.testForeHairTemplates[r(0,CONFIG.testForeHairTemplates.length-1)];
     }
     let center = [...rHair.center];
     let const_outline = [...rHair.outline];
@@ -494,9 +542,6 @@ export function genBangsData(faceData,gender,color,grd,hairName){ // 生成刘�
         else{ // 女
             rHair = femaleBangsTemplates[r(0,femaleBangsTemplates.length-1)];
         }
-    }
-    if(DEBUG){
-        rHair = CONFIG.testBangsTemplates[r(0,CONFIG.testBangsTemplates.length-1)];
     }
     let center = [...rHair.center];
     let const_outline = [...rHair.outline];
@@ -609,9 +654,6 @@ export function genBackHairData(faceData,gender,color,grd,hairName){ // 生成�
             rHair = femaleBackHairTemplates[r(0,femaleBackHairTemplates.length-1)];
         }
     }
-    if(DEBUG){
-        rHair = CONFIG.testBackHairTemplates[r(0,CONFIG.testBackHairTemplates.length-1)];
-    }
     let center = [...rHair.center];
     let const_outline = [...rHair.outline];
     let outline = Array.from(const_outline,item=>{
@@ -701,6 +743,133 @@ export function genBackHairData(faceData,gender,color,grd,hairName){ // 生成�
     }
     return res;
 }
+export function genGlassData(faceData,color,glassName){ // 生成眼镜
+    let res,rGlass;
+    if(glassName){
+        for(let glass of CONFIG.glassTemplates){
+            if(glass.name==glassName){
+                rGlass = glass;
+                break;
+            }
+        }
+    }
+    else{
+        rGlass = CONFIG.glassTemplates[r(0,CONFIG.glassTemplates.length-1)];
+    }
+    let center = [...rGlass.center];
+    let const_outline = [...rGlass.outline];
+    let outline = Array.from(const_outline,item=>{
+        let newItem = [...item];
+        return newItem;
+    });
+    // 对准
+    let e = faceData.e;
+    let offset = [0,e[1]-center[1]];
+    for(let option of outline){
+        if(option[0]==0||option[0]==1){
+            option[1] += offset[0];
+            option[2] += offset[1];
+        }
+        else if(option[0]==2){
+            option[1] += offset[0];
+            option[2] += offset[1];
+            option[3] += offset[0];
+            option[4] += offset[1];
+        }
+    }
+    // // 缩放
+    let width = (500-faceData.e[0])*2; // 脸宽
+    let height = faceData.e[1]-faceData.d[1]; // 眼高
+    let widthScaleRate = width/170; // 水平缩放比率
+    let heightScaleRate = height/120; // 垂直缩放比率
+    for(let option of outline){
+        if(option[0]==0||option[0]==1){
+            option[1] = 500-Math.round((500-option[1])*widthScaleRate);
+            option[2] = e[1]-Math.round((e[1]-option[2])*heightScaleRate);
+        }
+        else if(option[0]==2){
+            option[1] = 500-Math.round((500-option[1])*widthScaleRate);
+            option[2] = e[1]-Math.round((e[1]-option[2])*heightScaleRate);
+            option[3] = 500-Math.round((500-option[3])*widthScaleRate);
+            option[4] = e[1]-Math.round((e[1]-option[4])*heightScaleRate);
+        }
+    }
+
+    // 输出
+    res = {
+        outline,
+        color,
+        name: rGlass.name,
+    }
+    return res;
+}
+export function genClothData(bodyData,gender,clothName){ // 生成衣服
+    let res,rCloth;
+    if(clothName){
+        let clothTemplates = [...CONFIG.generalClothTemplates,...CONFIG.maleClothTemplates,...CONFIG.femaleClothTemplates,];
+        for(let cloth of clothTemplates){
+            if(cloth.name==clothName){
+                rCloth = cloth;
+                break;
+            }
+        }
+    }
+    else{
+        let maleClothTemplates = [...CONFIG.generalClothTemplates,...CONFIG.maleClothTemplates,];
+        let femaleClothTemplates = [...CONFIG.generalClothTemplates,...CONFIG.femaleClothTemplates,];
+        if(gender==1){ // 男
+            rCloth = maleClothTemplates[r(0,maleClothTemplates.length-1)];
+        }
+        else{ // 女
+            rCloth = femaleClothTemplates[r(0,femaleClothTemplates.length-1)];
+        }
+    }
+    let center = [...rCloth.center];
+    let const_outline = [...rCloth.outline];
+    let outline = Array.from(const_outline,item=>{
+        let newItem = [...item];
+        return newItem;
+    });
+    // 对准
+    let g = bodyData.g;
+    let offset = [g[0]-center[0],g[1]-center[1]];
+    for(let option of outline){
+        if(option[0]==0||option[0]==1){
+            option[1] += offset[0];
+            option[2] += offset[1];
+        }
+        else if(option[0]==2){
+            option[1] += offset[0];
+            option[2] += offset[1];
+            option[3] += offset[0];
+            option[4] += offset[1];
+        }
+    }
+    // // 缩放
+    let width = (500-bodyData.f[0])*2; // 肩宽
+    let height = bodyData.f[1]-bodyData.a[1]; // 脖高
+    let widthScaleRate = width/660; // 水平缩放比率
+    let heightScaleRate = height/400; // 垂直缩放比率
+    for(let option of outline){
+        if(option[0]==0||option[0]==1){
+            option[1] = g[0]-Math.round((g[0]-option[1])*widthScaleRate);
+            option[2] = g[1]-Math.round((g[1]-option[2])*heightScaleRate);
+        }
+        else if(option[0]==2){
+            option[1] = g[0]-Math.round((g[0]-option[1])*widthScaleRate);
+            option[2] = g[1]-Math.round((g[1]-option[2])*heightScaleRate);
+            option[3] = g[0]-Math.round((g[0]-option[3])*widthScaleRate);
+            option[4] = g[1]-Math.round((g[1]-option[4])*heightScaleRate);
+        }
+    }
+
+    // 输出
+    res = {
+        outline,
+        name: rCloth.name,
+    }
+    return res;
+}
 function genHairColor(gender){ // 生成发色
     let color, grd;
     let basicColor = [{ // 黑
@@ -762,6 +931,29 @@ function genEyeColor(flag){ // 生成瞳色
     let grds = flag==1?['#777','#fff']:['#111','#777'];
     grd = grds[r(0,grds.length-1)];
     return { color, grd, };
+}
+function genGlassColor(gender){ // 生成瞳色
+    let color;
+    let basicColor = [{ // 黑
+        r: r(10,30),
+        g: r(10,30),
+        b: r(10,30),
+    },{ // 白
+        r: r(240,255),
+        g: r(240,255),
+        b: r(240,255),
+    }];
+    if(r(0,100)<90){
+        color = basicColor[r(0,basicColor.length-1)];
+    }
+    else{
+        color = {
+            r: r(0,gender==1?50:255),
+            g: r(0,gender==1?50:155),
+            b: r(0,200),
+        };
+    }
+    return color;
 }
 function genLipColor(){ // 生成唇色
     let color, grd;
@@ -1021,8 +1213,8 @@ function genEyesData(faceData,gender,personalities,abilities){ // 生成双眼
     let calmness = personalities[3],
         libidinal = personalities[0];
     if(gender==2){ // 女
-        a = [faceData.e[0]+r(40,55),faceData.e[1]-r(3,15)];
-        b = [faceData.e[0]-r(50,70),faceData.e[1]-r(5,10)];
+        a = [faceData.e[0]+r(40,55),faceData.e[1]-r(-15,15)];
+        b = [faceData.e[0]-r(50,70),faceData.e[1]-r(-10,10)];
         if(a[1]>b[1]){
             min = b[1];
             max = a[1];
@@ -1034,8 +1226,8 @@ function genEyesData(faceData,gender,personalities,abilities){ // 生成双眼
         lineWidth = r(2,7);
     }
     else{ // 男
-        a = [faceData.e[0]+r(45,60),faceData.e[1]-r(5,30)];
-        b = [faceData.e[0]-r(60,75),faceData.e[1]-r(5,30)];
+        a = [faceData.e[0]+r(45,60),faceData.e[1]-r(-15,15)];
+        b = [faceData.e[0]-r(60,75),faceData.e[1]-r(-10,10)];
         if(a[1]>b[1]){
             min = b[1];
             max = a[1];
@@ -1297,7 +1489,7 @@ function genNoseData(faceData,gender){ // 生成鼻子
         b = [faceData.f[0]-r(-9,9),faceData.f[1]-r(0,8)];
         dir = b[0]<0?0:1; // 鼻子方向：[0:向左|1:向右]
         c = [(faceData.f[0]+r(0,12))*dir,faceData.f[1]];
-        lineWidth = r(1,2);
+        lineWidth = 1;
     }
     if(b[0]==0){
         b[0] = 5;

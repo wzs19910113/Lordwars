@@ -76,14 +76,15 @@ export function cloneObj(obj,und){ // 深度复制数据对象
         return und;
     }
     let newObj = {};
-    if (obj instanceof Array) {
+    if(obj instanceof Array){
        newObj = [];
     }
     for(let key in obj){
        let val = obj[key];
-       newObj[key] = typeof val === 'object'?cloneObj(val):val;
+       newObj[key] = typeof val==='object'?cloneObj(val):val;
     }
     return newObj;
+    // return JSON.parse(JSON.stringify(obj));
 }
 /*
  计算文本长度（汉字为2，英文和字符为1）

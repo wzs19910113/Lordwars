@@ -5,6 +5,7 @@
             <a class="btn" :class="strokeMode==0?'btn-on':''" @click="onClickMoveTo">移动</a>
             <a class="btn" :class="strokeMode==1?'btn-on':''" @click="onClickLineTo">直线</a>
             <a class="btn" :class="strokeMode==2?'btn-on':''" @click="onClickCurveTo">曲线<i v-if="strokeMode==2">({{curveStep}})</i></a>
+            <a class="btn" @click="onClickDye">着色</a>
             <a class="btn" :class="strokeMode==3?'btn-on':''" @click="onClickModify">修改</a>
             <br/>
             <a class="btn" @click="onClickPrevStep">上一步({{inputsIndex}})</a>
@@ -25,8 +26,12 @@
                 <a class="btn btn-sm" @click="onClickShift(2)">左</a>
                 <a class="btn btn-sm" @click="onClickShift(1)">右</a>
                 <br/>
+                <a class="btn btn-sm" @click="onClickShift(4)">上</a>
+                <a class="btn btn-sm" @click="onClickShift(3)">下</a>
+                <br/>
                 <a class="btn btn-sm" @click="onClickFlatCopy">水平复制</a>
                 <a class="btn btn-sm" @click="onClickFlatUp">水平翻转</a>
+                <br/>
                 <br/>
                 <a class="btn btn-sm" @click="onClickImport">导入</a>
             </div>
@@ -170,6 +175,9 @@ export default {
                         case 2:
                             this.ctx.quadraticCurveTo(option[1],option[2],option[3],option[4],);
                         break;
+                        case 3:
+                            ctx.arc(option[2],option[3],option[1],0,4*Math.PI);
+                        break;
                     }
                 }
                 this.output = JSON.stringify(input);
@@ -184,7 +192,9 @@ export default {
             let p = this.inputs[this.inputsIndex];
             if(p){
                 let lastInput = p[p.length-1];
-                this.panPoint = [lastInput[lastInput.length-2],lastInput[lastInput.length-1]];
+                if(lastInput[0]!=9){
+                    this.panPoint = [lastInput[lastInput.length-2],lastInput[lastInput.length-1]];
+                }
             }
             else{
                 this.panPoint = [0,0];
@@ -256,7 +266,7 @@ export default {
         },
         onClickCanvas(e){ // 点击【Canvas】
             let input = cloneObj(this.inputs[this.inputsIndex],[]);
-            let lastInput = input[input.length-1];
+            // let lastInput = input[input.length-1];
             let x = e.offsetX;
             let y = e.offsetY;
             let setupNewInput = false;
@@ -318,12 +328,10 @@ export default {
                         if(isCurvePoint||this.modifyPoint[0]!=2){
                             input[pointIndex][1] = x;
                             input[pointIndex][2] = y;
-                            console.log('改1,2',input[pointIndex],this.modifyPoint);
                         }
                         else{
                             input[pointIndex][3] = x;
                             input[pointIndex][4] = y;
-                            console.log('改3,4',input[pointIndex],this.modifyPoint);
                         }
                         this.modifyStep = 0;
                         setupNewInput = true;
@@ -345,10 +353,12 @@ export default {
             let outputD = JSON.parse(this.output);
             for(let k=0;k<outputD.length;k++){
                 let next = [...outputD[k]];
-                for(let i=1;i<next.length;i++){
-                    next[i] = outputD[k][i]*2;
+                if(next[0]!=9){
+                    for(let i=1;i<next.length;i++){
+                        next[i] = outputD[k][i]*2;
+                    }
+                    outputD[k] = next;
                 }
-                outputD[k] = next;
             }
             this.output = JSON.stringify(outputD);
         },
@@ -358,10 +368,12 @@ export default {
             let outputD = JSON.parse(this.output);
             for(let k=0;k<outputD.length;k++){
                 let next = [...outputD[k]];
-                for(let i=1;i<next.length;i++){
-                    next[i] = Math.round(outputD[k][i]/2);
+                if(next[0]!=9){
+                    for(let i=1;i<next.length;i++){
+                        next[i] = Math.round(outputD[k][i]/2);
+                    }
+                    outputD[k] = next;
                 }
-                outputD[k] = next;
             }
             this.output = JSON.stringify(outputD);
         },
@@ -372,10 +384,10 @@ export default {
             let expend = [];
             for(let k=0;k<outputD.length;k++){
                 let next = [...outputD[k]];
-                if(next[0]!=2){
+                if(next[0]==0||next[0]==1){
                     next[1] = CVSLEN-next[1];
                 }
-                else{
+                else if(next[0]==2){
                     next[1] = CVSLEN-next[1];
                     next[3] = CVSLEN-next[3];
                 }
@@ -389,10 +401,10 @@ export default {
             let outputD = JSON.parse(this.output);
             for(let k=outputD.length-1;k>=0;k--){
                 let next = [...outputD[k]];
-                if(next[0]!=2){
+                if(next[0]==0||next[0]==1){
                     next[1] = CVSLEN-next[1];
                 }
-                else{
+                else if(next[0]==2){
                     next[1] = CVSLEN-next[1];
                     next[3] = CVSLEN-next[3];
                 }
@@ -406,10 +418,10 @@ export default {
             let outputD = JSON.parse(this.output);
             for(let k=0;k<outputD.length;k++){
                 let next = [...outputD[k]];
-                if(next[0]!=2){
+                if(next[0]==0||next[0]==1){
                     next[1] = 250-Math.round((250-next[1])/1.05);
                 }
-                else{
+                else if(next[0]==2){
                     next[1] = 250-Math.round((250-next[1])/1.05);
                     next[3] = 250-Math.round((250-next[3])/1.05);
                 }
@@ -423,10 +435,10 @@ export default {
             let outputD = JSON.parse(this.output);
             for(let k=0;k<outputD.length;k++){
                 let next = [...outputD[k]];
-                if(next[0]!=2){
+                if(next[0]==0||next[0]==1){
                     next[1] = 250-Math.round((250-next[1])*1.05);
                 }
-                else{
+                else if(next[0]==2){
                     next[1] = 250-Math.round((250-next[1])*1.05);
                     next[3] = 250-Math.round((250-next[3])*1.05);
                 }
@@ -440,10 +452,10 @@ export default {
             let outputD = JSON.parse(this.output);
             for(let k=0;k<outputD.length;k++){
                 let next = [...outputD[k]];
-                if(next[0]!=2){
+                if(next[0]==0||next[0]==1){
                     next[2] = 250-Math.round((250-next[2])/1.05);
                 }
-                else{
+                else if(next[0]==2){
                     next[2] = 250-Math.round((250-next[2])/1.05);
                     next[4] = 250-Math.round((250-next[4])/1.05);
                 }
@@ -457,10 +469,10 @@ export default {
             let outputD = JSON.parse(this.output);
             for(let k=0;k<outputD.length;k++){
                 let next = [...outputD[k]];
-                if(next[0]!=2){
+                if(next[0]==0||next[0]==1){
                     next[2] = 250-Math.round((250-next[2])*1.05);
                 }
-                else{
+                else if(next[0]==2){
                     next[2] = 250-Math.round((250-next[2])*1.05);
                     next[4] = 250-Math.round((250-next[4])*1.05);
                 }
@@ -468,23 +480,48 @@ export default {
             }
             this.output = JSON.stringify(outputD);
         },
-        onClickShift(flag){ // 平移
+        onClickShift(flag){ // 移动
             if(!this.output)
                 return;
             let outputD = JSON.parse(this.output);
-            let shift = flag==1?2:-2;
-            for(let k=0;k<outputD.length;k++){
-                let next = [...outputD[k]];
-                if(next[0]!=2){
-                    next[1] += shift;
+            if(flag==1||flag==2){ // 水平移动
+                let shift = flag==1?2:-2;
+                for(let k=0;k<outputD.length;k++){
+                    let next = [...outputD[k]];
+                    if(next[0]==0||next[0]==1){
+                        next[1] += shift;
+                    }
+                    else if(next[0]==2){
+                        next[1] += shift;
+                        next[3] += shift;
+                    }
+                    outputD[k] = next;
                 }
-                else{
-                    next[1] += shift;
-                    next[3] += shift;
+            }
+            if(flag==3||flag==4){ // 垂直移动
+                let shift = flag==3?2:-2;
+                for(let k=0;k<outputD.length;k++){
+                    let next = [...outputD[k]];
+                    if(next[0]==0||next[0]==1){
+                        next[2] += shift;
+                    }
+                    else if(next[0]==2){
+                        next[2] += shift;
+                        next[4] += shift;
+                    }
+                    outputD[k] = next;
                 }
-                outputD[k] = next;
             }
             this.output = JSON.stringify(outputD);
+        },
+        onClickDye(){ // 着色
+            let input = cloneObj(this.inputs[this.inputsIndex],[]);
+            input.push([9,{color:{r:0,g:0,b:0,}}]);
+            this.inputsIndex++;
+            this.inputs[this.inputsIndex] = input;
+            this.asynPanPoint();
+            this.asynAllPoints();
+            this.drawInput();
         },
         onClickImport(){ // 导入
             if(!this.output)
@@ -504,13 +541,13 @@ export default {
             let hairTemplates = [];
             switch(flag){
                 case 1:
-                    hairTemplates = [...CONFIG.generalForeHairTemplates,...(gender==1?CONFIG.maleForeHairTemplates:CONFIG.femaleForeHairTemplates)];
+                    hairTemplates = [...CONFIG.generalForeHairTemplates,...CONFIG.maleForeHairTemplates,...CONFIG.femaleForeHairTemplates];
                 break;
                 case 2:
-                    hairTemplates = [...CONFIG.generalBangsTemplates,...(gender==1?CONFIG.maleBangsTemplates:CONFIG.femaleBangsTemplates)];
+                    hairTemplates = [...CONFIG.generalBangsTemplates,...CONFIG.maleBangsTemplates,...CONFIG.femaleBangsTemplates];
                 break;
                 case 3:
-                    hairTemplates = [...CONFIG.generalBackHairTemplates,...(gender==1?CONFIG.maleBackHairTemplates:CONFIG.femaleBackHairTemplates)];
+                    hairTemplates = [...CONFIG.generalBackHairTemplates,...CONFIG.maleBackHairTemplates,...CONFIG.femaleBackHairTemplates];
                 break;
             }
             this.hairStylePop = [{name:'/'},...hairTemplates];
@@ -564,13 +601,20 @@ export default {
             //     this.inputs[this.inputsIndex].push([1,i,500-exptr(i,0,500,2)]);
             // }
             // this.drawInput();
+
             let person = common.genRandomPerson({gender});
-            // let person = common.genRandomPerson({gender,level:r(0,3)});
             let avatarData = genRandomAvatar(person);
             person.avatarData = avatarData;
             paintAvatar(this.ctx,avatarData,CVSLEN);
             this.person = person;
             console.log(`生成一个人`,person);
+
+            // let t1 = {
+            //     name: '基本款',
+            //     outline: [[0,586,382],[1,498,386],[1,498,486],[1,596,478],[1,586,382],[9,{"color":{"r":40,"g":0,"b":0}}],[1,582,284],[1,672,288],[1,670,372],[1,586,382],[9,{"color":{"r":220,"g":0,"b":0}}]],
+            // };
+            // let t2 = cloneObj(t1);
+            // console.log(`t2======>`,t2)
         },
         findClosetPointIndex(x,y,points){ // 寻找最近点的下标值
             let targetPointIndex = -1; // 目标点下标
@@ -750,7 +794,7 @@ export default {
         position: absolute;
         background-color: #fff;
         width: 600px;
-        height: 350px;
+        height: 450px;
         left: 0;
         right: 0;
         top: 0;
