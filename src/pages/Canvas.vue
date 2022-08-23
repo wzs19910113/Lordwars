@@ -40,9 +40,10 @@
                 <a class="btn" @click="onClickRandom(2)">随机女</a>
                 <br/>
                 <div v-if="person.name">
-                    <a class="btn" @click="onClickSelectHairStyle(1)">选择前头发</a>
-                    <a class="btn" @click="onClickSelectHairStyle(2)">选择刘海</a>
-                    <a class="btn" @click="onClickSelectHairStyle(3)">选择后头发</a>
+                    <a class="btn" @click="onClickSelectiItemStyle(1)">选择前头发</a>
+                    <a class="btn" @click="onClickSelectiItemStyle(2)">选择刘海</a>
+                    <a class="btn" @click="onClickSelectiItemStyle(3)">选择后头发</a>
+                    <a class="btn" @click="onClickSelectiItemStyle(4)">选择眼镜</a>
                 </div>
             </div>
         </div>
@@ -84,13 +85,13 @@
             </div>
             <br/>
         </div>
-        <div class="pop" v-if="hairStylePop.length>0">
+        <div class="pop" v-if="itemStylePop.length>0">
             <div class="panel">
-                <a class="btn hair-icon" v-for="hair in hairStylePop" @click="onClickChooseHairStyle(hair)">
+                <a class="btn hair-icon" v-for="hair in itemStylePop" @click="onClickChooseItemStyle(hair)">
                     {{hair.name}}
                 </a>
             </div>
-            <a class="btn btn-close" @click="onClickCloseHairStylePop">关闭</a>
+            <a class="btn btn-close" @click="onClickCloseItemStylePop">关闭</a>
         </div>
     </div>
 </template>
@@ -99,7 +100,7 @@
 // Copyright (c) 2018 Copyright Holder All Rights Reserved.
 import { query, r, exptr, bulbsort, cloneObj, getParentNode, getMatchList, removeFromList, arrContains, rr, fullScreen, exitFullScreen, isFullScreen, calcDistance, } from '../tools/utils';
 import * as common from '../tools/common';
-import { genRandomAvatar, paintAvatar, genForeHairData, genBangsData, genBackHairData, } from '../tools/avatar';
+import { genRandomAvatar, paintAvatar, genForeHairData, genBangsData, genBackHairData, genGlassData, } from '../tools/avatar';
 import * as ai from '../tools/ai';
 import { DEBUG, CONFIG, CACHE } from '../config/config';
 const CVSLEN = 500;
@@ -126,8 +127,8 @@ export default {
             showAllPoints: false, // 显示所有点
             allPoints: [], // 所有点数组 [mode,x,y,index,isCurvePoint]
 
-            hairStylePop: [],
-            hairStyleMode: 0, // 修改发型模式[1:前头发|2:刘海|3:后头发]
+            itemStylePop: [],
+            itemStyleMode: 0, // 修改发型模式[1:前头发|2:刘海|3:后头发]
 
             ctx: null,
             loading: false,
@@ -532,50 +533,57 @@ export default {
             this.asynAllPoints();
             this.drawInput();
         },
-        onClickSelectHairStyle(flag){ // 点击【选择发型】按钮
+        onClickSelectiItemStyle(flag){ // 点击【选择发型】按钮
             if(!this.person.name){
                 return;
             }
-            this.hairStyleMode = flag;
+            this.itemStyleMode = flag;
             let gender = this.person.gender;
-            let hairTemplates = [];
+            let itemTemplates = [];
             switch(flag){
                 case 1:
-                    hairTemplates = [...CONFIG.generalForeHairTemplates,...CONFIG.maleForeHairTemplates,...CONFIG.femaleForeHairTemplates];
+                    itemTemplates = [...CONFIG.generalForeHairTemplates,...CONFIG.maleForeHairTemplates,...CONFIG.femaleForeHairTemplates];
                 break;
                 case 2:
-                    hairTemplates = [...CONFIG.generalBangsTemplates,...CONFIG.maleBangsTemplates,...CONFIG.femaleBangsTemplates];
+                    itemTemplates = [...CONFIG.generalBangsTemplates,...CONFIG.maleBangsTemplates,...CONFIG.femaleBangsTemplates];
                 break;
                 case 3:
-                    hairTemplates = [...CONFIG.generalBackHairTemplates,...CONFIG.maleBackHairTemplates,...CONFIG.femaleBackHairTemplates];
+                    itemTemplates = [...CONFIG.generalBackHairTemplates,...CONFIG.maleBackHairTemplates,...CONFIG.femaleBackHairTemplates];
+                break;
+                case 4:
+                    itemTemplates = [...CONFIG.glassTemplates];
                 break;
             }
-            this.hairStylePop = [{name:'/'},...hairTemplates];
+            this.itemStylePop = [{name:'/'},...itemTemplates];
         },
-        onClickChooseHairStyle(hair){ // 点击【选中发型】按钮
+        onClickChooseItemStyle(itemStyle){ // 点击【选中样式】按钮
             let avatarData = this.person.avatarData;
             let gender = this.person.gender;
             let { faceData, } = avatarData;
             let { color, grd, } = avatarData.hairColor;
-            if(hair.name&&hair.name!='/'){
-                this.hairStylePop = [];
-                switch(this.hairStyleMode){
+            if(itemStyle.name&&itemStyle.name!='/'){
+                this.itemStylePop = [];
+                switch(this.itemStyleMode){
                     case 1: // 前头发
-                        let foreHairData = genForeHairData(faceData,gender,color,grd,hair.name);
+                        let foreHairData = genForeHairData(faceData,gender,color,grd,itemStyle.name);
                         avatarData.foreHairData = foreHairData;
                     break;
                     case 2: // 刘海
-                        let bangsData = genBangsData(faceData,gender,color,grd,hair.name);
+                        let bangsData = genBangsData(faceData,gender,color,grd,itemStyle.name);
                         avatarData.bangsData = bangsData;
                     break;
                     case 3: // 后头发
-                        let backHairData = genBackHairData(faceData,gender,color,grd,hair.name);
+                        let backHairData = genBackHairData(faceData,gender,color,grd,itemStyle.name);
                         avatarData.backHairData = backHairData;
+                    break;
+                    case 4: // 眼镜
+                        let glassData = genGlassData(faceData,gender,itemStyle.name);
+                        avatarData.glassData = glassData;
                     break;
                 }
             }
             else{ // 取消发型
-                switch(this.hairStyleMode){
+                switch(this.itemStyleMode){
                     case 1: // 前头发
                         avatarData.foreHairData = undefined;
                     break;
@@ -585,15 +593,18 @@ export default {
                     case 3: // 后头发
                         avatarData.backHairData = undefined;
                     break;
+                    case 4: // 眼镜
+                        avatarData.glassData = undefined;
+                    break;
                 }
             }
             paintAvatar(this.ctx,avatarData,CVSLEN);
-            this.onClickCloseHairStylePop();
-            console.log(`更换发型`,this.person);
+            this.onClickCloseItemStylePop();
+            console.log(`更换样式`,this.person);
         },
-        onClickCloseHairStylePop(){ // 点击【关闭选择发型弹窗】按钮
-            this.hairStylePop = [];
-            this.hairStyleMode = 0;
+        onClickCloseItemStylePop(){ // 点击【关闭选择发型弹窗】按钮
+            this.itemStylePop = [];
+            this.itemStyleMode = 0;
         },
         onClickRandom(gender){ // 点击【随机人物】按钮
             // this.inputs[this.inputsIndex] = [];

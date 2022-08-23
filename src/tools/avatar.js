@@ -28,7 +28,7 @@ export function genRandomAvatar(person){ // 随机生成肖像
     // 生成外双瞳
     let eyeoutballsData = genEyeoutballsData(eyesData,gender);
     let eyeinballsData;
-    if(r(0,100)<50||DEBUG){ // 生成内双瞳
+    if(r(0,100)<90||DEBUG){ // 生成内双瞳
         eyeinballsData = genEyeinballsData(eyesData,gender);
     }
 
@@ -45,14 +45,14 @@ export function genRandomAvatar(person){ // 随机生成肖像
         topMoustacheData = genTopMoustacheData(faceData,lipData,color,grd);
     }
     let nasoData;
-    if(age>=45||DEBUG){ // 生成法令纹
+    if(age>=50||DEBUG){ // 生成法令纹
         nasoData = genNasoData(faceData,eyesData);
     }
     // 生成身体
     let bodyData = genBodyData(faceData,gender);
 
     let backHairData,foreHairData,bangsData;
-    if(!((r(0,100)<10)&&gender==1)||DEBUG){
+    if(!((r(0,100)<10)&&gender==1)){
         // 生成前发
         foreHairData = genForeHairData(faceData,gender,color,grd);
         // 生成刘海
@@ -61,15 +61,30 @@ export function genRandomAvatar(person){ // 随机生成肖像
         // }
     }
     // 生成背发
-    if(r(0,100)<50||DEBUG){
+    if(r(0,100)<50){
         backHairData = genBackHairData(faceData,gender,color,grd);
+    }
+
+    let eyeShadowData, eyeShadowData1, eyeShadowData2;
+    // 生成眼影
+    if(r(0,30)<(50-age)&&gender==2){
+        eyeShadowData = genEyeShadowData(faceData,eyesData);
+        eyeShadowData1 = eyeShadowData.res1;
+        eyeShadowData2 = eyeShadowData.res2;
+    }
+
+    let cheekData, cheekData1, cheekData2;
+    // 生成腮红
+    if(r(0,180)<(50-age)&&gender==2){
+        cheekData = genCheekData(faceData);
+        cheekData1 = cheekData.res1;
+        cheekData2 = cheekData.res2;
     }
 
     let glassData;
     // 生成眼镜
-    if(r(0,100)<0){
-        let glassColor = genGlassColor(gender);
-        glassData = genGlassData(faceData,glassColor);
+    if(r(0,100)<10){
+        glassData = genGlassData(faceData,gender);
     }
 
     let clothData;
@@ -97,6 +112,10 @@ export function genRandomAvatar(person){ // 随机生成肖像
         foreHairData,
         bangsData,
         clothData,
+        eyeShadowData1,
+        eyeShadowData2,
+        cheekData1,
+        cheekData2,
         glassData,
         hairColor,
     }
@@ -106,30 +125,33 @@ export function paintAvatar(ctx,avatarData,canvasSize,showBg){ // 根据肖像�
     let fill = (data,flag) =>{ // 填充
         let {
             color, strokeColor, alpha,
-            grd, topY, bottomY,
+            grd, topY, bottomY, leftX, rightX,
             rgrd, radial,
+            noStroke,
         } = data;
         if(strokeColor){
-            ctx.strokeStyle = `rgba(${strokeColor.r},${strokeColor.g},${strokeColor.b},${alpha||1})`;
+            ctx.strokeStyle = `rgba(${strokeColor.r},${strokeColor.g},${strokeColor.b},${strokeColor.alpha||1})`;
         }
         else{
             ctx.strokeStyle = '#000';
         }
-        ctx.stroke();
+        if(!noStroke){
+            ctx.stroke();
+        }
         if(color){
             let grdStyle;
             if(grd){ // 线性渐变
-                grdStyle = ctx.createLinearGradient(0,topY||100,0,bottomY||500);
+                grdStyle = ctx.createLinearGradient(leftX||0,topY||0,rightX||1000,bottomY||1000);
                 grdStyle.addColorStop(0,grd);
-                grdStyle.addColorStop(1,`rgba(${color.r},${color.g},${color.b},${alpha||1})`);
+                grdStyle.addColorStop(1,`rgba(${color.r},${color.g},${color.b},${color.alpha||alpha||1})`);
             }
             else if(rgrd){ // 扩散渐变
                 grdStyle = ctx.createRadialGradient(radial.x1,radial.y1,radial.r1,radial.x2,radial.y2,radial.r2);
                 grdStyle.addColorStop(0,rgrd);
-                grdStyle.addColorStop(1,`rgba(${color.r},${color.g},${color.b},${alpha||1})`);
+                grdStyle.addColorStop(1,`rgba(${color.r},${color.g},${color.b},${color.alpha||alpha||1})`);
             }
             else{
-                grdStyle = `rgba(${color.r},${color.g},${color.b},${alpha||1})`;
+                grdStyle = `rgba(${color.r},${color.g},${color.b},${color.alpha||alpha||1})`;
             }
             ctx.fillStyle = grdStyle;
             ctx.fill();
@@ -183,6 +205,10 @@ export function paintAvatar(ctx,avatarData,canvasSize,showBg){ // 根据肖像�
         foreHairData,
         bangsData,
         clothData,
+        eyeShadowData1,
+        eyeShadowData2,
+        cheekData1,
+        cheekData2,
         glassData,
         hairColor,
     } = transferedData;
@@ -206,12 +232,34 @@ export function paintAvatar(ctx,avatarData,canvasSize,showBg){ // 根据肖像�
     drawData(bodyData);
     drawData(faceData);
 
+
+    ctx.save();
+    drawData({ // 脸部裁剪
+        outline: faceData.outline,
+        noStroke: true,
+    });
+    ctx.clip();
+    if(cheekData1){
+        drawData(cheekData1);
+    }
+    if(cheekData2){
+        drawData(cheekData2);
+    }
+
+    if(eyeShadowData1){
+        drawData(eyeShadowData1);
+    }
+    if(eyeShadowData2){
+        drawData(eyeShadowData2);
+    }
     if(eyeskinsData){
         drawData(eyeskinsData);
     }
     if(lashData){
         drawData(lashData);
     }
+    ctx.restore();
+
     drawData(eyesData);
     ctx.save();
     ctx.clip();
@@ -221,6 +269,7 @@ export function paintAvatar(ctx,avatarData,canvasSize,showBg){ // 根据肖像�
     }
     ctx.restore();
     drawData(browsData);
+
 
     drawData(noseData);
     drawData(lipData);
@@ -233,13 +282,20 @@ export function paintAvatar(ctx,avatarData,canvasSize,showBg){ // 根据肖像�
     if(nasoData){
         drawData(nasoData);
     }
-
-    if(glassData){
-        drawData(glassData);
-    }
     if(clothData){
         drawData(clothData);
     }
+
+    ctx.save();
+    drawData({ // 脸部裁剪
+        outline: faceData.outline,
+        noStroke: true,
+    });
+    ctx.clip();
+    if(glassData){
+        drawData(glassData);
+    }
+    ctx.restore();
 
     if(foreHairData){
         drawData(foreHairData);
@@ -266,7 +322,11 @@ function transferAvatarSize(data,canvasSize){
     let backHairData = cloneObj(data.backHairData);
     let foreHairData = cloneObj(data.foreHairData);
     let bangsData = cloneObj(data.bangsData);
+    let cheekData1 = cloneObj(data.cheekData1);
+    let cheekData2 = cloneObj(data.cheekData2);
     let glassData = cloneObj(data.glassData);
+    let eyeShadowData1 = cloneObj(data.eyeShadowData1);
+    let eyeShadowData2 = cloneObj(data.eyeShadowData2);
     let clothData = cloneObj(data.clothData);
     let hairColor = cloneObj(data.hairColor);
 
@@ -351,6 +411,41 @@ function transferAvatarSize(data,canvasSize){
         glassData.outline = formatPx(glassData.outline,canvasSize);
     }
 
+    if(eyeShadowData1){
+        eyeShadowData1.outline = formatPx(eyeShadowData1.outline,canvasSize);
+        eyeShadowData1.topY = formatPx(eyeShadowData1.topY,canvasSize);
+        eyeShadowData1.bottomY = formatPx(eyeShadowData1.bottomY,canvasSize);
+        eyeShadowData1.leftX = formatPx(eyeShadowData1.leftX,canvasSize);
+        eyeShadowData1.rightX = formatPx(eyeShadowData1.rightX,canvasSize);
+    }
+    if(eyeShadowData2){
+        eyeShadowData2.outline = formatPx(eyeShadowData2.outline,canvasSize);
+        eyeShadowData2.topY = formatPx(eyeShadowData2.topY,canvasSize);
+        eyeShadowData2.bottomY = formatPx(eyeShadowData2.bottomY,canvasSize);
+        eyeShadowData2.leftX = formatPx(eyeShadowData2.leftX,canvasSize);
+        eyeShadowData2.rightX = formatPx(eyeShadowData2.rightX,canvasSize);
+    }
+
+    if(cheekData1){
+        cheekData1.outline = formatPx(cheekData1.outline,canvasSize);
+        cheekData1.radial.x1 = formatPx(cheekData1.radial.x1,canvasSize);
+        cheekData1.radial.y1 = formatPx(cheekData1.radial.y1,canvasSize);
+        cheekData1.radial.r1 = formatPx(cheekData1.radial.r1,canvasSize);
+        cheekData1.radial.x2 = formatPx(cheekData1.radial.x2,canvasSize);
+        cheekData1.radial.y2 = formatPx(cheekData1.radial.y2,canvasSize);
+        cheekData1.radial.r2 = formatPx(cheekData1.radial.r2,canvasSize);
+    }
+
+    if(cheekData2){
+        cheekData2.outline = formatPx(cheekData2.outline,canvasSize);
+        cheekData2.radial.x1 = formatPx(cheekData2.radial.x1,canvasSize);
+        cheekData2.radial.y1 = formatPx(cheekData2.radial.y1,canvasSize);
+        cheekData2.radial.r1 = formatPx(cheekData2.radial.r1,canvasSize);
+        cheekData2.radial.x2 = formatPx(cheekData2.radial.x2,canvasSize);
+        cheekData2.radial.y2 = formatPx(cheekData2.radial.y2,canvasSize);
+        cheekData2.radial.r2 = formatPx(cheekData2.radial.r2,canvasSize);
+    }
+
     if(clothData){
         clothData.outline = formatPx(clothData.outline,canvasSize);
     }
@@ -373,6 +468,10 @@ function transferAvatarSize(data,canvasSize){
         backHairData,
         foreHairData,
         bangsData,
+        eyeShadowData1,
+        eyeShadowData2,
+        cheekData1,
+        cheekData2,
         glassData,
         clothData,
         hairColor,
@@ -743,7 +842,7 @@ export function genBackHairData(faceData,gender,color,grd,hairName){ // 生成�
     }
     return res;
 }
-export function genGlassData(faceData,color,glassName){ // 生成眼镜
+export function genGlassData(faceData,gender,glassName){ // 生成眼镜
     let res,rGlass;
     if(glassName){
         for(let glass of CONFIG.glassTemplates){
@@ -757,6 +856,7 @@ export function genGlassData(faceData,color,glassName){ // 生成眼镜
         rGlass = CONFIG.glassTemplates[r(0,CONFIG.glassTemplates.length-1)];
     }
     let center = [...rGlass.center];
+    let lineWidthRange = rGlass.lineWidthRange;
     let const_outline = [...rGlass.outline];
     let outline = Array.from(const_outline,item=>{
         let newItem = [...item];
@@ -781,7 +881,7 @@ export function genGlassData(faceData,color,glassName){ // 生成眼镜
     let width = (500-faceData.e[0])*2; // 脸宽
     let height = faceData.e[1]-faceData.d[1]; // 眼高
     let widthScaleRate = width/170; // 水平缩放比率
-    let heightScaleRate = height/120; // 垂直缩放比率
+    let heightScaleRate = height/95; // 垂直缩放比率
     for(let option of outline){
         if(option[0]==0||option[0]==1){
             option[1] = 500-Math.round((500-option[1])*widthScaleRate);
@@ -798,7 +898,8 @@ export function genGlassData(faceData,color,glassName){ // 生成眼镜
     // 输出
     res = {
         outline,
-        color,
+        strokeColor: genGlassColor(gender),
+        lineWidth: r(lineWidthRange[0],lineWidthRange[1]),
         name: rGlass.name,
     }
     return res;
@@ -870,6 +971,7 @@ export function genClothData(bodyData,gender,clothName){ // 生成衣服
     }
     return res;
 }
+
 function genHairColor(gender){ // 生成发色
     let color, grd;
     let basicColor = [{ // 黑
@@ -938,10 +1040,10 @@ function genGlassColor(gender){ // 生成瞳色
         r: r(10,30),
         g: r(10,30),
         b: r(10,30),
-    },{ // 白
-        r: r(240,255),
-        g: r(240,255),
-        b: r(240,255),
+    },{ // 纯黑
+        r: 0,
+        g: 0,
+        b: 0,
     }];
     if(r(0,100)<90){
         color = basicColor[r(0,basicColor.length-1)];
@@ -956,24 +1058,28 @@ function genGlassColor(gender){ // 生成瞳色
     return color;
 }
 function genLipColor(){ // 生成唇色
-    let color, grd;
-    let basicColor = [{
-            r: r(255,255),
-            g: r(89,109),
-            b: r(61,81),
-        },];
-    if(r(0,100)<90){
-        color = basicColor[r(0,basicColor.length-1)];
-    }
-    else{
-        color = {
-            r: r(255,255),
-            g: r(89,109),
-            b: r(61,81),
-        };
-    }
+    let color = {
+        r: r(255,255),
+        g: r(89,109),
+        b: r(61,81),
+    };
     return { color, };
 }
+function genCheekColor(){ // 生成腮红色
+    let color = {
+        r: r(255,255),
+        g: r(255,255),
+        b: r(255,255),
+        alpha: 0,
+    };
+    let rgrd = `rgba(${r(255,255)},${r(189,209)},${r(151,181)},${r(40,50)/100})`;
+    return { color, rgrd };
+}
+function genEyeShadowColor(){ // 生成眼影色
+    let grd = `rgba(${r(255,255)},${r(10,84)},${r(10,155)},${r(60,100)/100})`;
+    return { grd };
+}
+
 function genFaceData(gender){ // 生成脸
     let a,b,c,d,e,f,g,h,i;
     let color;
@@ -1531,7 +1637,7 @@ function genLipData(faceData,gender,emotion){ // 生成嘴唇
         a = [faceData.g[0]+lipWidth,faceData.g[1]];
         b = [faceData.g[0]-lipWidth,faceData.g[1]];
         lineWidth = 1;
-        if(r(0,100)<50){
+        if(r(0,100)<10){
             strokeColor = lipColor.color;
             lineWidth = r(1,3);
         }
@@ -1680,6 +1786,111 @@ function genNasoData(faceData,eyeData){ // 生成法令纹
     res.outline.push([2,mirX(cp1[0]),cp1[1],mirX(b[0]),b[1]]); // 曲线 a1-b1
 
     return res;
+}
+function genCheekData(faceData){ // 生成腮红
+    let radial1 = {},radial2 = {};
+    let { c, e, } = faceData;
+
+    let mirX = x =>{
+        return x+2*(500-x);
+    };
+    let xShift = e[0]-r(10,40);
+    let yShift = e[1]+r(55,65);
+    let radius = r(55,85);
+
+    radial1.x1 = xShift;
+    radial1.y1 = yShift;
+    radial1.r1 = 0;
+    radial1.x2 = radial1.x1;
+    radial1.y2 = radial1.y1;
+    radial1.r2 = radius;
+
+    radial2.x1 = mirX(xShift);
+    radial2.y1 = yShift;
+    radial2.r1 = 0;
+    radial2.x2 = radial2.x1;
+    radial2.y2 = radial2.y1;
+    radial2.r2 = radius;
+
+    let cheeckColor = genCheekColor(2);
+    let {color,rgrd,} = cheeckColor;
+
+    let res1 = {
+        radial: radial1,
+        outline: [],
+        color: faceData.color,
+        rgrd,
+        noStroke:true,
+    };
+    let res2 = {
+        radial: radial2,
+        outline: [],
+        color: faceData.color,
+        rgrd,
+        noStroke:true,
+    };
+
+    // 生成双瞳
+    res1.outline.push([0,radial1.x1,radial1.y1]); // 移动
+    res1.outline.push([3,radial1.r2,radial1.x1,radial1.y1]); // 左内瞳
+    res2.outline.push([0,radial2.x1,radial2.y1]); // 移动
+    res2.outline.push([3,radial2.r2,radial2.x1,radial2.y1]); // 左内瞳
+    return { res1, res2, };
+}
+function genEyeShadowData(faceData,eyeData){ // 生成眼影
+    let res1 = {}, res2 = {};
+    let { a, b, c, cp1, cp2, } = eyeData;
+    let { color, } = faceData;
+
+    let _a = [a[0],a[1]];
+    let _b = [b[0]-r(30,50),b[1]+r(-7,7)];
+    let _cp1 = [cp1[0],cp1[1]-r(-5,16)];
+    let _cp2 = [cp2[0],cp2[1]+r(-5,16)];
+
+    let leftX = _b[0];
+    let rightX = _a[0];
+    let topY = _cp1[1];
+    let bottomY = _cp2[1];
+
+    if(_b[0]<faceData.c[0]+10){
+        _b[0] = faceData.c[0]+10;
+    }
+
+    let grd = genEyeShadowColor().grd;
+
+    let mirX = x =>{
+        return x+2*(500-x);
+    };
+
+    res1 = {
+        outline: [],
+        color,
+        grd,
+        leftX,
+        rightX,
+        topY,
+        bottomY,
+        noStroke: true,
+    }
+    res2 = {
+        outline: [],
+        color,
+        grd,
+        leftX: mirX(leftX),
+        rightX: mirX(rightX),
+        topY,
+        bottomY,
+        noStroke: true,
+    }
+
+    res1.outline.push([0,_a[0],_a[1]]); // 移动
+    res1.outline.push([2,_cp1[0],_cp1[1],_b[0],_b[1]]); // 曲线 a1-b1
+    res1.outline.push([2,_cp2[0],_cp2[1],_a[0],_a[1]]); // 曲线 b1-a1
+    res2.outline.push([0,mirX(_a[0]),_a[1]]); // 移动
+    res2.outline.push([2,mirX(_cp1[0]),_cp1[1],mirX(_b[0]),_b[1]]); // 曲线 a2-b2
+    res2.outline.push([2,mirX(_cp2[0]),_cp2[1],mirX(_a[0]),_a[1]]); // 曲线 b2-a2
+
+    return { res1, res2, };
 }
 
 
