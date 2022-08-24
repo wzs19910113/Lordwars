@@ -5,11 +5,13 @@ export function genRandomAvatar(person){ // 随机生成肖像
     let res;
     let { abilities, personalities, gender, age, } = person;
     let emotion = Math.round(personalities[2]*.25+personalities[4]*.75); // 0-100
+    let bald = (r(0,100)<10&&gender==1);
     // 生成发色
     let hairColor = genHairColor(gender);
     let { color, grd, } = hairColor;
+
     // 生成基本脸
-    let faceData = genFaceData(gender);
+    let faceData = genFaceData(gender,bald);
     // 生成双耳
     let earsData = genEarsData(faceData,gender);
     // 生成双眉
@@ -52,7 +54,7 @@ export function genRandomAvatar(person){ // 随机生成肖像
     let bodyData = genBodyData(faceData,gender);
 
     let backHairData,foreHairData,bangsData;
-    if(!((r(0,100)<10)&&gender==1)){
+    if(!bald){
         // 生成前发
         foreHairData = genForeHairData(faceData,gender,color,grd);
         // 生成刘海
@@ -1080,7 +1082,7 @@ function genEyeShadowColor(){ // 生成眼影色
     return { grd };
 }
 
-function genFaceData(gender){ // 生成脸
+function genFaceData(gender,bald){ // 生成脸
     let a,b,c,d,e,f,g,h,i;
     let color;
     if(gender==2){ // 女
@@ -1093,12 +1095,17 @@ function genFaceData(gender){ // 生成脸
         g = [500,r(655,700)]; // 唇上
         h = [r(410,435),r(700,730)]; // 颊左
         i = [500,r(740,770)]; // 下巴
-        let colorDeep = r(0,5);
+        let colorDeep = r(2,7);
         color = {
-            r: r(250,255)-colorDeep,
-            g: r(239,245)-colorDeep,
-            b: r(229,234)-colorDeep,
+            r: 255,
         };
+        color.g = color.r-r(10,15)-colorDeep;
+        color.b = color.g-10-colorDeep;
+        if(r(0,100)<1){ // 黑人
+            color.r -= 30;
+            color.g /= 1.4;
+            color.b /= 1.7;
+        }
     }
     else{ // 男
         a = [500,r(240,260)]; // 头顶 千分比
@@ -1110,12 +1117,17 @@ function genFaceData(gender){ // 生成脸
         g = [500,r(675,725)]; // 唇上
         h = [r(400,420),r(715,740)]; // 颊左
         i = [500,r(747,800)]; // 下巴
-        let colorDeep = r(0,15);
+        let colorDeep = r(2,30);
         color = {
-            r: r(252,255)-colorDeep,
-            g: r(230,238)-colorDeep,
-            b: r(220,227)-colorDeep,
+            r: 255,
         };
+        color.g = color.r-r(10,15)-colorDeep;
+        color.b = color.g-10-colorDeep;
+        if(r(0,100)<3){ // 黑人
+            color.r -= 30;
+            color.g /= 1.4;
+            color.b /= 1.7;
+        }
     }
     let mirX = x =>{
         return x+2*(500-x);
@@ -1127,7 +1139,6 @@ function genFaceData(gender){ // 生成脸
         a,b,c,d,e,f,g,h,i,
         outline: [],
         color,
-        rgrd: `#fafafa`,
         radial: {
             x1: radialX,
             y1: radialY,
@@ -1137,6 +1148,9 @@ function genFaceData(gender){ // 生成脸
             r2: 300,
         },
     };
+    if(bald){
+        res.rgrd = `#fafafa`;
+    }
 
     // 生成头部轮廓
     let cp1,cp2,cp3;
@@ -1843,7 +1857,7 @@ function genEyeShadowData(faceData,eyeData){ // 生成眼影
     let { color, } = faceData;
 
     let _a = [a[0],a[1]];
-    let _b = [b[0]-r(30,50),b[1]+r(-7,7)];
+    let _b = [b[0]-r(15,25),b[1]+r(-7,7)];
     let _cp1 = [cp1[0],cp1[1]-r(-5,16)];
     let _cp2 = [cp2[0],cp2[1]+r(-5,16)];
 
