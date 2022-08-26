@@ -33,7 +33,7 @@
                 <a class="btn btn-sm" @click="onClickFlatUp">水平翻转</a>
                 <br/>
                 <br/>
-                <a class="btn btn-sm" @click="onClickImport">导入</a>
+                <a class="btn btn-sm" @click="onClickRead">读取</a>
             </div>
             <div class="btn-wrap">
                 <a class="btn" @click="onClickRandom(1)">随机男</a>
@@ -45,6 +45,9 @@
                     <a class="btn" @click="onClickSelectiItemStyle(3)">选择后头发</a>
                     <a class="btn" @click="onClickSelectiItemStyle(4)">选择眼镜</a>
                 </div>
+                <br/>
+                <a class="btn" @click="onClickExport">输出</a>
+                <a class="btn" @click="onClickImport">导入</a>
             </div>
         </div>
         <div class="wrap op">
@@ -128,7 +131,7 @@ export default {
             allPoints: [], // 所有点数组 [mode,x,y,index,isCurvePoint]
 
             itemStylePop: [],
-            itemStyleMode: 0, // 修改发型模式[1:前头发|2:刘海|3:后头发]
+            itemStyleMode: 0, // 修改发型模式[1:前头发|2:刘海|3:后头发|4:装饰]
 
             ctx: null,
             loading: false,
@@ -524,7 +527,7 @@ export default {
             this.asynAllPoints();
             this.drawInput();
         },
-        onClickImport(){ // 导入
+        onClickRead(){ // 读取
             if(!this.output)
                 return;
             this.inputsIndex++;
@@ -598,7 +601,7 @@ export default {
                     break;
                 }
             }
-            paintAvatar(this.ctx,avatarData,CVSLEN);
+            paintAvatar(this.ctx,avatarData,CVSLEN,1);
             this.onClickCloseItemStylePop();
             console.log(`更换样式`,this.person);
         },
@@ -616,7 +619,7 @@ export default {
             let person = common.genRandomPerson({gender});
             let avatarData = genRandomAvatar(person);
             person.avatarData = avatarData;
-            paintAvatar(this.ctx,avatarData,CVSLEN);
+            paintAvatar(this.ctx,avatarData,CVSLEN,1);
             this.person = person;
             console.log(`生成一个人`,person);
 
@@ -626,6 +629,14 @@ export default {
             // };
             // let t2 = cloneObj(t1);
             // console.log(`t2======>`,t2)
+        },
+        onClickExport(){ // 点击【输出】按钮
+            localStorage.setItem('AVATAR',JSON.stringify(this.person.avatarData));
+        },
+        onClickImport(){ // 点击【导入】按钮
+            let _avatar = localStorage.getItem('AVATAR');
+            this.person.avatarData = JSON.parse(_avatar);
+            paintAvatar(this.ctx,this.person.avatarData,CVSLEN,1);
         },
         findClosetPointIndex(x,y,points){ // 寻找最近点的下标值
             let targetPointIndex = -1; // 目标点下标

@@ -3,7 +3,8 @@ import { r, cloneObj, } from '../tools/utils';
 
 export function genRandomAvatar(person){ // 随机生成肖像
     let res;
-    let { abilities, personalities, gender, age, } = person;
+    let { personalities, gender, age, } = person;
+
     let emotion = Math.round(personalities[2]*.25+personalities[4]*.75); // 0-100
     let bald = (r(0,100)<10&&gender==1);
     // 生成发色
@@ -17,7 +18,7 @@ export function genRandomAvatar(person){ // 随机生成肖像
     // 生成双眉
     let browsData = genBrowsData(faceData,gender,color);
     // 生成双眼
-    let eyesData = genEyesData(faceData,gender,personalities,abilities);
+    let eyesData = genEyesData(faceData,gender,personalities);
     // 生成双眼皮
     let eyeskinsData;
     if(r(0,100)<90||DEBUG){
@@ -509,7 +510,7 @@ function formatPx(data,canvasSize){
         });
     }
     else{
-        return parseInt(data/2);
+        return parseInt(data/rate);
     }
 }
 
@@ -1327,7 +1328,7 @@ function genBrowsData(faceData,gender,color){ // 生成双眉
 
     return res;
 }
-function genEyesData(faceData,gender,personalities,abilities){ // 生成双眼
+function genEyesData(faceData,gender,personalities){ // 生成双眼
     let a,b,c,lineWidth;
     let min,max;
     let calmness = personalities[3],
