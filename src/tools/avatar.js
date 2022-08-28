@@ -4,9 +4,8 @@ import { r, cloneObj, } from '../tools/utils';
 export function genRandomAvatar(person){ // 随机生成肖像
     let res;
     let { personalities, gender, age, } = person;
-
     let emotion = Math.round(personalities[2]*.25+personalities[4]*.75); // 0-100
-    let bald = (r(0,100)<10&&gender==1);
+    let bald = (r(0,100)<5&&gender==1);
     // 生成发色
     let hairColor = genHairColor(gender);
     let { color, grd, } = hairColor;
