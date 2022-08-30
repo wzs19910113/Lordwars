@@ -11,54 +11,58 @@ export function genRandomAvatar(person){ // 随机生成肖像
     let { color, grd, } = hairColor;
 
     // 生成基本脸
-    let faceData = genFaceData(gender,bald);
+    let faceData = genFaceData(gender,age,bald);
     // 生成双耳
-    let earsData = genEarsData(faceData,gender);
+    let earsData = genEarsData(faceData,gender,age);
     // 生成双眉
     let browsData = genBrowsData(faceData,gender,color);
     // 生成双眼
-    let eyesData = genEyesData(faceData,gender,personalities);
+    let eyesData = genEyesData(faceData,gender,age,personalities);
     // 生成双眼皮
     let eyeskinsData;
-    if(r(0,100)<90||DEBUG){
+    if(r(0,100)<90){
         eyeskinsData = genEyeSkinsData(eyesData,gender);
     }
     let lashData;
-    if(gender==2||DEBUG){
-        lashData = genLashData(eyesData,gender);
+    if(gender==2){
+        lashData = genLashData(eyesData,gender,age);
     }
     // 生成外双瞳
     let eyeoutballsData = genEyeoutballsData(eyesData,gender);
     let eyeinballsData;
-    if(r(0,100)<90||DEBUG){ // 生成内双瞳
+    if(r(0,100)<90){ // 生成内双瞳
         eyeinballsData = genEyeinballsData(eyesData,gender);
     }
 
     // 生成鼻子
-    let noseData = genNoseData(faceData,gender);
+    let noseData = genNoseData(faceData,gender,age);
     // 生成嘴唇
-    let lipData = genLipData(faceData,gender,emotion);
+    let lipData = genLipData(faceData,gender,age,emotion);
     let bottomLipData;
     if(!lipData.strokeColor){ // 生成下嘴唇
         bottomLipData = genBottomLipData(faceData,lipData,gender);
     }
     let topMoustacheData;
-    if((r(0,100)<age&&age>=30&&gender==1)||DEBUG){ // 生成上胡子
+    if((r(0,100)<age&&age>=30&&gender==1)){ // 生成上胡子
         topMoustacheData = genTopMoustacheData(faceData,lipData,color,grd);
     }
     let nasoData;
-    if(age>=50||DEBUG){ // 生成法令纹
+    if(age>=50){ // 生成法令纹
         nasoData = genNasoData(faceData,eyesData);
     }
+    let bracketsData;
+    if(age>=60){ // 生成括号
+        bracketsData = genBracketsData(faceData,lipData);
+    }
     // 生成身体
-    let bodyData = genBodyData(faceData,gender);
+    let bodyData = genBodyData(faceData,gender,age);
 
     let backHairData,foreHairData,bangsData;
     if(!bald){
         // 生成前发
         foreHairData = genForeHairData(faceData,gender,color,grd);
         // 生成刘海
-        // if(r(0,100)<20||DEBUG){
+        // if(r(0,100)<20){
         //     bangsData = genBangsData(faceData,gender,color,grd);
         // }
     }
@@ -69,7 +73,7 @@ export function genRandomAvatar(person){ // 随机生成肖像
 
     let eyeShadowData, eyeShadowData1, eyeShadowData2;
     // 生成眼影
-    if(r(0,30)<(50-age)&&gender==2){
+    if(r(0,30)<(50-age)&&gender==2&&age>18){
         eyeShadowData = genEyeShadowData(faceData,eyesData);
         eyeShadowData1 = eyeShadowData.res1;
         eyeShadowData2 = eyeShadowData.res2;
@@ -77,7 +81,7 @@ export function genRandomAvatar(person){ // 随机生成肖像
 
     let cheekData, cheekData1, cheekData2;
     // 生成腮红
-    if(r(0,180)<(50-age)&&gender==2){
+    if(r(0,180)<(50-age)&&gender==2&&age>15){
         cheekData = genCheekData(faceData);
         cheekData1 = cheekData.res1;
         cheekData2 = cheekData.res2;
@@ -108,6 +112,7 @@ export function genRandomAvatar(person){ // 随机生成肖像
         lipData,
         bottomLipData,
         topMoustacheData,
+        bracketsData,
         nasoData,
         bodyData,
         backHairData,
@@ -143,7 +148,7 @@ export function paintAvatar(ctx,avatarData,canvasSize,showBg){ // 根据肖像�
         if(color){
             let grdStyle;
             if(grd){ // 线性渐变
-                grdStyle = ctx.createLinearGradient(leftX||0,topY||0,rightX||1000,bottomY||1000);
+                grdStyle = ctx.createLinearGradient(leftX||500,topY||0,rightX||500,bottomY||1000);
                 grdStyle.addColorStop(0,grd);
                 grdStyle.addColorStop(1,`rgba(${color.r},${color.g},${color.b},${color.alpha||alpha||1})`);
             }
@@ -201,6 +206,7 @@ export function paintAvatar(ctx,avatarData,canvasSize,showBg){ // 根据肖像�
         lipData,
         bottomLipData,
         topMoustacheData,
+        bracketsData,
         nasoData,
         bodyData,
         backHairData,
@@ -260,6 +266,20 @@ export function paintAvatar(ctx,avatarData,canvasSize,showBg){ // 根据肖像�
     if(lashData){
         drawData(lashData);
     }
+    drawData(noseData);
+    drawData(lipData);
+    if(bottomLipData){
+        drawData(bottomLipData);
+    }
+    if(topMoustacheData){
+        drawData(topMoustacheData);
+    }
+    if(nasoData){
+        drawData(nasoData);
+    }
+    if(bracketsData){
+        drawData(bracketsData);
+    }
     ctx.restore();
 
     drawData(eyesData);
@@ -272,18 +292,6 @@ export function paintAvatar(ctx,avatarData,canvasSize,showBg){ // 根据肖像�
     ctx.restore();
     drawData(browsData);
 
-
-    drawData(noseData);
-    drawData(lipData);
-    if(bottomLipData){
-        drawData(bottomLipData);
-    }
-    if(topMoustacheData){
-        drawData(topMoustacheData);
-    }
-    if(nasoData){
-        drawData(nasoData);
-    }
     if(clothData){
         drawData(clothData);
     }
@@ -319,6 +327,7 @@ function transferAvatarSize(data,canvasSize){
     let lipData = cloneObj(data.lipData);
     let bottomLipData = cloneObj(data.bottomLipData);
     let topMoustacheData = cloneObj(data.topMoustacheData);
+    let bracketsData = cloneObj(data.bracketsData);
     let nasoData = cloneObj(data.nasoData);
     let bodyData = cloneObj(data.bodyData);
     let backHairData = cloneObj(data.backHairData);
@@ -381,6 +390,9 @@ function transferAvatarSize(data,canvasSize){
 
     if(nasoData){
         nasoData.outline = formatPx(nasoData.outline,canvasSize);
+    }
+    if(bracketsData){
+        bracketsData.outline = formatPx(bracketsData.outline,canvasSize);
     }
 
     bodyData.outline = formatPx(bodyData.outline,canvasSize);
@@ -465,6 +477,7 @@ function transferAvatarSize(data,canvasSize){
         lipData,
         bottomLipData,
         topMoustacheData,
+        bracketsData,
         nasoData,
         bodyData,
         backHairData,
@@ -1082,19 +1095,35 @@ function genEyeShadowColor(){ // 生成眼影色
     return { grd };
 }
 
-function genFaceData(gender,bald){ // 生成脸
+function shrinkYoung(age){
+    let pct;
+    if(age>=18){
+        pct = 100;
+    }
+    else if(age>=15){
+        pct = age*5;
+    }
+    else{
+        pct = age*4;
+    }
+    return pct/100;
+}
+function genFaceData(gender,age,bald){ // 生成脸
     let a,b,c,d,e,f,g,h,i;
     let color;
+    let ysr = 1-shrinkYoung(age); // 年幼影响比率
+    // let ysr = 0; // 年幼影响比率
     if(gender==2){ // 女
-        a = [500,r(240,260)]; // 头顶 千分比
-        b = [500,a[1]+r(45,55)]; // 刘海中心
-        c = [r(300,320),r(410,440)]; // 脸左
-        d = [r(410,445),r(475,485)]; // 左眉毛中心
-        e = [d[0],d[1]+r(40,55)]; // 左眼下
-        f = [500,r(620,640)]; // 鼻下
-        g = [500,r(655,700)]; // 唇上
-        h = [r(410,435),r(700,730)]; // 颊左
-        i = [500,r(740,770)]; // 下巴
+        a = [500,r(240,260)+ysr*125]; // 头顶 千分比
+        b = [500,a[1]+r(47,53)]; // 刘海中心
+        c = [r(310,330)+ysr*15,b[1]+r(125,145)+ysr*45]; // 脸左
+        d = [r(425,445)+ysr*10,b[1]+r(145,165)+ysr*45]; // 左眉毛中心
+        e = [d[0],d[1]+r(45,65)+ysr*20]; // 左眼下
+        f = [500,e[1]+r(117,137)-ysr*30]; // 鼻下
+        g = [500,f[1]+r(37,47)-ysr*30]; // 唇上
+        h = [r(410,430)+ysr*12,c[1]+r(262,273)-ysr*20]; // 颊左
+        i = [500,h[1]+r(40,50)-ysr*30]; // 下巴
+
         let colorDeep = r(2,7);
         color = {
             r: 255,
@@ -1108,15 +1137,16 @@ function genFaceData(gender,bald){ // 生成脸
         }
     }
     else{ // 男
-        a = [500,r(240,260)]; // 头顶 千分比
+        a = [500,r(240,260)+ysr*125]; // 头顶 千分比
         b = [500,a[1]+r(45,55)]; // 刘海中心
-        c = [r(300,320),r(410,440)]; // 脸左
-        d = [r(410,440),r(478,490)]; // 左眉毛中心
-        e = [d[0],d[1]+r(60,80)]; // 左眼下
-        f = [500,r(630,660)]; // 鼻下
-        g = [500,r(675,725)]; // 唇上
-        h = [r(400,420),r(715,740)]; // 颊左
-        i = [500,r(747,800)]; // 下巴
+        c = [r(295,320)+ysr*15,b[1]+r(125,145)+ysr*45]; // 脸左
+        d = [r(415,435)+ysr*10,b[1]+r(145,165)+ysr*45]; // 左眉毛中心
+        e = [d[0],d[1]+r(45,65)+ysr*20]; // 左眼下
+        f = [500,e[1]+r(134,152)-ysr*30]; // 鼻下
+        g = [500,f[1]+r(42,52)-ysr*40]; // 唇上
+        h = [r(375,405)+ysr*12,c[1]+r(255,285-ysr*15)-ysr*10]; // 颊左
+        i = [500,h[1]+r(70,90)-ysr*35]; // 下巴
+
         let colorDeep = r(2,30);
         color = {
             r: 255,
@@ -1155,14 +1185,14 @@ function genFaceData(gender,bald){ // 生成脸
     // 生成头部轮廓
     let cp1,cp2,cp3;
     if(gender==2){ // 女
-        cp1 = [r(c[0],c[0]+50),r(a[1],a[1]+20)];
-        cp2 = [r(c[0]+10,c[0]+35),r(h[1]-85,h[1]-55)];
-        cp3 = [r(h[0]+5,h[0]+10),r(h[1]+10,h[1]+15)];
+        cp1 = [r(c[0]+5,c[0]+10),r(a[1],a[1]+20)];
+        cp2 = [r(c[0]+0,c[0]+15),r(h[1]-95,h[1]-65)];
+        cp3 = [r(h[0]+14,h[0]+23),r(h[1]+11,h[1]+27)];
     }
     else{ // 男
-        cp1 = [r(c[0],c[0]+50),r(a[1],a[1]+20)];
-        cp2 = [r(c[0]+10,c[0]+35),r(h[1]-65,h[1]-35)];
-        cp3 = [r(h[0]+10,h[0]+30),r(h[1]+20,h[1]+30)];
+        cp1 = [r(c[0]+5,c[0]+10),r(a[1],a[1]+20)];
+        cp2 = [r(c[0]+1,c[0]+10),r(h[1]-110,h[1]-110)];
+        cp3 = [r(h[0]+34,h[0]+42),r(h[1]+40,h[1]+50)];
     }
     res.outline.push([0,a[0],a[1]]); // 移动
     res.outline.push([2,cp1[0],cp1[1],c[0],c[1]]); // 曲线 a-c1
@@ -1174,24 +1204,25 @@ function genFaceData(gender,bald){ // 生成脸
 
     return res;
 }
-function genBodyData(faceData,gender){ // 生成身体
+function genBodyData(faceData,gender,age){ // 生成身体
     let a,b,c,d,e,f,g;
+    let ysr = 1-shrinkYoung(age); // 年幼影响比率
     if(gender==2){ // 女
         a = [faceData.g[0],faceData.g[1]];
-        b = [faceData.h[0]+r(3,10),faceData.g[1]];
-        c = [b[0]+(r(1,20)/100)*(500-b[0]),b[1]+r(60,100)];
-        d = [b[0]-(r(1,30)/100)*60-80,c[1]+r(80,90)];
-        e = [d[0]-(r(1,30)/100)*60-90,d[1]+r(0,5)];
-        f = [e[0]-(r(1,40)/100)*60-80,e[1]+(r(1,80)/200)*90+80];
+        b = [faceData.h[0]+r(3,10)+ysr*30,faceData.g[1]];
+        c = [b[0]+(r(15,20)/100)*(500-b[0]),b[1]+r(70,80)-ysr*30];
+        d = [b[0]-(r(15,30)/100)*60-80,c[1]+r(70,80)-ysr*30];
+        e = [d[0]-(r(1,30)/100)*60-90+ysr*40,d[1]+r(0,5)];
+        f = [e[0]-(r(1,40)/100)*60-80+ysr*25,e[1]+(r(1,80)/200)*90+80-ysr*50];
         g = [faceData.g[0],f[1]];
     }
     else{ // 男
         a = [faceData.g[0],faceData.g[1]];
-        b = [faceData.h[0]+20,faceData.g[1]];
-        c = [b[0]+(r(1,20)/100)*(500-b[0]),b[1]+r(90,120)];
-        d = [b[0]-(r(1,30)/100)*60-80,c[1]+r(40,60)];
-        e = [d[0]-(r(1,30)/100)*80-100,d[1]+r(0,20)];
-        f = [e[0]-(r(1,40)/100)*80-100,e[1]+(r(1,80)/200)*90+80];
+        b = [faceData.h[0]+30+ysr*30,faceData.g[1]];
+        c = [b[0]+(r(10,20)/100)*(500-b[0]),b[1]+r(90,120)-ysr*30];
+        d = [b[0]-(r(10,30)/100)*60-80,c[1]+r(40,60)-ysr*30];
+        e = [d[0]-(r(1,30)/100)*80-100+ysr*35,d[1]+r(0,10)];
+        f = [e[0]-(r(1,40)/100)*80-100+ysr*25,e[1]+(r(1,80)/200)*90+80-ysr*50];
         g = [faceData.g[0],f[1]];
     }
     let mirX = x =>{
@@ -1240,18 +1271,19 @@ function genBodyData(faceData,gender){ // 生成身体
 
     return res;
 }
-function genEarsData(faceData,gender){ // 生成双耳朵
+function genEarsData(faceData,gender,age){ // 生成双耳朵
     let a,b,c,d;
+    let ysr = 1-shrinkYoung(age); // 年幼影响比率
     if(gender==2){ // 女
         a = [faceData.c[0]+5,faceData.c[1]+50];
         b = [faceData.c[0]-r(10,18),a[1]+r(5,20)];
-        c = [faceData.c[0]+(faceData.h[0]-faceData.c[0])/3,a[1]+r(100,125)];
+        c = [faceData.c[0]+(faceData.h[0]-faceData.c[0])/3+ysr*20,a[1]+r(80,105)-ysr*40];
         d = [a[0]+30,a[1]+40];
     }
     else{ // 男
         a = [faceData.c[0]+5,faceData.c[1]+50];
         b = [faceData.c[0]-r(20,25),a[1]+r(15,25)];
-        c = [faceData.c[0]+(faceData.h[0]-faceData.c[0])/4,a[1]+r(120,145)];
+        c = [faceData.c[0]+10+(faceData.h[0]-faceData.c[0])/4+ysr*20,a[1]+r(100,125)-ysr*40];
         d = [a[0]+30,a[1]+40];
     }
 
@@ -1266,7 +1298,7 @@ function genEarsData(faceData,gender){ // 生成双耳朵
 
     // 生成双耳轮廓
     let cp1,cp2,cp3;
-    cp1 = [r(a[0]-5,b[0]+5),r(a[1]-3,a[1]-12)];
+    cp1 = [r(a[0]-5,b[0]+5),r(a[1]-17,a[1]-22)];
     cp2 = [r(c[0]-5,b[0]+2),r(c[1]-10,c[1]+10)];
     cp3 = [r(c[0]+5,c[0]+20),r(c[1]-5,c[1]-20)];
 
@@ -1327,11 +1359,12 @@ function genBrowsData(faceData,gender,color){ // 生成双眉
 
     return res;
 }
-function genEyesData(faceData,gender,personalities){ // 生成双眼
+function genEyesData(faceData,gender,age,personalities){ // 生成双眼
     let a,b,c,lineWidth;
     let min,max;
     let calmness = personalities[3],
         libidinal = personalities[0];
+    let ysr = 1-shrinkYoung(age); // 年幼影响比率
     if(gender==2){ // 女
         a = [faceData.e[0]+r(40,55),faceData.e[1]-r(-15,15)];
         b = [faceData.e[0]-r(50,70),faceData.e[1]-r(-10,10)];
@@ -1451,12 +1484,16 @@ function genEyeSkinsData(eyeData){ // 生成双眼皮
 
     return res;
 }
-function genLashData(eyeData){ // 生成睫毛
+function genLashData(eyeData,gender,age){ // 生成睫毛
     let { lineWidth, cp1, cp2, a, b, c, } = eyeData;
     let eyeWidth = a[0]-b[0];
     let eyeHeight = cp2[1]-cp1[1];
     let lashMode = r(0,1); // [0:上部|1:下部]
     let lashCount;
+    let ysr = 1-shrinkYoung(age); // 年幼影响比率
+    if(age<=13){
+        lashMode = 0;
+    }
     if(lashMode==0){ // 睫毛在上部
         lashCount = r(6,9);
     }
@@ -1594,21 +1631,22 @@ function genEyeinballsData(eyeData,gender){ // 生成内双瞳
     res.outline.push([3,radius,mirX(c[0]),c[1]]); // 右内瞳
     return res;
 }
-function genNoseData(faceData,gender){ // 生成鼻子
+function genNoseData(faceData,gender,age){ // 生成鼻子
     let a,b,c,lineWidth;
     let dir;
+    let ysr = 1-shrinkYoung(age);
     if(gender==2){ // 女
-        a = [faceData.f[0],faceData.f[1]-r(60,115)];
-        b = [faceData.f[0]-r(-7,7),faceData.f[1]-r(0,5)];
+        a = [faceData.f[0],faceData.e[1]+r(10,25)+ysr*50];
+        b = [faceData.f[0]-r(-7,7),faceData.f[1]-r(0,5)-ysr*50];
         dir = b[0]<0?-1:1; // 鼻子方向：[0:向左|1:向右]
-        c = [(faceData.f[0]+r(0,6))*dir,faceData.f[1]];
+        c = [(faceData.f[0]+r(0,6))*dir,faceData.f[1]-ysr*40];
         lineWidth = 1;
     }
     else{ // 男
-        a = [faceData.f[0],faceData.f[1]-r(70,125)];
-        b = [faceData.f[0]-r(-9,9),faceData.f[1]-r(0,8)];
+        a = [faceData.f[0],faceData.e[1]+r(10,30)+ysr*50];
+        b = [faceData.f[0]-r(-9,9),faceData.f[1]-r(0,8)-ysr*50];
         dir = b[0]<0?0:1; // 鼻子方向：[0:向左|1:向右]
-        c = [(faceData.f[0]+r(0,12))*dir,faceData.f[1]];
+        c = [(faceData.f[0]+r(0,12))*dir,faceData.f[1]-ysr*40];
         lineWidth = 1;
     }
     if(b[0]==0){
@@ -1641,17 +1679,18 @@ function genNoseData(faceData,gender){ // 生成鼻子
 
     return res;
 }
-function genLipData(faceData,gender,emotion){ // 生成嘴唇
+function genLipData(faceData,gender,age,emotion){ // 生成嘴唇
     let a,b,lineWidth;
     let lipWidth;
     let lipColor = genLipColor();
     let strokeColor,color;
+    let ysr = 1-shrinkYoung(age);
     if(gender==2){ // 女
-        lipWidth = r(25,50);
+        lipWidth = r(25,50-ysr*10);
         a = [faceData.g[0]+lipWidth,faceData.g[1]];
         b = [faceData.g[0]-lipWidth,faceData.g[1]];
         lineWidth = 1;
-        if(r(0,100)<10){
+        if(age>=18&&r(0,100)<10){
             strokeColor = lipColor.color;
             lineWidth = r(1,3);
         }
@@ -1662,7 +1701,7 @@ function genLipData(faceData,gender,emotion){ // 生成嘴唇
         };
     }
     else{ // 男
-        lipWidth = r(30,80);
+        lipWidth = r(30,80-ysr*30);
         a = [faceData.g[0]+lipWidth,faceData.g[1]];
         b = [faceData.g[0]-lipWidth,faceData.g[1]];
         lineWidth = 1;
@@ -1905,6 +1944,37 @@ function genEyeShadowData(faceData,eyeData){ // 生成眼影
     res2.outline.push([2,mirX(_cp2[0]),_cp2[1],mirX(_a[0]),_a[1]]); // 曲线 b2-a2
 
     return { res1, res2, };
+}
+function genBracketsData(faceData,lipData){ // 生成括号
+    let res;
+    let { a, b, } = lipData;
+    let _a, _b, cp1;
+    let strokeColor = {
+        r: 100,
+        g: 100,
+        b: 100,
+    };
+    let halfHeight = r(10,15);
+    _a = [a[0]+r(0,9),a[1]-halfHeight*2];
+    _b = [_a[0],a[1]+halfHeight];
+    cp1 = [_a[0]+r(25,35),a[1]];
+
+    let mirX = x =>{
+        return x+2*(500-x);
+    };
+
+    res = {
+        outline: [],
+        alpha: .8,
+        strokeColor,
+    }
+
+    res.outline.push([0,_a[0],_a[1]]); // 移动
+    res.outline.push([2,cp1[0],cp1[1],_b[0],_b[1]]); // 曲线 a1-b1
+    res.outline.push([0,mirX(_a[0]),_a[1]]); // 移动
+    res.outline.push([2,mirX(cp1[0]),cp1[1],mirX(_b[0]),_b[1]]); // 曲线 a2-b2
+
+    return res;
 }
 
 
