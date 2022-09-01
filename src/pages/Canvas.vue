@@ -616,7 +616,7 @@ export default {
             // }
             // this.drawInput();
 
-            let person = common.genRandomPerson({gender});
+            let person = common.genRandomPerson({gender,age:r(25,36)});
             let avatarData = genRandomAvatar(person);
             person.avatarData = avatarData;
             paintAvatar(this.ctx,avatarData,CVSLEN,1);
@@ -814,9 +814,9 @@ export default {
 
     .pop{
         position: absolute;
-        background-color: #fff;
+        background-color: rgba(255,255,255,.5);
         width: 600px;
-        height: 450px;
+        height: 550px;
         left: 0;
         right: 0;
         top: 0;
