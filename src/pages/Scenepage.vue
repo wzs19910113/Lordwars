@@ -340,6 +340,7 @@ export default {
                 cooldowns: [],
                 move: 0,
                 side, // [1:敌人|2:我方]
+                canSleep: true,
                 cursor: 0,
                 buffs: [],
                 fixBuffs: [],
@@ -1278,7 +1279,10 @@ export default {
                         }
                         else{ // 没有这种类型的buff，则添加一个新的buff
                             let buffObj = common.getBuffObj(ounit,16);
-                            if(buffObj&&!buff.good&&(buff.level<=buffObj.buff.level)){ // 祝福bufff
+                            if(buff.id==118&&!ounit.canSleep){ // 昏睡bufff
+                                this._alert(`无法昏睡`);
+                            }
+                            else if(buffObj&&!buff.good&&(buff.level<=buffObj.buff.level)){ // 祝福bufff
                                 this._alert(`抵消负面状态`);
                             }
                             else{
@@ -1301,6 +1305,9 @@ export default {
                                     time,
                                 };
                                 ounit.buffs.push(newBuff);
+                                if(buff.id==118){ // 昏睡bufff
+                                    ounit.canSleep = false;
+                                }
                                 activateBuff();
                             }
                         }
