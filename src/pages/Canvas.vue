@@ -5,14 +5,17 @@
             <a class="btn" :class="strokeMode==0?'btn-on':''" @click="onClickMoveTo">移动</a>
             <a class="btn" :class="strokeMode==1?'btn-on':''" @click="onClickLineTo">直线</a>
             <a class="btn" :class="strokeMode==2?'btn-on':''" @click="onClickCurveTo">曲线<i v-if="strokeMode==2">({{curveStep}})</i></a>
-            <a class="btn" @click="onClickDye">着色</a>
+            <!-- <a class="btn" @click="onClickDye">着色</a> -->
             <a class="btn" :class="strokeMode==3?'btn-on':''" @click="onClickModify">修改</a>
             <br/>
             <a class="btn" @click="onClickPrevStep">上一步({{inputsIndex}})</a>
             <!-- <a class="btn" @click="onClickNextStep">下一步</a> -->
         </div>
         <div class="side side-right">
-            <textarea class="output" v-model="output"></textarea>
+            <textarea class="output" ref="txt" v-model="output"></textarea>
+            <div class="float-tip">
+                <code v-if="strokeMode==3&&modifyStep==1" ref="floattip">{{modifyPoint[1]}},{{modifyPoint[2]}}</code>
+            </div>
             <div class="btn-wrap">
                 <a class="btn btn-sm" @click="onClickX2">x2</a>
                 <a class="btn btn-sm" @click="onClickD2">d2</a>
@@ -103,7 +106,7 @@
 // Copyright (c) 2018 Copyright Holder All Rights Reserved.
 import { query, r, exptr, bulbsort, cloneObj, getParentNode, getMatchList, removeFromList, arrContains, rr, fullScreen, exitFullScreen, isFullScreen, calcDistance, } from '../tools/utils';
 import * as common from '../tools/common';
-import { genRandomAvatar, paintAvatar, genForeHairData, genBangsData, genBackHairData, genGlassData, } from '../tools/avatar';
+import { genRandomAvatar, paintAvatar, genForeHairData, genBangsData, genBackHairData, genGlassData, generalForeHairTemplates, maleForeHairTemplates, femaleForeHairTemplates, generalBangsTemplates, maleBangsTemplates, femaleBangsTemplates, generalBackHairTemplates, maleBackHairTemplates, femaleBackHairTemplates, glassTemplates,  } from '../tools/avatar';
 import * as ai from '../tools/ai';
 import { DEBUG, CONFIG, CACHE } from '../config/config';
 const CVSLEN = 500;
@@ -114,7 +117,7 @@ export default {
             inputs: [],
             inputsIndex: 0,
 
-            strokeMode: 0, // [0:移动|1:画直线|2:画曲线]
+            strokeMode: 0, // [0:移动|1:画直线|2:画曲线|3设置修改点]
             panPoint: [0,0,], // 画点
 
             curveStep: 0, // [0:设置拐点|1:设置终点]
@@ -153,6 +156,9 @@ export default {
             if(!document.onkeyup){
                 document.onkeyup = event =>{
                     let e = event||window.event||arguments.callee.caller.arguments[0];
+                    if(e&&e.keyCode==81){ // 按 Q
+                        this.onKeyupQ();
+                    }
                     if(e&&e.keyCode==90){ // 按 Z
                         this.onKeyupZ();
                     }
@@ -161,6 +167,10 @@ export default {
         },
         onKeyupZ(){ // 按 A
             this.showAllPoints = !this.showAllPoints;
+        },
+        onKeyupQ(){ // 按 A
+            this.curveStep = 0;
+            this.modifyStep = 0;
         },
         drawInput(){
             this.ctx.clearRect(0,0,CVSLEN,CVSLEN);
@@ -324,6 +334,12 @@ export default {
                         let { distance, index, } = this.findClosetPointIndex(x,y,this.allPoints);
                         this.modifyPoint = this.allPoints[index];
                         this.modifyStep = 1;
+                        let floattip = this.$refs.floattip;
+                        if(floattip){
+                            floattip.focus();
+                            floattip.select();
+                        }
+                        console.log(`${this.modifyPoint[1]},${this.modifyPoint[2]}`);
                     }
                     else{ // 修改
                         let isCurvePoint = this.modifyPoint[4];
@@ -545,16 +561,16 @@ export default {
             let itemTemplates = [];
             switch(flag){
                 case 1:
-                    itemTemplates = [...CONFIG.generalForeHairTemplates,...CONFIG.maleForeHairTemplates,...CONFIG.femaleForeHairTemplates];
+                    itemTemplates = [...generalForeHairTemplates,...maleForeHairTemplates,...femaleForeHairTemplates];
                 break;
                 case 2:
-                    itemTemplates = [...CONFIG.generalBangsTemplates,...CONFIG.maleBangsTemplates,...CONFIG.femaleBangsTemplates];
+                    itemTemplates = [...generalBangsTemplates,...maleBangsTemplates,...femaleBangsTemplates];
                 break;
                 case 3:
-                    itemTemplates = [...CONFIG.generalBackHairTemplates,...CONFIG.maleBackHairTemplates,...CONFIG.femaleBackHairTemplates];
+                    itemTemplates = [...generalBackHairTemplates,...maleBackHairTemplates,...femaleBackHairTemplates];
                 break;
                 case 4:
-                    itemTemplates = [...CONFIG.glassTemplates];
+                    itemTemplates = [...glassTemplates];
                 break;
             }
             this.itemStylePop = [{name:'/'},...itemTemplates];
@@ -782,16 +798,16 @@ export default {
         border: 1px solid blue;
     }
     .all-point{
-        width: 6px;
-        height: 6px;
+        width: 3px;
+        height: 3px;
         border-top: 1px solid blue;
         border-left: 1px solid blue;
     }
     .curve-point{
-        width: 6px;
-        height: 6px;
-        border-top: 1px solid orange;
-        border-left: 1px solid orange;
+        width: 3px;
+        height: 3px;
+        border-top: 1px solid Chocolate;
+        border-left: 1px solid Chocolate;
     }
     .cvs{
         position: absolute;
@@ -804,12 +820,29 @@ export default {
         background-color: transparent;
         z-index: 10;
     }
+    .float-tip{
+        display: block;
+        width: 100px;
+        height: 25px;
+        line-height: 25px;
+        border: 1px solid OrangeRed;
+        background-color: #fff;
+        color: #131313;
+        margin-bottom: 20px;
+    }
+    .float-tip code{
+        display: block;
+        user-select: text;
+        font-size: 14px;
+        padding: 2px;
+    }
     .output{
         width: 100%;
         height: 100%;
         padding: 12px;
         overflow-y: scroll;
         background-color: #cca;
+        margin-bottom: 10px;
     }
 
     .pop{
