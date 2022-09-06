@@ -646,10 +646,6 @@ module.exports = {
 				id: 56, name: '学习某人',
 				strikingRange: [0,100,],
 			},
-			{
-				id: 57, name: '学习某人',
-				strikingRange: [0,100,],
-			},
 		],
 
     }
