@@ -60,7 +60,7 @@
                 <div class="point modify-point" :style="{top:modifyPoint[2]+'px',left:modifyPoint[1]+'px'}" v-if="strokeMode==3&&modifyStep==1"></div>
                 <div class="point all-point" v-if="showAllPoints" :class="point[4]?'curve-point':''" v-for="point in allPoints" :style="{top:point[2]+'px',left:point[1]+'px'}"></div>
             </div>
-            <canvas class="cvs" width="500" height="500" ref="cvs" @click="onClickCanvas" />
+            <canvas class="cvs" width="500" height="600" ref="cvs" @click="onClickCanvas" />
         </div>
         <!-- <div class="wrap board">
             {{JSON.stringify(allPoints)}}
@@ -109,7 +109,8 @@ import * as common from '../tools/common';
 import { genRandomAvatar, paintAvatar, genForeHairData, genBangsData, genBackHairData, genGlassData, generalForeHairTemplates, maleForeHairTemplates, femaleForeHairTemplates, generalBangsTemplates, maleBangsTemplates, femaleBangsTemplates, generalBackHairTemplates, maleBackHairTemplates, femaleBackHairTemplates, glassTemplates,  } from '../tools/avatar';
 import * as ai from '../tools/ai';
 import { DEBUG, CONFIG, CACHE } from '../config/config';
-const CVSLEN = 500;
+const CVSWIDTH = 500;
+const CVSHEIGHT = 600;
 export default {
     name: 'Canvas',
     data(){
@@ -148,8 +149,8 @@ export default {
     methods: {
         init(){
             this.ctx = this.$refs.cvs.getContext(`2d`);
-		    this.ctx.width = CVSLEN;
-		    this.ctx.height = CVSLEN;
+		    this.ctx.width = CVSWIDTH;
+		    this.ctx.height = CVSWIDTH;
             this.initKeyboard();
         },
         initKeyboard(){ // 初始化键盘事件
@@ -173,7 +174,7 @@ export default {
             this.modifyStep = 0;
         },
         drawInput(){
-            this.ctx.clearRect(0,0,CVSLEN,CVSLEN);
+            this.ctx.clearRect(0,0,CVSWIDTH,CVSWIDTH);
             this.ctx.beginPath();
             let input = this.inputs[this.inputsIndex];
             if(input){
@@ -405,11 +406,11 @@ export default {
             for(let k=0;k<outputD.length;k++){
                 let next = [...outputD[k]];
                 if(next[0]==0||next[0]==1){
-                    next[1] = CVSLEN-next[1];
+                    next[1] = CVSWIDTH-next[1];
                 }
                 else if(next[0]==2){
-                    next[1] = CVSLEN-next[1];
-                    next[3] = CVSLEN-next[3];
+                    next[1] = CVSWIDTH-next[1];
+                    next[3] = CVSWIDTH-next[3];
                 }
                 expend.push(next);
             }
@@ -422,11 +423,11 @@ export default {
             for(let k=outputD.length-1;k>=0;k--){
                 let next = [...outputD[k]];
                 if(next[0]==0||next[0]==1){
-                    next[1] = CVSLEN-next[1];
+                    next[1] = CVSWIDTH-next[1];
                 }
                 else if(next[0]==2){
-                    next[1] = CVSLEN-next[1];
-                    next[3] = CVSLEN-next[3];
+                    next[1] = CVSWIDTH-next[1];
+                    next[3] = CVSWIDTH-next[3];
                 }
                 outputD[k] = next;
             }
@@ -617,7 +618,7 @@ export default {
                     break;
                 }
             }
-            paintAvatar(this.ctx,avatarData,CVSLEN,1);
+            paintAvatar(this.ctx,avatarData,CVSWIDTH,CVSHEIGHT,1);
             this.onClickCloseItemStylePop();
             console.log(`更换样式`,this.person);
         },
@@ -632,10 +633,10 @@ export default {
             // }
             // this.drawInput();
 
-            let person = common.genRandomPerson({gender});
+            let person = common.genRandomPerson({gender,age:r(5,35)});
             let avatarData = genRandomAvatar(person);
             person.avatarData = avatarData;
-            paintAvatar(this.ctx,avatarData,CVSLEN,1);
+            paintAvatar(this.ctx,avatarData,CVSWIDTH,CVSHEIGHT,1);
             this.person = person;
             console.log(`生成一个人`,person);
 
@@ -652,7 +653,7 @@ export default {
         onClickImport(){ // 点击【导入】按钮
             let _avatar = localStorage.getItem('AVATAR');
             this.person.avatarData = JSON.parse(_avatar);
-            paintAvatar(this.ctx,this.person.avatarData,CVSLEN,1);
+            paintAvatar(this.ctx,this.person.avatarData,CVSWIDTH,CVSHEIGHT,1);
         },
         findClosetPointIndex(x,y,points){ // 寻找最近点的下标值
             let targetPointIndex = -1; // 目标点下标
@@ -742,7 +743,7 @@ export default {
     .op{
         position: relative;
         width: 500px;
-        height: 500px;
+        height: 600px;
         /* transform: scale(50%); */
         border: 1px solid #aaa;
     }
