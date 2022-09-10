@@ -693,18 +693,19 @@ export function genRandomAvatar(person){ // 随机生成肖像
     let eyesData = genEyesData(faceData,gender,age,personalities);
     // 生成双眼皮
     let eyeskinsData;
-    if(r(0,100)<90){
+    if(r(0,100)<90&&(gender==1||age<60)){
         eyeskinsData = genEyeSkinsData(eyesData,gender);
     }
+    // 生成睫毛
     let lashData;
     if(gender==2){
         lashData = genLashData(eyesData,gender,age);
     }
     // 生成外双瞳
-    let eyeoutballsData = genEyeoutballsData(eyesData,gender);
+    let eyeoutballsData = genEyeoutballsData(eyesData,gender,age);
     let eyeinballsData;
     if(r(0,100)<90){ // 生成内双瞳
-        eyeinballsData = genEyeinballsData(eyesData,eyeoutballsData,gender);
+        eyeinballsData = genEyeinballsData(eyesData,eyeoutballsData,gender,age);
     }
 
     // 生成鼻子
@@ -721,16 +722,38 @@ export function genRandomAvatar(person){ // 随机生成肖像
     }
     let nasoData;
     if(age>=50){ // 生成法令纹
-        nasoData = genNasoData(faceData,eyesData);
+        nasoData = genNasoData(faceData,eyesData,gender,age);
     }
-    // 生成锁骨
-    let collarData = genCollarData(bodyData);
     let bracketsData;
     if(age>=60){ // 生成括号
         bracketsData = genBracketsData(faceData,lipData);
     }
     // 生成身体
     let bodyData = genBodyData(faceData,gender,age);
+    let bodyOutlineData = genBodyOutlineData(bodyData);
+    // 生成锁骨
+    let collarData = genCollarData(bodyData,gender,age);
+    // 生成乳房&乳房轮廓
+    let breastData,breastOutlineData,breastShadowData;
+    if(gender==2&&(age>=14||(age>=10&r(3,20)<age))){
+        breastData = genBreastData(bodyData,gender,age);
+        breastOutlineData = genBreastOutlineData(breastData,gender,age);
+        breastShadowData = genBreastShadowData(bodyData,breastData,gender,age);
+    }
+    else if(gender==1&&age>=14&&bodyData.muscle>=1){
+        breastData = genBreastData(bodyData,gender,age);
+        breastOutlineData = genBreastOutlineData(breastData,gender,age);
+    }
+    // 生成乳晕
+    let areolaData, areolaData1, areolaData2;
+    areolaData = genAreolaData(bodyData,breastData,gender,age);
+    areolaData1 = areolaData.res1;
+    areolaData2 = areolaData.res2;
+    // 生成乳头
+    let nippleData, nippleData1, nippleData2;
+    nippleData = genNippleData(bodyData,areolaData.nipple,gender,age);
+    nippleData1 = nippleData.res1;
+    nippleData2 = nippleData.res2;
 
     let backHairData,foreHairData,bangsData;
     if(!bald){
@@ -748,7 +771,7 @@ export function genRandomAvatar(person){ // 随机生成肖像
 
     let eyeShadowData, eyeShadowData1, eyeShadowData2;
     // 生成眼影
-    if(r(0,30)<(50-age)&&gender==2&&age>18){
+    if(r(0,30)<(50-age)&&gender==2&&age>18&&age<55){
         eyeShadowData = genEyeShadowData(faceData,eyesData);
         eyeShadowData1 = eyeShadowData.res1;
         eyeShadowData2 = eyeShadowData.res2;
@@ -756,7 +779,7 @@ export function genRandomAvatar(person){ // 随机生成肖像
 
     let cheekData, cheekData1, cheekData2;
     // 生成腮红
-    if(r(0,180)<(50-age)&&gender==2&&age>15){
+    if(r(0,180)<(50-age)&&gender==2&&age>15&&age<60){
         cheekData = genCheekData(faceData);
         cheekData1 = cheekData.res1;
         cheekData2 = cheekData.res2;
@@ -770,7 +793,7 @@ export function genRandomAvatar(person){ // 随机生成肖像
 
     let clothData;
     // 生成衣服
-    if(r(0,100)<100){
+    if(r(0,100)<0){
         clothData = genClothData(bodyData,gender);
     }
 
@@ -791,6 +814,10 @@ export function genRandomAvatar(person){ // 随机生成肖像
         nasoData,
         collarData,
         bodyData,
+        bodyOutlineData,
+        breastData,
+        breastOutlineData,
+        breastShadowData,
         backHairData,
         foreHairData,
         bangsData,
@@ -799,36 +826,36 @@ export function genRandomAvatar(person){ // 随机生成肖像
         eyeShadowData2,
         cheekData1,
         cheekData2,
+        areolaData1,
+        areolaData2,
+        nippleData1,
+        nippleData2,
         glassData,
         hairColor,
     }
     return res;
 }
 export function paintAvatar(ctx,avatarData,canvasWidth,canvasHeight,showBg){ // 根据肖像数据进行绘制
-    let fill = (data,flag) =>{ // 填充
+    let fill = (data,mode) =>{ // 填充
         let {
             color, strokeColor, alpha,
             grd, topY, bottomY, leftX, rightX,
             rgrd, radial,
             noStroke,
         } = data;
-        if(strokeColor){
-            ctx.strokeStyle = `rgba(${strokeColor.r},${strokeColor.g},${strokeColor.b},${strokeColor.alpha||1})`;
-        }
-        else{
-            ctx.strokeStyle = '#000';
-        }
         if(!noStroke){
             ctx.stroke();
         }
         if(color){
             let grdStyle;
             if(grd){ // 线性渐变
+                if(data.test) console.log(`画`,data.topY,data.bottomY);
                 grdStyle = ctx.createLinearGradient(leftX||500,topY||0,rightX||500,bottomY||1000);
                 grdStyle.addColorStop(0,grd);
                 grdStyle.addColorStop(1,`rgba(${color.r},${color.g},${color.b},${color.alpha||alpha||1})`);
             }
             else if(rgrd){ // 扩散渐变
+                // console.log(`扩散渐变`,radial,rgrd);
                 grdStyle = ctx.createRadialGradient(radial.x1,radial.y1,radial.r1,radial.x2,radial.y2,radial.r2);
                 grdStyle.addColorStop(0,rgrd);
                 grdStyle.addColorStop(1,`rgba(${color.r},${color.g},${color.b},${color.alpha||alpha||1})`);
@@ -840,11 +867,17 @@ export function paintAvatar(ctx,avatarData,canvasWidth,canvasHeight,showBg){ // 
             ctx.fill();
         }
     };
-    let drawData = data =>{ // 画
-        let { color, outline, topY, bottomY, grd, rgrd, radial, lineWidth, strokeColor, alpha, } = data;
+    let drawData = (data,mode) =>{ // 画
+        let { color, outline, topY, bottomY, grd, rgrd, radial, lineWidth, strokeColor, alpha, noStroke, } = data;
         ctx.beginPath();
         ctx.lineCap = 'round';
         ctx.lineWidth = lineWidth||1;
+        if(strokeColor){
+            ctx.strokeStyle = `rgba(${strokeColor.r},${strokeColor.g},${strokeColor.b},${strokeColor.alpha||1})`;
+        }
+        else{
+            ctx.strokeStyle = '#000';
+        }
         for(let option of outline){
             let mode = option[0];
             switch(mode){
@@ -862,7 +895,7 @@ export function paintAvatar(ctx,avatarData,canvasWidth,canvasHeight,showBg){ // 
                 break;
             }
         }
-        fill(data);
+        fill(data,mode);
     }
     let drawClothData = data =>{ // 画衣服
 
@@ -885,6 +918,10 @@ export function paintAvatar(ctx,avatarData,canvasWidth,canvasHeight,showBg){ // 
         nasoData,
         collarData,
         bodyData,
+        bodyOutlineData,
+        breastData,
+        breastOutlineData,
+        breastShadowData,
         backHairData,
         foreHairData,
         bangsData,
@@ -893,6 +930,10 @@ export function paintAvatar(ctx,avatarData,canvasWidth,canvasHeight,showBg){ // 
         eyeShadowData2,
         cheekData1,
         cheekData2,
+        areolaData1,
+        areolaData2,
+        nippleData1,
+        nippleData2,
         glassData,
         hairColor,
     } = transferedData;
@@ -914,6 +955,37 @@ export function paintAvatar(ctx,avatarData,canvasWidth,canvasHeight,showBg){ // 
     }
     drawData(earsData);
     drawData(bodyData);
+    drawData(collarData);
+    if(breastData){
+        // 画乳房阴影
+        ctx.save();
+        drawData(bodyOutlineData);
+        ctx.clip();
+        if(breastShadowData){
+            drawData(breastShadowData);
+        }
+        ctx.restore();
+
+        // 画乳房
+        drawData(breastData);
+
+        // 画乳晕和乳头
+        ctx.save();
+        drawData(breastOutlineData);
+        ctx.clip();
+        drawData(areolaData1);
+        drawData(areolaData2);
+        drawData(nippleData1);
+        drawData(nippleData2);
+
+        ctx.restore();
+    }
+    else{
+        drawData(areolaData1);
+        drawData(areolaData2);
+        drawData(nippleData1);
+        drawData(nippleData2);
+    }
     drawData(faceData);
 
 
@@ -947,17 +1019,14 @@ export function paintAvatar(ctx,avatarData,canvasWidth,canvasHeight,showBg){ // 
     if(bottomLipData){
         drawData(bottomLipData);
     }
-    if(topMoustacheData){
-        drawData(topMoustacheData);
+    if(bracketsData){
+        drawData(bracketsData);
     }
     if(nasoData){
         drawData(nasoData);
     }
-    if(collarData){
-        drawData(collarData);
-    }
-    if(bracketsData){
-        drawData(bracketsData);
+    if(topMoustacheData){
+        drawData(topMoustacheData);
     }
     ctx.restore();
 
@@ -1010,12 +1079,20 @@ function transferAvatarSize(data,canvasWidth){
     let bracketsData = cloneObj(data.bracketsData);
     let nasoData = cloneObj(data.nasoData);
     let collarData = cloneObj(data.collarData);
+    let breastData = cloneObj(data.breastData);
+    let breastOutlineData = cloneObj(data.breastOutlineData);
+    let breastShadowData = cloneObj(data.breastShadowData);
     let bodyData = cloneObj(data.bodyData);
+    let bodyOutlineData = cloneObj(data.bodyOutlineData);
     let backHairData = cloneObj(data.backHairData);
     let foreHairData = cloneObj(data.foreHairData);
     let bangsData = cloneObj(data.bangsData);
     let cheekData1 = cloneObj(data.cheekData1);
     let cheekData2 = cloneObj(data.cheekData2);
+    let areolaData1 = cloneObj(data.areolaData1);
+    let areolaData2 = cloneObj(data.areolaData2);
+    let nippleData1 = cloneObj(data.nippleData1);
+    let nippleData2 = cloneObj(data.nippleData2);
     let glassData = cloneObj(data.glassData);
     let eyeShadowData1 = cloneObj(data.eyeShadowData1);
     let eyeShadowData2 = cloneObj(data.eyeShadowData2);
@@ -1023,6 +1100,10 @@ function transferAvatarSize(data,canvasWidth){
     let hairColor = cloneObj(data.hairColor);
 
     faceData.outline = formatPx(faceData.outline,canvasWidth);
+    faceData.leftX = formatPx(faceData.leftX,canvasWidth);
+    faceData.topY = formatPx(faceData.topY,canvasWidth);
+    faceData.rightX = formatPx(faceData.rightX,canvasWidth);
+    faceData.bottomY = formatPx(faceData.bottomY,canvasWidth);
     faceData.radial.x1 = formatPx(faceData.radial.x1,canvasWidth);
     faceData.radial.y1 = formatPx(faceData.radial.y1,canvasWidth);
     faceData.radial.r1 = formatPx(faceData.radial.r1,canvasWidth);
@@ -1075,6 +1156,29 @@ function transferAvatarSize(data,canvasWidth){
     if(collarData){
         collarData.outline = formatPx(collarData.outline,canvasWidth);
     }
+
+    if(breastData&&breastOutlineData){
+        breastData.outline = formatPx(breastData.outline,canvasWidth);
+        breastOutlineData.outline = formatPx(breastOutlineData.outline,canvasWidth);
+        if(breastShadowData){
+            breastShadowData.outline = formatPx(breastShadowData.outline,canvasWidth);
+            breastShadowData.radial.x1 = formatPx(breastShadowData.radial.x1,canvasWidth);
+            breastShadowData.radial.y1 = formatPx(breastShadowData.radial.y1,canvasWidth);
+            breastShadowData.radial.r1 = formatPx(breastShadowData.radial.r1,canvasWidth);
+            breastShadowData.radial.x2 = formatPx(breastShadowData.radial.x2,canvasWidth);
+            breastShadowData.radial.y2 = formatPx(breastShadowData.radial.y2,canvasWidth);
+            breastShadowData.radial.r2 = formatPx(breastShadowData.radial.r2,canvasWidth);
+        }
+
+        breastData.nipple[0] = formatPx(breastData.nipple[0],canvasWidth);
+        breastData.nipple[1] = formatPx(breastData.nipple[1],canvasWidth);
+        if(breastData.leftX||breastData.leftX==0){
+            breastData.leftX = formatPx(breastData.leftX,canvasWidth);
+            breastData.topY = formatPx(breastData.topY,canvasWidth);
+            breastData.rightX = formatPx(breastData.rightX,canvasWidth);
+            breastData.bottomY = formatPx(breastData.bottomY,canvasWidth);
+        }
+    }
     if(bracketsData){
         bracketsData.outline = formatPx(bracketsData.outline,canvasWidth);
     }
@@ -1086,6 +1190,12 @@ function transferAvatarSize(data,canvasWidth){
     bodyData.radial.x2 = formatPx(bodyData.radial.x2,canvasWidth);
     bodyData.radial.y2 = formatPx(bodyData.radial.y2,canvasWidth);
     bodyData.radial.r2 = formatPx(bodyData.radial.r2,canvasWidth);
+    bodyData.cp1[0] = formatPx(bodyData.cp1[0]);
+    bodyData.cp1[1] = formatPx(bodyData.cp1[1]);
+    bodyData.cpi[0] = formatPx(bodyData.cpi[0]);
+    bodyData.cpi[1] = formatPx(bodyData.cpi[1]);
+
+    bodyOutlineData.outline = formatPx(bodyOutlineData.outline,canvasWidth);
 
     if(foreHairData){
         foreHairData.outline = formatPx(foreHairData.outline,canvasWidth);
@@ -1133,7 +1243,6 @@ function transferAvatarSize(data,canvasWidth){
         cheekData1.radial.y2 = formatPx(cheekData1.radial.y2,canvasWidth);
         cheekData1.radial.r2 = formatPx(cheekData1.radial.r2,canvasWidth);
     }
-
     if(cheekData2){
         cheekData2.outline = formatPx(cheekData2.outline,canvasWidth);
         cheekData2.radial.x1 = formatPx(cheekData2.radial.x1,canvasWidth);
@@ -1142,6 +1251,45 @@ function transferAvatarSize(data,canvasWidth){
         cheekData2.radial.x2 = formatPx(cheekData2.radial.x2,canvasWidth);
         cheekData2.radial.y2 = formatPx(cheekData2.radial.y2,canvasWidth);
         cheekData2.radial.r2 = formatPx(cheekData2.radial.r2,canvasWidth);
+    }
+
+    if(areolaData1){
+        areolaData1.outline = formatPx(areolaData1.outline,canvasWidth);
+        areolaData1.radial.x1 = formatPx(areolaData1.radial.x1,canvasWidth);
+        areolaData1.radial.y1 = formatPx(areolaData1.radial.y1,canvasWidth);
+        areolaData1.radial.r1 = formatPx(areolaData1.radial.r1,canvasWidth);
+        areolaData1.radial.x2 = formatPx(areolaData1.radial.x2,canvasWidth);
+        areolaData1.radial.y2 = formatPx(areolaData1.radial.y2,canvasWidth);
+        areolaData1.radial.r2 = formatPx(areolaData1.radial.r2,canvasWidth);
+    }
+    if(areolaData2){
+        areolaData2.outline = formatPx(areolaData2.outline,canvasWidth);
+        areolaData2.radial.x1 = formatPx(areolaData2.radial.x1,canvasWidth);
+        areolaData2.radial.y1 = formatPx(areolaData2.radial.y1,canvasWidth);
+        areolaData2.radial.r1 = formatPx(areolaData2.radial.r1,canvasWidth);
+        areolaData2.radial.x2 = formatPx(areolaData2.radial.x2,canvasWidth);
+        areolaData2.radial.y2 = formatPx(areolaData2.radial.y2,canvasWidth);
+        areolaData2.radial.r2 = formatPx(areolaData2.radial.r2,canvasWidth);
+    }
+
+
+    if(nippleData1){
+        nippleData1.outline = formatPx(nippleData1.outline,canvasWidth);
+        nippleData1.radial.x1 = formatPx(nippleData1.radial.x1,canvasWidth);
+        nippleData1.radial.y1 = formatPx(nippleData1.radial.y1,canvasWidth);
+        nippleData1.radial.r1 = formatPx(nippleData1.radial.r1,canvasWidth);
+        nippleData1.radial.x2 = formatPx(nippleData1.radial.x2,canvasWidth);
+        nippleData1.radial.y2 = formatPx(nippleData1.radial.y2,canvasWidth);
+        nippleData1.radial.r2 = formatPx(nippleData1.radial.r2,canvasWidth);
+    }
+    if(nippleData2){
+        nippleData2.outline = formatPx(nippleData2.outline,canvasWidth);
+        nippleData2.radial.x1 = formatPx(nippleData2.radial.x1,canvasWidth);
+        nippleData2.radial.y1 = formatPx(nippleData2.radial.y1,canvasWidth);
+        nippleData2.radial.r1 = formatPx(nippleData2.radial.r1,canvasWidth);
+        nippleData2.radial.x2 = formatPx(nippleData2.radial.x2,canvasWidth);
+        nippleData2.radial.y2 = formatPx(nippleData2.radial.y2,canvasWidth);
+        nippleData2.radial.r2 = formatPx(nippleData2.radial.r2,canvasWidth);
     }
 
     if(clothData){
@@ -1165,6 +1313,10 @@ function transferAvatarSize(data,canvasWidth){
         nasoData,
         collarData,
         bodyData,
+        bodyOutlineData,
+        breastData,
+        breastOutlineData,
+        breastShadowData,
         backHairData,
         foreHairData,
         bangsData,
@@ -1172,6 +1324,10 @@ function transferAvatarSize(data,canvasWidth){
         eyeShadowData2,
         cheekData1,
         cheekData2,
+        areolaData1,
+        areolaData2,
+        nippleData1,
+        nippleData2,
         glassData,
         clothData,
         hairColor,
@@ -1191,7 +1347,7 @@ function formatPx(data,canvasWidth){
     if(typeof data === 'object'){
         return Array.from(data,item=>{
             let res = [];
-            if(item[0]==0||item[0]==1){
+            if(item[0]==0||item[0]==1||item[0]==4){
                 res = [item[0],parseInt(item[1]/rate),parseInt(item[2]/rate)];
             }
             else if(item[0]==2){
@@ -1781,6 +1937,36 @@ function genCheekColor(){ // 生成腮红色
     let rgrd = `rgba(${r(255,255)},${r(189,209)},${r(151,181)},${r(40,50)/100})`;
     return { color, rgrd };
 }
+function genAreolaColor(){ // 生成乳晕色
+    let color = {
+        r: r(255,255),
+        g: r(255,255),
+        b: r(255,255),
+        alpha: 0,
+    };
+    let rcolor = {
+        r: r(255,255),
+        g: r(199,209),
+        b: r(171,181),
+    }
+    let rgrd = `rgba(${rcolor.r},${rcolor.g},${rcolor.b},${r(80,90)/100})`;
+    return { color, rgrd };
+}
+function genNippleColor(){ // 生成乳头色
+    let color = {
+        r: r(255,255),
+        g: r(255,255),
+        b: r(255,255),
+        alpha: 0,
+    };
+    let rcolor = {
+        r: r(255,255),
+        g: r(169,179),
+        b: r(131,141),
+    }
+    let rgrd = `rgba(${rcolor.r},${rcolor.g},${rcolor.b},${r(80,90)/100})`;
+    return { color, rgrd };
+}
 function genEyeShadowColor(){ // 生成眼影色
     let grd = `rgba(${r(255,255)},${r(10,84)},${r(10,155)},${r(60,100)/100})`;
     return { grd };
@@ -1828,15 +2014,15 @@ function genFaceData(gender,age,bald){ // 生成脸
         }
     }
     else{ // 男
-        a = [500,r(240,260)+ysr*125]; // 头顶 千分比
+        a = [500,r(240,260)+ysr*145]; // 头顶 千分比
         b = [500,a[1]+r(45,55)-ysr*1]; // 刘海中心
-        c = [r(300,320)+ysr*25,b[1]+r(125,145)-ysr*10]; // 脸左
-        d = [r(410,435)+ysr*20,b[1]+r(145,155)-ysr*10]; // 左眉毛中心
+        c = [r(305,325)+ysr*25,b[1]+r(125,145)-ysr*10]; // 脸左
+        d = [r(415,440)+ysr*10,b[1]+r(145,155)-ysr*10]; // 左眉毛中心
         e = [d[0],d[1]+r(45,65-ysr*8)+ysr*20]; // 左眼下
-        f = [500,e[1]+r(139,149-ysr*8)-ysr*30]; // 鼻下
+        f = [500,e[1]+r(129,139-ysr*8)-ysr*30]; // 鼻下
         g = [500,f[1]+r(42,52-ysr*5)-ysr*30]; // 唇上
-        h = [r(380+ysr*16,402+ysr*15)+ysr*12,c[1]+r(265,280-ysr*15)-ysr*40]; // 颊左
-        i = [500,h[1]+r(50+ysr*15,80-ysr*10)-ysr*25]; // 下巴
+        h = [r(380+ysr*25,412-ysr*15)+ysr*22,c[1]+r(265,280-ysr*15)-ysr*40]; // 颊左
+        i = [500,h[1]+r(35+ysr*18,75-ysr*18)-ysr*12]; // 下巴
 
         let colorDeep = r(2,30);
         color = {
@@ -1850,11 +2036,36 @@ function genFaceData(gender,age,bald){ // 生成脸
             color.b /= 1.7;
         }
     }
+
+    // 生成头部轮廓
+    let cp1,cp2,cp3;
+    let oldImpact = 0;
+    if(gender==2){ // 女
+        if(age>60){
+            oldImpact = Math.round(age*.9);
+        }
+        cp1 = [r(c[0]+5,c[0]+10),r(a[1],a[1]+20)];
+        cp2 = [r(c[0]+0,c[0]+15-ysr*15)+oldImpact*.6,r(h[1]-90,h[1]-65+ysr*10)+oldImpact];
+        cp3 = [r(h[0]+14,h[0]+23),r(h[1]+15,h[1]+27-ysr*20)];
+    }
+    else{ // 男
+        if(age>60){
+            oldImpact = Math.round(age*1.4);
+        }
+        cp1 = [r(c[0]+5,c[0]+10),r(a[1],a[1]+20)];
+        cp2 = [r(c[0]+1,c[0]+10-ysr*9)+oldImpact*.2,r(h[1]-100,h[1]-75+ysr*10)+oldImpact];
+        cp3 = [r(h[0]+22,h[0]+29),r(h[1]+40-ysr*20,h[1]+35-ysr*20)];
+    }
+
     let radialX, radialY;
     radialX = 500;
     radialY = a[1]-r(0,(i[1]-a[1])/10)-60;
     let res = {
         a,b,c,d,e,f,g,h,i,
+        topY: a[1],
+        bottomY: i[1],
+        leftX: c[0],
+        rightX: mirX(c[0]),
         outline: [],
         color,
         radial: {
@@ -1869,19 +2080,6 @@ function genFaceData(gender,age,bald){ // 生成脸
     if(bald){
         res.rgrd = `#fafafa`;
     }
-
-    // 生成头部轮廓
-    let cp1,cp2,cp3;
-    if(gender==2){ // 女
-        cp1 = [r(c[0]+5,c[0]+10),r(a[1],a[1]+20)];
-        cp2 = [r(c[0]+0,c[0]+15-ysr*15),r(h[1]-90,h[1]-65+ysr*10)];
-        cp3 = [r(h[0]+14,h[0]+23),r(h[1]+15,h[1]+27-ysr*20)];
-    }
-    else{ // 男
-        cp1 = [r(c[0]+5,c[0]+10),r(a[1],a[1]+20)];
-        cp2 = [r(c[0]+1,c[0]+10-ysr*9),r(h[1]-100,h[1]-130+ysr*20)];
-        cp3 = [r(h[0]+34,h[0]+42),r(h[1]+40-ysr*20,h[1]+65-ysr*33)];
-    }
     res.outline.push([0,a[0],a[1]]); // 移动
     res.outline.push([2,cp1[0],cp1[1],c[0],c[1]]); // 曲线 a-c1
     res.outline.push([2,cp2[0],cp2[1],h[0],h[1]]); // 曲线 c1-h1
@@ -1894,45 +2092,78 @@ function genFaceData(gender,age,bald){ // 生成脸
 }
 function genBodyData(faceData,gender,age){ // 生成身体
     let a,b,c,d,e,f,g,h,i1,i2,j,k,l;
+    let { topY, bottomY, leftX, rightX, } = faceData;
+    let faceWidth = Math.round(rightX-leftX); // 脸宽
+    let faceHeight = Math.round(bottomY-topY); // 脸高
     let ysr = 1-shrinkYoung(age); // 年幼影响比率
+    let muscle = r(-5,5); // 肌肉量
+    let shoulderWidth;
+    let armWidth;
     if(gender==2){ // 女
-        let armWidth = 105-ysr*20+r(-3,3);
+        shoulderWidth = faceWidth-330;
+        armWidth = 98-ysr*30+r(-1,1);
         a = [faceData.g[0],faceData.g[1]];
         b = [faceData.h[0]+r(5,7)+ysr*30,faceData.g[1]];
         c = [b[0]+(r(20,25)/100)*(500-b[0]),b[1]+r(70,80)-ysr*30];
-        d = [b[0]-(r(15,20)/100)*30-90,c[1]+r(90,100)-ysr*20];
-        e = [d[0]-(r(1,30)/100)*30-10+ysr*15,d[1]+5+r(4,5)-ysr*10];
-        f = [e[0]-(r(1,40)/100)*30-100+ysr*5,e[1]+75-ysr*15];
+        d = [b[0]-(r(15,20)/100)*30-73,c[1]+r(80,90)-ysr*20];
+        e = [d[0]-(r(1+ysr*15,30-ysr*15)/100)*30-shoulderWidth,d[1]+6+r(1,3)-ysr*7];
+        f = [e[0]-(r(1,40)/100)*30-100+ysr*5,e[1]+r(40,75)-ysr*5];
         g = [f[0]-10+r(-5,5),1200];
         h = [g[0]+armWidth,1200];
         i1 = [g[0]+armWidth+3,e[1]+225+r(-5,5)-ysr*60];
         i2 = [i1[0]+5+ysr*5,i1[1]];
-        j = [g[0]+armWidth+20,i2[1]+120];
-        k = [g[0]+armWidth+22,1200];
+        j = [g[0]+armWidth+25-ysr*15,i2[1]+120];
+        k = [g[0]+armWidth+27-ysr*15,1200];
         l = [faceData.g[0],1200];
     }
     else{ // 男
-        let shoulderWidth = r(20,40);
-        let armWidth = 95+shoulderWidth-ysr*45+r(-5+ysr*5,5-ysr*5);
+        shoulderWidth = faceWidth-320+ysr*30;
+        armWidth = 125+muscle*(2.5-ysr*3)-ysr*63;
         a = [faceData.g[0],faceData.g[1]];
         b = [faceData.h[0]+r(5,7)+ysr*30,faceData.g[1]];
-        c = [b[0]+(r(18,24)/100)*(500-b[0]),b[1]+r(70,80)-ysr*30];
-        d = [b[0]-(r(15,20)/100)*30-110+ysr*50,c[1]+r(90,100)-ysr*20];
-        e = [d[0]-(r(1,30)/100)*10-shoulderWidth+ysr*5,d[1]+5+r(4,5)-ysr*10];
-        f = [e[0]-(r(1,15)/100)*30-100+ysr*5,e[1]+75-ysr*15];
-        g = [f[0]-30+ysr*12+r(-5,5),1200];
+        c = [b[0]+(r(18,24)/100)*(500-b[0])-muscle*(2-ysr*2),b[1]+r(70,80)-ysr*30];
+        d = [b[0]-(r(15,20)/100)*30-110+ysr*70,c[1]+r(80,90)-ysr*20];
+        e = [d[0]-(r(1,30)/100)*10-shoulderWidth,d[1]+8+r(2,5)-ysr*10];
+        f = [e[0]-(r(1,15)/100)*30-100+ysr*15-muscle*(4-ysr*4.5),e[1]+85-ysr*15];
+        g = [f[0]-15+ysr*12+r(-6,6),1200];
         h = [g[0]+armWidth,1200];
-        i1 = [g[0]+armWidth+3,e[1]+245+r(-5,5)-ysr*80];
-        i2 = [i1[0]+5+ysr*8,i1[1]];
-        j = [g[0]+armWidth+15-ysr*3,i2[1]+120-ysr*120];
-        k = [g[0]+armWidth+20-ysr*8,1200];
+        i1 = [g[0]+armWidth+3,e[1]+245+r(-5,5)-ysr*60];
+        i2 = [i1[0]+5+ysr*12-muscle*(.2-ysr*.2),i1[1]];
+        j = [g[0]+armWidth+19-muscle*(.1-ysr*.1),i2[1]+120-ysr*120];
+        k = [g[0]+armWidth+20-muscle*(.2-ysr*.2),1200];
         l = [faceData.g[0],1200];
+    }
+    // 生成身体轮廓
+    let cp1,cp2,cp3,cp4,cp5,cp6,cpi,cp7,cp8;
+    if(gender==2){ // 女
+        cp1 = [c[0]+r(-2,10),b[1]+r(0,20)];
+        cp2 = [c[0]+r(-10,5),d[1]-r(0,20)];
+        cp3 = [d[0]-r(0,4),d[1]+r(0,4)];
+        cp4 = [f[0]+r(15,26),e[1]+r(0,15)];
+        cp5 = [f[0]-r(2,10-ysr*10)-10+ysr*5,f[1]+(g[1]-f[1])*.2];
+        cp6 = [i1[0]-ysr*7,i1[1]+50];
+        cpi = [i1[0]+1,i1[1]-50];
+        cp7 = [i2[0]-5+ysr*5,i2[1]+30];
+        cp8 = [k[0],j[1]+30];
+    }
+    else{ // 男
+        cp1 = [c[0]+r(-2,10),b[1]+r(0,20)];
+        cp2 = [c[0]+r(-10,5),d[1]-r(0,20)-muscle*3.8+ysr*10];
+        cp3 = [d[0]-r(0,3),d[1]+r(0,3)];
+        cp4 = [f[0]+r(15,26),e[1]+8-muscle*(1-ysr*1.2)];
+        cp5 = [g[0]-2-ysr*2-muscle*(2-ysr*2.2),mid(g[1],f[1])+r(-15,25)];
+        cp6 = [i1[0]+muscle*(.8-ysr*1),i1[1]+50];
+        cpi = [i1[0]+1,i1[1]-50];
+        cp7 = [i2[0]+ysr*2,i2[1]+30];
+        cp8 = [k[0]-ysr*5,j[1]+30];
     }
     let res = {
         a,b,c,d,e,f,g,h,i1,i2,j,k,
+        cp1,cpi,
         color: faceData.color,
         outline: [],
         rgrd: `#222`,
+        muscle,
         radial: {
             x1: 500,
             y1: a[1]-100,
@@ -1942,31 +2173,6 @@ function genBodyData(faceData,gender,age){ // 生成身体
             r2: 220,
         },
     };
-
-    // 生成身体轮廓
-    let cp1,cp2,cp3,cp4,cp5,cp6,cpi,cp7,cp8;
-    if(gender==2){ // 女
-        cp1 = [c[0]+r(-2,10),b[1]+r(0,20)];
-        cp2 = [c[0]+r(-10,5),d[1]-r(0,20)];
-        cp3 = [d[0]-r(0,4),d[1]+r(0,4)];
-        cp4 = [f[0]+r(15,26),e[1]+r(0,15)];
-        cp5 = [g[0]-r(2,10-ysr*10),mid(g[1],f[1])+r(-10,10)];
-        cp6 = [i1[0]+7-ysr*7,i1[1]+50];
-        cpi = [i1[0]+1,i1[1]-50];
-        cp7 = [i2[0]-5+ysr*5,i2[1]+30];
-        cp8 = [k[0],j[1]+30];
-    }
-    else{ // 男
-        cp1 = [c[0]+r(-2,10),b[1]+r(0,20)];
-        cp2 = [c[0]+r(-10,5),d[1]-r(0,20)];
-        cp3 = [d[0]-r(0,3),d[1]+r(0,3)];
-        cp4 = [f[0]+r(15,26),e[1]+r(-7+ysr*9,15)];
-        cp5 = [g[0]-r(0,2-ysr*10),mid(g[1],f[1])+r(-15,25)];
-        cp6 = [i1[0],i1[1]+50];
-        cpi = [i1[0]+1,i1[1]-50];
-        cp7 = [i2[0]+ysr*2,i2[1]+30];
-        cp8 = [k[0]-ysr*5,j[1]+30];
-    }
     res.outline.push([0,a[0],a[1]]); // 移动
     res.outline.push([1,b[0],b[1]]); // 直线 a-b1
     res.outline.push([2,cp1[0],cp1[1],c[0],c[1]]); // 曲线 b1-c1
@@ -1993,6 +2199,18 @@ function genBodyData(faceData,gender,age){ // 生成身体
     res.outline.push([2,mirX(cp1[0]),cp1[1],mirX(b[0]),b[1]]); // 曲线 c2-b2
     res.outline.push([1,mirX(a[0]),a[1]]); // 直线 b2-a
 
+    return res;
+}
+function genBodyOutlineData(bodyData){ // 生成身体轮廓
+    let res = {
+        outline: bodyData.outline,
+        strokeColor: {
+            r: 0,
+            g: 255,
+            b: 100,
+        },
+        noStroke: true,
+    }
     return res;
 }
 function genEarsData(faceData,gender,age){ // 生成双耳朵
@@ -2097,8 +2315,8 @@ function genEyesData(faceData,gender,age,personalities){ // 生成双眼
         lineWidth = r(2,7);
     }
     else{ // 男
-        a = [faceData.e[0]+r(45,60),faceData.e[1]-r(-15,15)];
-        b = [faceData.e[0]-r(60,75),faceData.e[1]-r(-10,10)];
+        a = [faceData.e[0]+r(45,55),faceData.e[1]-r(-15,15)];
+        b = [faceData.e[0]-r(55,70),faceData.e[1]-r(-10,10)];
         if(a[1]>b[1]){
             min = b[1];
             max = a[1];
@@ -2131,8 +2349,8 @@ function genEyesData(faceData,gender,age,personalities){ // 生成双眼
         cp2 = [r(b[0]+15,a[0]-15),cpBottom];
     }
     else{ // 男
-        let cpTop = r(b[1]-25,a[1]-45);
-        let cpBottom = r(b[1]+25,a[1]+45);
+        let cpTop = r(b[1]-20,a[1]-35);
+        let cpBottom = r(b[1]+20,a[1]+35);
         // 欲望值修正
         if(libidinal>70){
             cpTop += Math.round(15*r(15,45)/100);
@@ -2276,14 +2494,21 @@ function genLashData(eyeData,gender,age){ // 生成睫毛
 
     return res;
 }
-function genEyeoutballsData(eyeData,gender){ // 生成外双瞳
+function genEyeoutballsData(eyeData,gender,age){ // 生成外双瞳
     let radius;
     let c = eyeData.c;
+    let oldImpact = 0;
     if(gender==2){ // 女
-        radius = r(12,25);
+        if(age>=50){
+            oldImpact = age*.14;
+        }
+        radius = r(12,25-oldImpact);
     }
     else{ // 男
-        radius = r(7,24);
+        if(age>=50){
+            oldImpact = age*.19;
+        }
+        radius = r(7,24-oldImpact);
     }
     let eyeColor = genEyeColor(1);
     let {color,grd,} = eyeColor;
@@ -2305,7 +2530,7 @@ function genEyeoutballsData(eyeData,gender){ // 生成外双瞳
     res.outline.push([3,radius,mirX(c[0]),c[1]]); // 右外瞳
     return res;
 }
-function genEyeinballsData(eyeData,eyeoutballsData,gender){ // 生成内双瞳
+function genEyeinballsData(eyeData,eyeoutballsData,gender,age){ // 生成内双瞳
     let radius;
     let outRadius = eyeoutballsData.radius;
     let c = eyeData.c;
@@ -2394,11 +2619,11 @@ function genLipData(faceData,gender,age,emotion){ // 生成嘴唇
         a = [faceData.g[0]+lipWidth,faceData.g[1]];
         b = [faceData.g[0]-lipWidth,faceData.g[1]];
         lineWidth = 1;
-        if(age>=18&&r(0,100)<10){
+        if(age>=18&&age<50&&r(0,100)<10){
             strokeColor = lipColor.color;
             lineWidth = r(1,3);
         }
-        if(age>=16){
+        if(age>=16&&age<60){
             color = {
                 r: 255,
                 g: 99,
@@ -2496,7 +2721,6 @@ function genTopMoustacheData(faceData,lipData,color,grd){ // 生成上胡子
     let res = {
         a,b,c,
         outline: [],
-        alpha: .8,
         color,
         strokeColor,
     };
@@ -2515,10 +2739,10 @@ function genTopMoustacheData(faceData,lipData,color,grd){ // 生成上胡子
 
     return res;
 }
-function genNasoData(faceData,eyeData){ // 生成法令纹
+function genNasoData(faceData,eyeData,gender,age){ // 生成法令纹
     let a,b;
     a = [eyeData.a[0]+r(0,10),eyeData.a[1]+r(5,20)];
-    b = [a[0]-r(35,60),a[1]+r(70,100)];
+    b = [a[0]-r(35,60),a[1]+r(70,100)+age*.4];
     let strokeColor = {
         r: 100,
         g: 100,
@@ -2530,7 +2754,7 @@ function genNasoData(faceData,eyeData){ // 生成法令纹
         alpha: .8,
         strokeColor,
     };
-    let cp1 = [a[0]-r(0,15),a[1]+r(20,40)];
+    let cp1 = [a[0]-r(0,15),a[1]+r(20,40)+age*1.2];
 
     // 生成上胡子轮廓
     res.outline.push([0,a[0],a[1]]); // 移动
@@ -2544,18 +2768,18 @@ function genCheekData(faceData){ // 生成腮红
     let radial1 = {},radial2 = {};
     let { c, e, } = faceData;
 
-    let xShift = e[0]-r(10,40);
+    let weight = e[0]-r(10,40);
     let yShift = e[1]+r(55,65);
     let radius = r(55,85);
 
-    radial1.x1 = xShift;
+    radial1.x1 = weight;
     radial1.y1 = yShift;
     radial1.r1 = 0;
     radial1.x2 = radial1.x1;
     radial1.y2 = radial1.y1;
     radial1.r2 = radius;
 
-    radial2.x1 = mirX(xShift);
+    radial2.x1 = mirX(weight);
     radial2.y1 = yShift;
     radial2.r1 = 0;
     radial2.x2 = radial2.x1;
@@ -2584,7 +2808,7 @@ function genCheekData(faceData){ // 生成腮红
     res1.outline.push([0,radial1.x1,radial1.y1]); // 移动
     res1.outline.push([3,radial1.r2,radial1.x1,radial1.y1]); // 左内瞳
     res2.outline.push([0,radial2.x1,radial2.y1]); // 移动
-    res2.outline.push([3,radial2.r2,radial2.x1,radial2.y1]); // 左内瞳
+    res2.outline.push([3,radial2.r2,radial2.x1,radial2.y1]); // 右内瞳
     return { res1, res2, };
 }
 function genEyeShadowData(faceData,eyeData){ // 生成眼影
@@ -2643,13 +2867,14 @@ function genBracketsData(faceData,lipData){ // 生成括号
     let { a, b, } = lipData;
     let _a, _b, cp1;
     let strokeColor = {
-        r: 100,
-        g: 100,
-        b: 100,
+        r: 40,
+        g: 40,
+        b: 40,
     };
     let halfHeight = r(10,15);
-    _a = [a[0]+r(0,9),a[1]-halfHeight*2];
-    _b = [_a[0],a[1]+halfHeight];
+    let top = r(15,18);
+    _a = [a[0]+r(0,9),a[1]-halfHeight*2+top];
+    _b = [_a[0],a[1]+halfHeight+top];
     cp1 = [_a[0]+r(25,35),a[1]];
 
     res = {
@@ -2665,15 +2890,450 @@ function genBracketsData(faceData,lipData){ // 生成括号
 
     return res;
 }
-function genCollarData(bodyData){ // 生成锁骨
+function genCollarData(bodyData,gender,age){ // 生成锁骨
     let res;
+    let a,b,c,d,e,f,g,h,i,j;
+    let cp1,cp2,cp3,cp4,cp5,cp6;
+    let ysr = 1-shrinkYoung(age); // 年幼影响比率
+    let width = bodyData.c[0]-bodyData.e[0];
+
+    a = [bodyData.e[0]+width*.2,bodyData.e[1]+width*.16];
+    b = [a[0]+width*.8,a[1]+width*.25];
+    c = [b[0]+width*.3,b[1]+width*.13];
+    d = [bodyData.b[0],bodyData.b[1]];
+    e = [bodyData.c[0],bodyData.c[1]];
+    f = [bodyData.c[0]-width*.18,bodyData.d[1]-width*.01];
+    // g = [f[0]-width*.03,f[1]-width*.06];
+    i = [bodyData.cpi[0],bodyData.cpi[1]+25];
+    j = [i[0]-width*.05,i[1]-width*.17];
+
+    if(c[0]>492){
+        c[0] = 492;
+    }
+    // if(f[0]>bodyData.c[0]-20){
+    //     f[0] = bodyData.c[0]-20;
+    // }
+
+    let arc = [20,10];
+    let arc2 = bodyData.c[0]-bodyData.d[0];
+    cp1 = [mid(a[0],b[0])-arc[0]*1.5,a[1]+arc[1]*1.8];
+    cp2 = [mid(b[0],c[0])+arc[0],b[1]+arc[1]*.43];
+    // h = [cp2[0]+width*.05,cp2[1]-width*.01];
+    cp3 = [bodyData.cp1[0],bodyData.cp1[1]];
+    cp4 = [bodyData.c[0]-arc2*.12,f[1]-arc[1]*.8];
+    // cp5 = [f[0]-arc2*.22,f[1]+arc2*.14];
+    cp6 = [mid(i[0],j[0])+arc2*.05,j[1]+arc2*.05];
 
     res = {
         outline: [],
-        alpha: .8,
+        strokeColor: {
+            r: 80,
+            g: 80,
+            b: 80,
+        },
+    }
+
+    res.outline.push([0,a[0],a[1]]); // 移动 a1
+    res.outline.push([2,cp1[0],cp1[1],b[0],b[1]]); // 曲线 a1-b1
+    res.outline.push([2,cp2[0],cp2[1],c[0],c[1]]); // 曲线 b1-c1
+    res.outline.push([0,d[0],d[1]]); // 移动 d1
+    res.outline.push([2,cp3[0],cp3[1],e[0],e[1]]); // 曲线 d1-e1
+    res.outline.push([2,cp4[0],cp4[1],f[0],f[1]]); // 曲线 e1-f1
+    // res.outline.push([0,g[0],g[1]]); // 移动到 g1
+    // res.outline.push([2,cp5[0],cp5[1],h[0],h[1]]); // 曲线 f1-g1
+    res.outline.push([0,i[0],i[1]]); // 移动到 i1
+    res.outline.push([2,cp6[0],cp6[1],j[0],j[1]]); // 曲线 j1-j1
+
+    res.outline.push([0,mirX(a[0]),a[1]]); // 移动 a2
+    res.outline.push([2,mirX(cp1[0]),cp1[1],mirX(b[0]),b[1]]); // 曲线 a2-b2
+    res.outline.push([2,mirX(cp2[0]),cp2[1],mirX(c[0]),c[1]]); // 曲线 b2-c2
+    res.outline.push([0,mirX(d[0]),d[1]]); // 移动 d2
+    res.outline.push([2,mirX(cp3[0]),cp3[1],mirX(e[0]),e[1]]); // 曲线 d2-e2
+    res.outline.push([2,mirX(cp4[0]),cp4[1],mirX(f[0]),f[1]]); // 曲线 e2-f2
+    // res.outline.push([0,mirX(g[0]),g[1]]); // 移动到 g2
+    // res.outline.push([2,mirX(cp5[0]),cp5[1],mirX(h[0]),h[1]]); // 曲线 g2-h2
+    res.outline.push([0,mirX(i[0]),i[1]]); // 移动到 i1
+    res.outline.push([2,mirX(cp6[0]),cp6[1],mirX(j[0]),j[1]]); // 曲线 j1-j1
+
+    return res;
+}
+function genBreastData(bodyData,gender,age){ // 生成乳房
+    let res;
+    let a,b,c,d,e;
+    let { muscle, color, } = bodyData;
+    let cp1,cp2,cp3;
+    let base = bodyData.cpi; // 腋窝坐标
+    let shoulderWidth = bodyData.f[0]-bodyData.e[0]; // 肩宽
+    let nipple; // 乳头坐标
+    let ysr = 1-shrinkYoung(age); // 年幼影响比率
+    if(gender==1){ // 胸肌
+        res = {
+            outline: [],
+            color,
+            strokeColor: {
+                r: 0,
+                g: 0,
+                b: 0,
+            },
+            lineWidth: 1.5,
+            nipple: [bodyData.i2[0]+75-ysr*40,bodyData.i2[1]+25-ysr*25+r(-5,5)],
+        }
+        a = [base[0]-14+ysr*30,base[1]-32+ysr*64];
+        b = [a[0]+90-ysr*40,a[1]+150-ysr*94];
+        c = [b[0]+150-ysr*80,b[1]-12];
+        if(c[0]>490){
+            c[0] = 490;
+        }
+        d = [c[0]+80,a[1]+5];
+        e = [c[0]+40,a[1]+75-ysr*75];
+        if(d[0]>497){
+            d[0] = 497;
+        }
+        if(e[0]>495){
+            e[0] = 495;
+        }
+        cp1 = [b[0]-60+ysr*40,b[1]-3];
+        cp2 = [e[0]+10,d[1]-18];
+
+        res.outline.push([0,a[0],a[1]]); // 移动 a1
+        res.outline.push([2,cp1[0],cp1[1],b[0],b[1]]); // 曲线 a1-b1
+        res.outline.push([1,c[0],c[1]]); // 直线 b1-c1
+        res.outline.push([0,d[0],d[1]]); // 移动 d1
+        res.outline.push([1,e[0],e[1]]); // 直线 d1-e1
+        res.outline.push([0,mirX(a[0]),a[1]]); // 移动 a2
+        res.outline.push([2,mirX(cp1[0]),cp1[1],mirX(b[0]),b[1]]); // 曲线 a2-b2
+        res.outline.push([1,mirX(c[0]),c[1]]); // 直线 b2-c2
+        res.outline.push([0,mirX(d[0]),d[1]]); // 移动 d1
+        res.outline.push([1,mirX(e[0]),e[1]]); // 直线 d1-e1
+    }
+    else if(gender==2){ // 乳房
+        let size; // [1.25,5.3]
+        if(age>=50){
+            size = r(30,150-age)*.05;
+        }
+        else if(age>=18){
+            size = r(50,106)*.05;
+        }
+        else if(age>=14){
+            size = r(25,80)*.05;
+        }
+        else{
+            size = r(25,40)*.05;
+        }
+
+        let qtSize = Math.round(size); // [1,3.16]
+        let left = (3.2-qtSize)*8;
+        let weight = r(1,10); // [1,10]
+        if(age>=50){
+            weight += age/5;
+        }
+        if(weight>10){
+            weight = 10;
+        }
+        let top = 60-qtSize*15;
+        let round = qtSize*6+5;
+        let showGap = false;
+
+        a = [base[0]+left,base[1]+top];
+        b = [base[0]+left+(5-size)*7+weight*3,base[1]+15+size*35+top];
+        c = [base[0]+left+130+weight*1.5,base[1]+10+size*33+top];
+        if(b[0]<base[0]+10||b[1]>base[1]+140){
+            showGap = true;
+        }
+        if(showGap){
+            d = [500-(28-qtSize*5)-(20-size)+weight*1,base[1]+size*7+30+top*.5];
+            e = [500-(30-qtSize*5)+5,base[1]+top*.5];
+            if(d[0]>500){
+                d[0] = 500;
+            }
+            if(e[0]>500){
+                e[0] = 500;
+            }
+        }
+
+        nipple = [b[0]+20-ysr*20+r(-20+ysr*20,20-ysr*20),b[1]-qtSize*3-20+r(-20+ysr*20,20-ysr*20)];
+
+        cp1 = [mid(a[0],b[0])-round*1.6,mid(a[1],b[1])+qtSize*8];
+        cp2 = [mid(b[0],c[0]),mid(b[1],c[1])+round*1.3];
+        if(showGap){
+            cp3 = [mid(d[0],e[0])+round*.2,mid(d[1],e[1])];
+            if(cp3[0]>510){
+                cp3[0] = 510;
+            }
+        }
+        // let topY = cp2[1]-20-size*2.2;
+        // if(topY>1199){
+        //     topY = 1199;
+        // }
+        res = {
+            outline: [],
+            color,
+            strokeColor: {
+                r: 0,
+                g: 0,
+                b: 0,
+                // alpha: 0.1,
+            },
+            lineWidth: 1,
+            nipple,
+            size,
+            showGap,
+        }
+
+        res.outline.push([0,a[0],a[1]]); // 移动 a1
+        res.outline.push([2,cp1[0],cp1[1],b[0],b[1]]); // 曲线 a1-b1
+        res.outline.push([2,cp2[0],cp2[1],c[0],c[1]]); // 曲线 b1-c1
+        if(showGap){
+            res.outline.push([0,d[0],d[1]]); // 移动 d1
+            res.outline.push([2,cp3[0],cp3[1],e[0],e[1]]); // 曲线 d1-e1
+        }
+
+        res.outline.push([0,mirX(a[0]),a[1]]); // 移动 a2
+        res.outline.push([2,mirX(cp1[0]),cp1[1],mirX(b[0]),b[1]]); // 曲线 a2-b2
+        res.outline.push([2,mirX(cp2[0]),cp2[1],mirX(c[0]),c[1]]); // 曲线 b2-c2
+        if(showGap){
+            res.outline.push([0,mirX(d[0]),d[1]]); // 移动 d2
+            res.outline.push([2,mirX(cp3[0]),cp3[1],mirX(e[0]),e[1]]); // 曲线 d2-e2
+        }
+    }
+    return res;
+}
+function genBreastOutlineData(breastData,gender,age){ // 生成乳房轮廓
+    let res;
+    let { showGap, outline, } = breastData;
+    if(gender==1){
+        let a = [outline[0][1],outline[0][2],];
+        let c = [outline[2][1],outline[2][2],];
+        res = {
+            outline: [],
+            strokeColor: {
+                r: 255,
+                g: 0,
+                b: 100,
+            },
+            noStroke: true,
+        };
+        for(let i=0;i<3;i++){
+            res.outline.push(outline[i]);
+        }
+        let rX = c[0]+150;
+        if(rX>500){
+            rX = 500;
+        }
+        res.outline.push([1,rX,c[1]]); // 直线
+        res.outline.push([1,rX,a[1]-100]); // 直线
+        res.outline.push([1,a[0],a[1]-100]); // 直线
+        res.outline.push([1,a[0],a[1]]); // 直线
+        for(let i=5;i<8;i++){
+            res.outline.push(outline[i]);
+        }
+        res.outline.push([1,mirX(rX),c[1]]); // 直线
+        res.outline.push([1,mirX(rX),a[1]-100]); // 直线
+        res.outline.push([1,mirX(a[0]),a[1]-100]); // 直线
+        res.outline.push([1,mirX(a[0]),a[1]]); // 直线
+    }
+    else if(gender==2){
+        let a = [outline[0][1],outline[0][2],];
+        let c = [outline[2][3],outline[2][4],];
+        res = {
+            outline: [],
+            strokeColor: {
+                r: 255,
+                g: 0,
+                b: 100,
+            },
+            // test: 2,
+            noStroke: true,
+        };
+        for(let i=0;i<3;i++){
+            res.outline.push(outline[i]);
+        }
+        res.outline.push([1,500,c[1]]); // 直线
+        res.outline.push([1,500,a[1]-130]); // 直线
+        res.outline.push([1,a[0],a[1]-130]); // 直线
+        res.outline.push([1,a[0],a[1]]); // 直线
+        if(showGap){
+            for(let i=5;i<8;i++){
+                res.outline.push(outline[i]);
+            }
+        }
+        else{
+            for(let i=3;i<6;i++){
+                res.outline.push(outline[i]);
+            }
+        }
+        res.outline.push([1,500,c[1]]); // 直线
+        res.outline.push([1,500,a[1]-130]); // 直线
+        res.outline.push([1,mirX(a[0]),a[1]-130]); // 直线
+        res.outline.push([1,mirX(a[0]),a[1]]); // 直线
     }
 
     return res;
+}
+function genBreastShadowData(bodyData,breastData,gender,age){ // 生成乳房阴影
+    let res;
+    let { showGap, outline, size, nipple, } = breastData;
+    let _a = [outline[0][1],outline[0][2]];
+    let _b = [outline[1][3],outline[1][4]];
+    let _c = [outline[2][3],outline[2][4]];
+    let _cp1 = [outline[1][1],outline[1][2]];
+    let _cp2 = [outline[2][1],outline[2][2]];
+    let a,b,c;
+    let cp1,cp2,cp3;
+    let radial = {}, radius = 0;
+    let bodyColor = bodyData.color;
+
+    radius = Math.sqrt(size)*180;
+
+    a = [_a[0],_a[1]];
+    b = [_b[0],_b[1]];
+    c = [_c[0],_c[1]];
+    cp1 = [_cp1[0],_cp1[1]];
+    cp2 = [_cp2[0],_cp2[1]];
+    cp3 = [_cp1[0]-size*3,b[1]+size*31];
+
+    radial.x1 = 500;
+    radial.y1 = nipple[1];
+    radial.r1 = 0;
+    radial.x2 = radial.x1;
+    radial.y2 = radial.y1;
+    radial.r2 = radius;
+
+    res = {
+        outline: [],
+        color: bodyData.color,
+        rgrd: `rgba(${20},${20},${20})`,
+        radial,
+        noStroke: true,
+        // strokeColor: {
+        //     r: 255,
+        //     g: 20,
+        //     b: 0,
+        // }
+    }
+
+    res.outline.push([0,a[0],a[1]]); // 移动 a1
+    res.outline.push([2,cp1[0],cp1[1],b[0],b[1]]); // 曲线 a1-b1
+    res.outline.push([2,cp2[0],cp2[1],c[0],c[1]]); // 曲线 b1-c1
+    res.outline.push([2,cp3[0],cp3[1],a[0],a[1]]); // 曲线 c1-a1
+    res.outline.push([0,mirX(a[0]),a[1]]); // 移动 a2
+    res.outline.push([2,mirX(cp1[0]),cp1[1],mirX(b[0]),b[1]]); // 曲线 a2-b2
+    res.outline.push([2,mirX(cp2[0]),cp2[1],mirX(c[0]),c[1]]); // 曲线 b2-c2
+    res.outline.push([2,mirX(cp3[0]),cp3[1],mirX(a[0]),a[1]]); // 曲线 c2-a2
+
+    return res;
+}
+function genAreolaData(bodyData,breastData,gender,age){ // 生成乳晕
+    let nipple;
+    let ysr = 1-shrinkYoung(age); // 年幼影响比率
+    if(breastData&&breastData.nipple){
+        nipple = breastData.nipple;
+    }
+    else{
+        nipple = [bodyData.i2[0]+75-ysr*40,bodyData.i2[1]+25-ysr*25+r(-5,5)];
+    }
+    let radial1 = {},radial2 = {};
+
+    let radius;
+    if(gender==1){ // 男
+        radius = r(15,25);
+    }
+    else if(gender==2){ // 女
+        radius = r(15,45);
+    }
+
+    radial1.x1 = nipple[0];
+    radial1.y1 = nipple[1];
+    radial1.r1 = 0;
+    radial1.x2 = radial1.x1;
+    radial1.y2 = radial1.y1;
+    radial1.r2 = radius;
+
+    radial2.x1 = mirX(nipple[0]);
+    radial2.y1 = nipple[1];
+    radial2.r1 = 0;
+    radial2.x2 = radial2.x1;
+    radial2.y2 = radial2.y1;
+    radial2.r2 = radius;
+
+    let cheeckColor = genAreolaColor();
+    let {color,rgrd,} = cheeckColor;
+
+    let res1 = {
+        radial: radial1,
+        outline: [],
+        color: bodyData.color,
+        rgrd,
+        noStroke:true,
+    };
+    let res2 = {
+        radial: radial2,
+        outline: [],
+        color: bodyData.color,
+        rgrd,
+        noStroke:true,
+    };
+
+    // 生成乳晕
+    res1.outline.push([0,radial1.x1,radial1.y1]); // 移动
+    res1.outline.push([3,radial1.r2,radial1.x1,radial1.y1]); // 左乳晕
+    res2.outline.push([0,radial2.x1,radial2.y1]); // 移动
+    res2.outline.push([3,radial2.r2,radial2.x1,radial2.y1]); // 右乳晕
+    return { res1, res2, nipple, };
+}
+function genNippleData(bodyData,nipple,gender,age){ // 生成乳头
+    let radial1 = {},radial2 = {};
+
+    let radius = r(8,12);
+
+    radial1.x1 = nipple[0];
+    radial1.y1 = nipple[1];
+    radial1.r1 = 0;
+    radial1.x2 = radial1.x1;
+    radial1.y2 = radial1.y1;
+    radial1.r2 = radius;
+
+    radial2.x1 = mirX(nipple[0]);
+    radial2.y1 = nipple[1];
+    radial2.r1 = 0;
+    radial2.x2 = radial2.x1;
+    radial2.y2 = radial2.y1;
+    radial2.r2 = radius;
+
+    let cheeckColor = genNippleColor();
+    let {color,rgrd,} = cheeckColor;
+
+    let res1 = {
+        radial: radial1,
+        outline: [],
+        color: bodyData.color,
+        rgrd,
+        strokeColor: {
+            r: 50,
+            g: 50,
+            b: 50,
+        },
+        // noStroke:true,
+    };
+    let res2 = {
+        radial: radial2,
+        outline: [],
+        color: bodyData.color,
+        rgrd,
+        strokeColor: {
+            r: 50,
+            g: 50,
+            b: 50,
+        },
+        // noStroke:true,
+    };
+
+    // 生成乳头
+    res1.outline.push([0,radial1.x1,radial1.y1]); // 移动
+    res1.outline.push([3,radial1.r2,radial1.x1,radial1.y1]); // 左乳头
+    res2.outline.push([0,radial2.x1,radial2.y1]); // 移动
+    res2.outline.push([3,radial2.r2,radial2.x1,radial2.y1]); // 右乳头
+    return { res1, res2, };
 }
 
 
