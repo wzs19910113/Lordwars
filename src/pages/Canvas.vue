@@ -150,7 +150,7 @@ export default {
         init(){
             this.ctx = this.$refs.cvs.getContext(`2d`);
 		    this.ctx.width = CVSWIDTH;
-		    this.ctx.height = CVSWIDTH;
+		    this.ctx.height = CVSHEIGHT;
             this.initKeyboard();
         },
         initKeyboard(){ // 初始化键盘事件
@@ -174,7 +174,7 @@ export default {
             this.modifyStep = 0;
         },
         drawInput(){
-            this.ctx.clearRect(0,0,CVSWIDTH,CVSWIDTH);
+            this.ctx.clearRect(0,0,CVSWIDTH,CVSHEIGHT);
             this.ctx.beginPath();
             let input = this.inputs[this.inputsIndex];
             if(input){
@@ -633,7 +633,7 @@ export default {
             // }
             // this.drawInput();
 
-            let person = common.genRandomPerson({gender,age:r(5,45)});
+            let person = common.genRandomPerson({gender,age:r(5,50)});
             let avatarData = genRandomAvatar(person);
             person.avatarData = avatarData;
             paintAvatar(this.ctx,avatarData,CVSWIDTH,CVSHEIGHT,1);
