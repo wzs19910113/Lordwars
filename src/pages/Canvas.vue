@@ -47,6 +47,7 @@
                     <a class="btn" @click="onClickSelectiItemStyle(2)">选择刘海</a>
                     <a class="btn" @click="onClickSelectiItemStyle(3)">选择后头发</a>
                     <a class="btn" @click="onClickSelectiItemStyle(4)">选择眼镜</a>
+                    <a class="btn" @click="onClickSelectiItemStyle(5)">选择衣服</a>
                 </div>
                 <br/>
                 <a class="btn" @click="onClickExport">输出</a>
@@ -106,7 +107,7 @@
 // Copyright (c) 2018 Copyright Holder All Rights Reserved.
 import { query, r, exptr, bulbsort, cloneObj, getParentNode, getMatchList, removeFromList, arrContains, rr, fullScreen, exitFullScreen, isFullScreen, calcDistance, } from '../tools/utils';
 import * as common from '../tools/common';
-import { genRandomAvatar, paintAvatar, genForeHairData, genBangsData, genBackHairData, genGlassData, generalForeHairTemplates, maleForeHairTemplates, femaleForeHairTemplates, generalBangsTemplates, maleBangsTemplates, femaleBangsTemplates, generalBackHairTemplates, maleBackHairTemplates, femaleBackHairTemplates, glassTemplates,  } from '../tools/avatar';
+import { genRandomAvatar, paintAvatar, genForeHairData, genBangsData, genBackHairData, genGlassData, generalForeHairTemplates, genClothData, maleForeHairTemplates, femaleForeHairTemplates, generalBangsTemplates, maleBangsTemplates, femaleBangsTemplates, generalBackHairTemplates, maleBackHairTemplates, femaleBackHairTemplates, glassTemplates, generalClothTemplates, maleClothTemplates, femaleClothTemplates, } from '../tools/avatar';
 import * as ai from '../tools/ai';
 import { DEBUG, CONFIG, CACHE } from '../config/config';
 const CVSWIDTH = 500;
@@ -573,13 +574,16 @@ export default {
                 case 4:
                     itemTemplates = [...glassTemplates];
                 break;
+                case 5:
+                    itemTemplates = [...generalClothTemplates,...maleClothTemplates,...femaleClothTemplates];
+                break;
             }
             this.itemStylePop = [{name:'/'},...itemTemplates];
         },
         onClickChooseItemStyle(itemStyle){ // 点击【选中样式】按钮
             let avatarData = this.person.avatarData;
             let gender = this.person.gender;
-            let { faceData, } = avatarData;
+            let { faceData, bodyData, } = avatarData;
             let { color, grd, } = avatarData.hairColor;
             if(itemStyle.name&&itemStyle.name!='/'){
                 this.itemStylePop = [];
@@ -600,6 +604,10 @@ export default {
                         let glassData = genGlassData(faceData,gender,itemStyle.name);
                         avatarData.glassData = glassData;
                     break;
+                    case 5: // 衣服
+                        let clothData = genClothData(bodyData,gender,itemStyle.name);
+                        avatarData.clothData = clothData;
+                    break;
                 }
             }
             else{ // 取消发型
@@ -615,6 +623,9 @@ export default {
                     break;
                     case 4: // 眼镜
                         avatarData.glassData = undefined;
+                    break;
+                    case 5: // 衣服
+                        avatarData.clothData = undefined;
                     break;
                 }
             }
