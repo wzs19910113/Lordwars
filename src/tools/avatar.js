@@ -694,10 +694,21 @@ const BODY_CURVEPOINT_MAP = {
     k: 'cp8',
 };
 export const generalClothTemplates = [
+    // {
+    //     name: '基本款',
+    //     shrink: 6, // 紧致度
+    //     data:[{"outline":[[0,500,706],["c1",438,718,394,686],["d1",408,840,346,900],["e1",280,894,260,920],["f1",196,950,152,966],["g1",134,1080,148,1200],["h1",246,1200],["i11",258,1112,264,1062],["i21",272,1038,274,1058],["j1",274,1100,290,1116],["k1",312,1164,314,1200],[1,500,1200],[0,500,706],["c2",562,718,606,686],["d2",592,840,654,900],["e2",720,894,740,920],["f2",804,950,848,966],["g2",866,1080,852,1200],["h2",754,1200],["i12",742,1112,736,1062],["i22",728,1038,726,1058],["j2",726,1100,710,1116],["k2",688,1164,686,1200],[1,500,1200]],"color":{"r":255,"g":192,"b":203}},{"outline":[[0,404,1004],[2,502,1046,596,992],[1,514,1154],[1,404,1004]],"color":{"r":0,"g":150,"b":0},"noStroke":true}],
+    // },
+    // {
+    //     name: '白领',
+    //     shrink: 4,
+    //     data: [{"outline":[[0,500,790],[2,450,790,422,768],["d1",404,820,360,840],["e1",330,852,312,858],["f1",168,864,148,888],["g1",102,1024,114,1200],["h1",246,1200],["i11",272,1114,268,1066],["i21",278,1046,276,1068],["j1",276,1130,284,1152],["k1",290,1178,288,1200],[1,500,1200],[0,500,790],[2,550,790,578,768],["d2",596,820,640,840],["e2",670,852,688,858],["f2",832,864,852,888],["g2",898,1024,886,1200],["h2",754,1200],["i12",728,1114,732,1066],["i22",722,1046,724,1068],["j2",724,1130,716,1152],["k2",710,1178,712,1200],[1,500,1200]],"color":{"r":235,"g":235,"b":255}},{"outline":[[0,500,784],[2,432,758,386,716],[1,332,754],[2,392,824,474,838],[1,500,784],[0,500,770],[0,500,784],[2,568,758,614,716],[1,668,754],[2,608,824,526,838],[1,500,784],[0,500,770]],"color":{"r":255,"g":255,"b":255}},{"outline":[[0,500,786],[1,502,1200],[3,10,528,916],[3,10,526,982],[3,10,526,1052],[3,10,526,1122],[3,10,526,1178]],"strokeColor":{"r":150,"g":150,"b":150},"color":{"r":109,"g":69,"b":19}}],
+    // },
     {
-        name: '基本款',
-        data:[{"outline":[[0,500,706],["c1",438,718,394,686],["d1",408,840,346,900],["e1",280,894,260,920],["f1",196,950,152,966],["g1",134,1080,148,1200],["h1",246,1200],["i11",258,1112,264,1062],["i21",272,1038,274,1058],["j1",274,1100,290,1116],["k1",312,1164,314,1200],[1,500,1200],[0,500,706],["c2",562,718,606,686],["d2",592,840,654,900],["e2",720,894,740,920],["f2",804,950,848,966],["g2",866,1080,852,1200],["h2",754,1200],["i12",742,1112,736,1062],["i22",728,1038,726,1058],["j2",726,1100,710,1116],["k2",688,1164,686,1200],[1,500,1200]],"color":{"r":255,"g":192,"b":203}},{"outline":[[0,404,1004],[2,502,1046,596,992],[1,514,1154],[1,404,1004]],"color":{"r":0,"g":150,"b":0},"noStroke":true}],
-    },
+        name: 'bra',
+        shrink: 4,
+        data: [{"outline":[[0,324,810],["e1",316,816,302,820],[2,278,804,258,834],["i11",268,972,268,1040],["i21",268,972,268,1040],["k1",242,1140,272,1190],[2,330,1192,422,1188],[2,488,1102,448,1022],[2,378,1000,302,1032],[2,320,884,324,810],[0,676,810],["e2",684,816,698,820],[2,722,804,742,834],["i12",732,972,732,1040],["i22",732,972,732,1040],["k2",758,1140,728,1190],[2,670,1192,578,1188],[2,512,1102,552,1022],[2,622,1000,698,1032],[2,680,884,676,810]],"color":{"r":255,"g":232,"b":232}}],
+    }
 ];
 export const maleClothTemplates = [
 
@@ -826,7 +837,7 @@ export function genRandomAvatar(person){ // 随机生成肖像
     let clothData;
     // 生成衣服
     if(r(0,100)<=100){
-        clothData = genClothData(bodyData,gender);
+        clothData = genClothData(bodyData,breastData,gender);
     }
 
     res = {
@@ -1825,9 +1836,20 @@ export function genGlassData(faceData,gender,glassName){ // 生成眼镜
     }
     return res;
 }
-export function genClothData(bodyData,gender,clothName){ // 生成衣服
+export function genClothData(bodyData,breastData,gender,clothName){ // 生成衣服
     let res,rCloth;
     let {a,b,c,d,e,f,g,h,i1,i2,j,k,l,cp1,cp2,cp3,cp4,cp5,cp6,cpi,cp7,cp8,} = bodyData;
+    let {size,weight,} = breastData||{};
+    let breastPoints = { // 衣服的胸部六点下标
+        i1_1_idx: -1,
+        i2_1_idx: -1,
+        j_1_idx: -1,
+        k_1_idx: -1,
+        i1_2_idx: -1,
+        i2_2_idx: -1,
+        j_2_idx: -1,
+        k_2_idx: -1,
+    };
     if(clothName){
         let clothTemplates = [...generalClothTemplates,...maleClothTemplates,...femaleClothTemplates,];
         for(let cloth of clothTemplates){
@@ -1848,10 +1870,41 @@ export function genClothData(bodyData,gender,clothName){ // 生成衣服
         }
     }
 
-    // 校准锚点
-    let data = cloneObj(rCloth.data);
-    for(let frag of data){
+    let { data, shrink, } = cloneObj(rCloth);
+    let baseFrag = data[0];
+    let baseOutline = baseFrag.outline;
+
+    // 缩放
+    let width = (500-f[0])*2; // 身体宽度
+    let height = l[1]-a[1]; // 身体高度
+    let widthScaleRate = width/600; // 水平缩放比率
+    let heightScaleRate = height/600; // 垂直缩放比率
+    for(let z=0;z<data.length;z++){
+        let frag = data[z];
         for(let option of frag.outline){
+            if(!isNaN(option[0])){
+                if(option[0]==0||option[0]==1){
+                    option[1] = l[0]-Math.round((l[0]-option[1])*widthScaleRate);
+                    option[2] = l[1]-Math.round((l[1]-option[2])*heightScaleRate);
+                }
+                else if(option[0]==2){
+                    option[1] = l[0]-Math.round((l[0]-option[1])*widthScaleRate);
+                    option[2] = l[1]-Math.round((l[1]-option[2])*heightScaleRate);
+                    option[3] = l[0]-Math.round((l[0]-option[3])*widthScaleRate);
+                    option[4] = l[1]-Math.round((l[1]-option[4])*heightScaleRate);
+                }
+                else if(option[0]==3){
+                    option[2] = l[0]-Math.round((l[0]-option[2])*widthScaleRate);
+                    option[3] = l[1]-Math.round((l[1]-option[3])*heightScaleRate);
+                }
+            }
+        }
+    }
+
+    // 校准锚点
+    for(let frag of data){
+        for(let i=0;i<frag.outline.length;i++){
+            let option = frag.outline[i];
             if(isNaN(option[0])){
                 let mode = ANCHOR_MAP[option[0]];
                 let pname = option[0].substring(0,option[0].length-1); // a,b,c,d,e,f,g,h,i1,i2,j,k
@@ -1886,10 +1939,120 @@ export function genClothData(bodyData,gender,clothName){ // 生成衣服
                     }
                     option[2] = bodyPoint[1];
                 }
+                if(mode)
                 option[0] = mode;
+                if(pname=='i1'||pname=='i2'||pname=='j'||pname=='k'){ // 标记胸部八点
+                    breastPoints[`${pname}_${pside}_idx`] = i;
+                }
+
+                // 腋下
+                let sideFlag = pside==1?1:-1;
+                // if(pside==1){
+                if(1){
+                    let axillaX = sideFlag==1?i2[0]:mirX(i2[0]); // 腋下坐标 X
+                    let jX = sideFlag==1?j[0]:mirX(j[0]); // j坐标 X
+                    let kX = sideFlag==1?k[0]:mirX(k[0]); // k坐标 X
+                    let hX = sideFlag==1?h[0]:mirX(h[0]); // h坐标 X
+                    if(pname=='c'){
+                        option[3] -= shrink*3.7*sideFlag;
+                    }
+                    if(pname=='d'){
+                        // option[1] -= shrink*2.2*sideFlag;
+                        option[2] -= shrink*1.2; // cp2
+                        option[4] -= shrink*1;
+                    }
+                    if(pname=='e'){
+                        option[2] -= shrink*1.2; // cp3
+                        option[4] -= shrink*1.2;
+                    }
+                    if(pname=='f'){
+
+                    }
+                    if(pname=='g'){
+                        option[1] -= shrink*Math.abs(option[1]-axillaX)*.002*sideFlag;
+                        option[3] -= shrink*Math.abs(option[3]-axillaX)*.01*sideFlag;
+                    }
+                    if(pname=='h'){
+                        option[1] += shrink*Math.abs(option[1]-axillaX)*.18*sideFlag;
+                    }
+                    if(pname=='i1'){
+                        option[1] += shrink*1*sideFlag;
+                        option[3] += shrink*.25*sideFlag;
+                    }
+                    if(pname=='i2'){
+                        // option[2] += shrink*1.5;
+                    }
+                    if(pname=='j'){
+                        option[1] -= shrink*Math.abs(option[1]-axillaX)*.2*sideFlag;
+                        option[3] -= shrink*Math.abs(option[3]-axillaX)*.2*sideFlag; // cp7
+                    }
+                    if(pname=='k'){
+                        option[1] = axillaX-(shrink-5)*15*sideFlag;
+                        option[3] = axillaX-(shrink-5)*8*sideFlag; // cp8
+                        if((sideFlag==1&&option[1]>kX)||(sideFlag==-1&&option[1]<kX)){
+                            option[1] = kX;
+                        }
+                        if((sideFlag==1&&option[1]<hX)||(sideFlag==-1&&option[1]>hX)){
+                            option[1] = hX;
+                        }
+                        if((sideFlag==1&&option[3]>kX)||(sideFlag==-1&&option[3]<kX)){
+                            option[3] = kX;
+                        }
+                        if((sideFlag==1&&option[3]<hX)||(sideFlag==-1&&option[3]>hX)){
+                            option[3] = hX;
+                        }
+                    }
+                }
+
             }
         }
     }
+
+    let { i1_1_idx, i2_1_idx, j_1_idx, k_1_idx, i1_2_idx, i2_2_idx, j_2_idx, k_2_idx,} = breastPoints;
+
+    // 乳房扩撑
+    if(size&&weight){
+        let ba = breastData.a, bb = breastData.b;
+        let bcp1 = breastData.cp1, bcp2 = breastData.cp2;
+
+        baseOutline[i1_1_idx][3] = ba[0];
+        baseOutline[i1_1_idx][4] = ba[1];
+
+        baseOutline[i2_1_idx][1] = ba[0];
+        baseOutline[i2_1_idx][2] = ba[1];
+        baseOutline[i2_1_idx][3] = ba[0];
+        baseOutline[i2_1_idx][4] = ba[1];
+
+        baseOutline[j_1_idx][1] = bcp1[0];
+        baseOutline[j_1_idx][2] = bcp1[1];
+        baseOutline[j_1_idx][3] = bb[0];
+        if(baseOutline[j_1_idx][3]>i2[0]){
+            baseOutline[j_1_idx][3] = i2[0];
+        }
+        baseOutline[j_1_idx][4] = bb[1];
+
+        baseOutline[i1_2_idx][3] = mirX(baseOutline[i1_1_idx][3]);
+        baseOutline[i1_2_idx][4] = baseOutline[i1_1_idx][4];
+        baseOutline[i2_2_idx][1] = mirX(baseOutline[i2_1_idx][1]);
+        baseOutline[i2_2_idx][2] = baseOutline[i2_1_idx][2];
+        baseOutline[i2_2_idx][3] = mirX(baseOutline[i2_1_idx][3]);
+        baseOutline[i2_2_idx][4] = baseOutline[i2_1_idx][4];
+        baseOutline[j_2_idx][1] = mirX(baseOutline[j_1_idx][1]);
+        baseOutline[j_2_idx][2] = baseOutline[j_1_idx][2];
+        baseOutline[j_2_idx][3] = mirX(baseOutline[j_1_idx][3]);
+        baseOutline[j_2_idx][4] = baseOutline[j_1_idx][4];
+    }
+
+    let out = 10-weight;
+    let newFrag = {
+        outline: [
+            baseOutline[i2_1_idx],baseOutline[j_1_idx],baseOutline[k_1_idx],
+            [0,baseOutline[i2_2_idx][1],baseOutline[i2_2_idx][2],],
+            baseOutline[i2_2_idx],baseOutline[j_2_idx],baseOutline[k_2_idx],
+        ],
+        strokeColor: {r:100,g:100,b:100,},
+    }
+    data.push(newFrag);
 
     // 输出
     res = data;
@@ -3081,13 +3244,18 @@ function genBreastData(bodyData,gender,age){ // 生成乳房
             weight = 10;
         }
 
-        // weight = 10; //  TODO
+        // size = 5.5; // TODO
+        // qtSize = Math.round(size); // TODO
+        // weight = 1; //  TODO
 
         let top = 35-size*10;
         let round = qtSize*6+5;
         let showGap = false;
 
         a = [base[0]+left,base[1]+top];
+        if(a[0]<bodyData.i2[0]){
+            a[0] = bodyData.i2[0];
+        }
         b = [base[0]+left+(5-size)*7+weight*3,base[1]+15+size*35+top];
         c = [base[0]+left+130+weight*1.5,base[1]+10+size*33+top];
         if(b[0]<base[0]+10||b[1]>base[1]+140){
@@ -3118,6 +3286,8 @@ function genBreastData(bodyData,gender,age){ // 生成乳房
         //     topY = 1199;
         // }
         res = {
+            a,b,c,d,e,
+            cp1,cp2,cp3,
             outline: [],
             color,
             strokeColor: {
@@ -3130,6 +3300,7 @@ function genBreastData(bodyData,gender,age){ // 生成乳房
             noStroke: size<3&&r(8,16)>age,
             nipple,
             size,
+            weight,
             showGap,
         }
 

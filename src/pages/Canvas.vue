@@ -583,7 +583,7 @@ export default {
         onClickChooseItemStyle(itemStyle){ // 点击【选中样式】按钮
             let avatarData = this.person.avatarData;
             let gender = this.person.gender;
-            let { faceData, bodyData, } = avatarData;
+            let { faceData, bodyData, breastData, } = avatarData;
             let { color, grd, } = avatarData.hairColor;
             if(itemStyle.name&&itemStyle.name!='/'){
                 this.itemStylePop = [];
@@ -605,7 +605,7 @@ export default {
                         avatarData.glassData = glassData;
                     break;
                     case 5: // 衣服
-                        let clothData = genClothData(bodyData,gender,itemStyle.name);
+                        let clothData = genClothData(bodyData,breastData,gender,itemStyle.name);
                         avatarData.clothData = clothData;
                     break;
                 }
@@ -644,7 +644,7 @@ export default {
             // }
             // this.drawInput();
 
-            let person = common.genRandomPerson({gender,age:r(5,50)});
+            let person = common.genRandomPerson({gender,age:r(5,25)});
             let avatarData = genRandomAvatar(person);
             person.avatarData = avatarData;
             paintAvatar(this.ctx,avatarData,CVSWIDTH,CVSHEIGHT,1);
