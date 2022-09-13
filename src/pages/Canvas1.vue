@@ -91,29 +91,6 @@ import * as ai from '../tools/ai';
 import { DEBUG, CONFIG, CACHE } from '../config/config';
 const CVSWIDTH = 500;
 const CVSHEIGHT = 600;
-const ANCHOR_MAP = {
-    c1: 2,
-    d1: 2,
-    e1: 2,
-    f1: 2,
-    g1: 2,
-    h1: 1,
-    i11: 2,
-    i21: 2,
-    j1: 2,
-    k1: 2,
-
-    c2: 2,
-    d2: 2,
-    e2: 2,
-    f2: 2,
-    g2: 2,
-    h2: 1,
-    i12: 2,
-    i22: 2,
-    j2: 2,
-    k2: 2,
-};
 export default {
     name: 'Canvas1',
     data(){
@@ -206,7 +183,7 @@ export default {
                 for(let i=0;i<input.length;i++){
                     let frag = input[i];
                     if(frag){
-                        this.drawData(this.fragFormat(frag));
+                        this.drawData(frag);
                     }
                 }
                 this.output = JSON.stringify(input);
@@ -222,7 +199,8 @@ export default {
                 if(frag){
                     let outline = frag.outline;
                     let option = outline[outline.length-1];
-                    if(option&&option[0]!=9){
+                    let mode = this.formatMode(option[0])[0];
+                    if(option){
                         this.panPoint = [option[option.length-2],option[option.length-1]];
                     }
                 }
@@ -242,25 +220,16 @@ export default {
                     for(let i=0;i<outline.length;i++){
                         let option = outline[i];
                         if(option){
-                            if(option[0]==0||option[0]==1){
-                                allPoints.push([option[0],option[1],option[2],i,false]);
+                            let mode = this.formatMode(option[0])[0];
+                            if(mode==0||mode==1){
+                                allPoints.push([mode,option[1],option[2],i,false]);
                             }
-                            else if(option[0]==2){
-                                allPoints.push([option[0],option[1],option[2],i,true]);
-                                allPoints.push([option[0],option[3],option[4],i,false]);
+                            else if(mode==2){
+                                allPoints.push([mode,option[1],option[2],i,true]);
+                                allPoints.push([mode,option[3],option[4],i,false]);
                             }
-                            else if(option[0]==3){
-                                allPoints.push([option[0],option[2],option[3],i,false]);
-                            }
-                            else if(isNaN(option[0])){
-                                let mode = ANCHOR_MAP[anchor];
-                                if(mode==0||mode==1){
-                                    allPoints.push([mode,option[1],option[2],i,false]);
-                                }
-                                else if(mode==2){
-                                    allPoints.push([mode,option[1],option[2],i,true]);
-                                    allPoints.push([mode,option[3],option[4],i,false]);
-                                }
+                            else if(mode==3){
+                                allPoints.push([mode,option[2],option[3],i,false]);
                             }
                         }
                     }
@@ -271,14 +240,30 @@ export default {
                 this.allPoints = [];
             }
         },
-        fragFormat(frag){ // 碎片数据转化为绘制格式
-            let { outline, } = frag;
-            // for(let option of outline){
-            //     if(isNaN(option[0])){
-            //         option[0] = ANCHOR_MAP[option[0]];
-            //     }
-            // }
-            return frag;
+        formatMode(mode){ // 锚点格式转化
+            if(isNaN(mode)){
+                /*
+                    '{绘制模式[0|1|2|3]},是否连贯{1|0},{锚点名[c1-k]}_{对齐轴[x|y]}_{紧致度百分比[R]}'
+                    '2,0,c1_x_0,i22_y_50' => [2,0,[['c1','x',0],['i22','y',50],]]
+                */
+                let res = [];
+                let d1 = mode.split(',');
+                res[0] = parseInt(d1[0]);
+                res[1] = parseInt(d1[1]);
+                res[2] = [];
+                for(let i=2;i<d1.length;i++){
+                    let d2 = d1[i].split('_');
+                    // let
+                    // for(let j=0;j<d2.length;j++){
+                    //     res[1].push(d2[j]);
+                    // }
+                    res[2].push(d2);
+                }
+                return res;
+            }
+            else{
+                return [parseInt(mode)];
+            }
         },
 
         onClickShowEStyle(){ // 点击【修改碎片属性】按钮
@@ -310,8 +295,8 @@ export default {
                         frag[st[0]] = st[1];
                     }
                     this.inputs[this.inputsIndex][this.fragIndex] = frag;
-                    // this.asynPanPoint();
-                    // this.asynAllPoints();
+                    this.asynPanPoint();
+                    this.asynAllPoints();
                     this.drawInput();
                     this.showEStyle = false;
                 }
@@ -369,10 +354,10 @@ export default {
         onClickCanvas(e){ // 点击【Canvas】
             let input = cloneObj(this.inputs[this.inputsIndex],[]);
             let frag = input[this.fragIndex]||{outline:[]};
-            let anchor = this.anchorPoint;
             let x = e.offsetX;
             let y = e.offsetY;
             let setupNewInput = false;
+            let mode = `${this.strokeMode}${this.anchorPoint?(','+this.anchorPoint):''}`;
             // 粘附
             /*let closetPoint = this.findClosetPointIndex(x,y,input);
             let stinkyPointDistance = closetPoint.distance;
@@ -395,24 +380,21 @@ export default {
             }*/
             switch(this.strokeMode){
                 case 0: // 移动
-                    if(frag.outline[frag.outline.length-1]&&frag.outline[frag.outline.length-1][0]==0){
-                        frag.outline[frag.outline.length-1] = [this.strokeMode,x,y];
+                    let lastOption;
+                    let lastOptionMode;
+                    lastOption = frag.outline[frag.outline.length-1];
+                    if(lastOption){
+                        lastOptionMode = this.formatMode(lastOption[0])[0];
+                    }
+                    if(lastOptionMode==0){
+                        frag.outline[frag.outline.length-1] = [mode,x,y];
                     }
                     else{
-                        frag.outline.push([this.strokeMode,x,y]);
+                        frag.outline.push([mode,x,y]);
                     }
                     setupNewInput = true;
                 break;
                 case 1: // 画直线
-                    let mode = this.strokeMode;
-                    if(anchor){
-                        if(ANCHOR_MAP[anchor]!=1){
-                            break;
-                        }
-                        else{
-                            mode = anchor;
-                        }
-                    }
                     frag.outline.push([mode,x,y]);
                     setupNewInput = true;
                 break;
@@ -422,15 +404,6 @@ export default {
                         this.curveStep = 1;
                     }
                     else if(this.curveStep==1){ // 设置终点
-                        let mode = this.strokeMode;
-                        if(anchor){
-                            if(ANCHOR_MAP[anchor]!=2){
-                                break;
-                            }
-                            else{
-                                mode = anchor;
-                            }
-                        }
                         frag.outline.push([mode,this.curvePoint[0],this.curvePoint[1],x,y]);
                         this.curveStep = 0;
                         setupNewInput = true;
@@ -490,7 +463,7 @@ export default {
             this.drawInput();
         },
 
-        onClickModifyOutput(mode,allFrags){ // 编辑 output 按钮
+        onClickModifyOutput(flag,allFrags){ // 编辑 output 按钮
             if(!this.output)
                 return;
             let outputD = JSON.parse(this.output);
@@ -498,117 +471,116 @@ export default {
                 if(frag&&frag.outline){
                     for(let k=0;k<frag.outline.length;k++){
                         let next = [...frag.outline[k]];
-                        if(next[0]!=9){
-                            switch(mode){
-                                case 1: // 乘2
-                                    for(let i=1;i<next.length;i++){
-                                        next[i] = frag.outline[k][i]*2;
-                                    }
-                                break;
-                                case 2: // 除2
-                                    for(let i=1;i<next.length;i++){
-                                        next[i] = frag.outline[k][i]/2;
-                                    }
-                                break;
-                                case 3: // X缩
-                                    if(next[0]==0||next[0]==1){
-                                        next[1] = 250-Math.round((250-next[1])/1.05);
-                                    }
-                                    else if(next[0]==2){
-                                        next[1] = 250-Math.round((250-next[1])/1.05);
-                                        next[3] = 250-Math.round((250-next[3])/1.05);
-                                    }
-                                    else if(next[0]==3){
-                                        next[2] = 250-Math.round((250-next[2])/1.05);
-                                    }
-                                break;
-                                case 4: // X放
-                                    if(next[0]==0||next[0]==1){
-                                        next[1] = 250-Math.round((250-next[1])*1.05);
-                                    }
-                                    else if(next[0]==2){
-                                        next[1] = 250-Math.round((250-next[1])*1.05);
-                                        next[3] = 250-Math.round((250-next[3])*1.05);
-                                    }
-                                    else if(next[0]==3){
-                                        next[2] = 250-Math.round((250-next[2])*1.05);
-                                    }
-                                break;
-                                case 5: // Y缩
-                                    if(next[0]==0||next[0]==1){
-                                        next[2] = 250-Math.round((250-next[2])/1.05);
-                                    }
-                                    else if(next[0]==2){
-                                        next[2] = 250-Math.round((250-next[2])/1.05);
-                                        next[4] = 250-Math.round((250-next[4])/1.05);
-                                    }
-                                    else if(next[0]==3){
-                                        next[3] = 250-Math.round((250-next[2])/1.05);
-                                    }
-                                break;
-                                case 6: // Y放
-                                    if(next[0]==0||next[0]==1){
-                                        next[2] = 250-Math.round((250-next[2])*1.05);
-                                    }
-                                    else if(next[0]==2){
-                                        next[2] = 250-Math.round((250-next[2])*1.05);
-                                        next[4] = 250-Math.round((250-next[4])*1.05);
-                                    }
-                                    else if(next[0]==3){
-                                        next[3] = 250-Math.round((250-next[2])*1.05);
-                                    }
-                                break;
-                                case 7: // 左移
-                                    if(next[0]==0||next[0]==1){
-                                        next[1] -= 2;
-                                    }
-                                    else if(next[0]==2){
-                                        next[1] -= 2;
-                                        next[3] -= 2;
-                                    }
-                                    else if(next[0]==3){
-                                        next[2] -= 2;
-                                    }
-                                break;
-                                case 8: // 右移
-                                    if(next[0]==0||next[0]==1){
-                                        next[1] += 2;
-                                    }
-                                    else if(next[0]==2){
-                                        next[1] += 2;
-                                        next[3] += 2;
-                                    }
-                                    else if(next[0]==3){
-                                        next[2] += 2;
-                                    }
-                                break;
-                                case 9: // 上移
-                                    if(next[0]==0||next[0]==1){
-                                        next[2] -= 2;
-                                    }
-                                    else if(next[0]==2){
-                                        next[2] -= 2;
-                                        next[4] -= 2;
-                                    }
-                                    else if(next[0]==3){
-                                        next[3] -= 2;
-                                    }
-                                break;
-                                case 10: // 下移
-                                    if(next[0]==0||next[0]==1){
-                                        next[2] += 2;
-                                    }
-                                    else if(next[0]==2){
-                                        next[2] += 2;
-                                        next[4] += 2;
-                                    }
-                                    else if(next[0]==3){
-                                        next[3] += 2;
-                                    }
-                                break;
-                            }
-                            frag.outline[k] = next;
+                        let mode = this.formatMode(next[0])[0];
+                        switch(flag){
+                            case 1: // 乘2
+                                for(let i=1;i<next.length;i++){
+                                    next[i] = frag.outline[k][i]*2;
+                                }
+                            break;
+                            case 2: // 除2
+                                for(let i=1;i<next.length;i++){
+                                    next[i] = frag.outline[k][i]/2;
+                                }
+                            break;
+                            case 3: // X缩
+                                if(mode==0||mode==1){
+                                    next[1] = 250-Math.round((250-next[1])/1.05);
+                                }
+                                else if(mode==2){
+                                    next[1] = 250-Math.round((250-next[1])/1.05);
+                                    next[3] = 250-Math.round((250-next[3])/1.05);
+                                }
+                                else if(mode==3){
+                                    next[2] = 250-Math.round((250-next[2])/1.05);
+                                }
+                            break;
+                            case 4: // X放
+                                if(mode==0||mode==1){
+                                    next[1] = 250-Math.round((250-next[1])*1.05);
+                                }
+                                else if(mode==2){
+                                    next[1] = 250-Math.round((250-next[1])*1.05);
+                                    next[3] = 250-Math.round((250-next[3])*1.05);
+                                }
+                                else if(mode==3){
+                                    next[2] = 250-Math.round((250-next[2])*1.05);
+                                }
+                            break;
+                            case 5: // Y缩
+                                if(mode==0||mode==1){
+                                    next[2] = 300-Math.round((300-next[2])/1.05);
+                                }
+                                else if(mode==2){
+                                    next[2] = 300-Math.round((300-next[2])/1.05);
+                                    next[4] = 300-Math.round((300-next[4])/1.05);
+                                }
+                                else if(mode==3){
+                                    next[3] = 300-Math.round((300-next[3])/1.05);
+                                }
+                            break;
+                            case 6: // Y放
+                                if(mode==0||mode==1){
+                                    next[2] = 300-Math.round((300-next[2])*1.05);
+                                }
+                                else if(mode==2){
+                                    next[2] = 300-Math.round((300-next[2])*1.05);
+                                    next[4] = 300-Math.round((300-next[4])*1.05);
+                                }
+                                else if(mode==3){
+                                    next[3] = 300-Math.round((300-next[3])*1.05);
+                                }
+                            break;
+                            case 7: // 左移
+                                if(mode==0||mode==1){
+                                    next[1] -= 2;
+                                }
+                                else if(mode==2){
+                                    next[1] -= 2;
+                                    next[3] -= 2;
+                                }
+                                else if(mode==3){
+                                    next[2] -= 2;
+                                }
+                            break;
+                            case 8: // 右移
+                                if(mode==0||mode==1){
+                                    next[1] += 2;
+                                }
+                                else if(mode==2){
+                                    next[1] += 2;
+                                    next[3] += 2;
+                                }
+                                else if(mode==3){
+                                    next[2] += 2;
+                                }
+                            break;
+                            case 9: // 上移
+                                if(mode==0||mode==1){
+                                    next[2] -= 2;
+                                }
+                                else if(mode==2){
+                                    next[2] -= 2;
+                                    next[4] -= 2;
+                                }
+                                else if(mode==3){
+                                    next[3] -= 2;
+                                }
+                            break;
+                            case 10: // 下移
+                                if(mode==0||mode==1){
+                                    next[2] += 2;
+                                }
+                                else if(mode==2){
+                                    next[2] += 2;
+                                    next[4] += 2;
+                                }
+                                else if(mode==3){
+                                    next[3] += 2;
+                                }
+                            break;
                         }
+                        frag.outline[k] = next;
                     }
                 }
             }
@@ -630,30 +602,31 @@ export default {
             let frag = outputD[this.fragIndex];
             for(let k=0;k<frag.outline.length;k++){
                 let next = [...frag.outline[k]];
-                if(next[0]==0||next[0]==1){
+                let formatedMode = this.formatMode(next[0]);
+                let mode = formatedMode[0];
+                let moptionarr = formatedMode[2];
+                if(isNaN(next[0])){
+                    let newMoptionArr = [];
+                    for(let i=0;i<moptionarr.length;i++){
+                        let moption = moptionarr[i];
+                        let anchor = moption[0], axis = moption[1], shrink = moption[2];
+                        let pname = anchor.substring(0,anchor.length-1); // a,b,c,d,e,f,g,h,i1,i2,j,k
+                        let pside = anchor[anchor.length-1]; // 1 或 2
+                        let newMoption = `${pname}${pside==1?2:1}_${axis}_${parseInt(shrink)*(axis=='x'?-1:1)}`;
+                        newMoptionArr.push(newMoption);
+                    }
+                    newMoptionArr = newMoptionArr.join(',');
+                    next[0] = `${mode},${formatedMode[1]},${newMoptionArr}`;
+                }
+                if(mode==0||mode==1){
                     next[1] = CVSWIDTH-next[1];
                 }
-                else if(next[0]==2){
+                else if(mode==2){
                     next[1] = CVSWIDTH-next[1];
                     next[3] = CVSWIDTH-next[3];
                 }
-                else if(next[0]==3){
+                else if(mode==3){
                     next[2] = CVSWIDTH-next[2];
-                }
-                if(isNaN(next[0])){ // 锚点
-                    let anchor = next[0];
-                    let mode = ANCHOR_MAP[anchor];
-                    let pname = anchor.substring(0,anchor.length-1); // a,b,c,d,e,f,g,h,i1,i2,j,k
-                    let pside = anchor[anchor.length-1]; // 1 或 2
-                    if(mode==2){ // 曲线
-                        next[0] = `${pname}${pside==1?2:1}`;
-                        next[1] = CVSWIDTH-next[1];
-                        next[3] = CVSWIDTH-next[3];
-                    }
-                    else if(mode==1){ // 直线
-                        next[0] = `${pname}${pside==1?2:1}`;
-                        next[1] = CVSWIDTH-next[1];
-                    }
                 }
                 expend.push(next);
             }
@@ -668,30 +641,31 @@ export default {
             let frag = outputD[this.fragIndex];
             for(let k=0;k<frag.outline.length;k++){
                 let next = frag.outline[k];
-                if(next[0]==0||next[0]==1){
+                let formatedMode = this.formatMode(next[0]);
+                let mode = formatedMode[0];
+                let moptionarr = formatedMode[2];
+                if(isNaN(next[0])){
+                    let newMoptionArr = [];
+                    for(let i=0;i<moptionarr.length;i++){
+                        let moption = moptionarr[i];
+                        let anchor = moption[0], axis = moption[1], shrink = moption[2];
+                        let pname = anchor.substring(0,anchor.length-1); // a,b,c,d,e,f,g,h,i1,i2,j,k
+                        let pside = anchor[anchor.length-1]; // 1 或 2
+                        let newMoption = `${pname}${pside==1?2:1}_${axis}_${parseInt(shrink)*(axis=='x'?-1:1)}`;
+                        newMoptionArr.push(newMoption);
+                    }
+                    newMoptionArr = newMoptionArr.join(',');
+                    next[0] = `${mode},${formatedMode[1]},${newMoptionArr}`;
+                }
+                if(mode==0||mode==1){
                     next[1] = CVSWIDTH-next[1];
                 }
-                else if(next[0]==2){
+                else if(mode==2){
                     next[1] = CVSWIDTH-next[1];
                     next[3] = CVSWIDTH-next[3];
                 }
-                else if(next[0]==3){
+                else if(mode==3){
                     next[2] = CVSWIDTH-next[2];
-                }
-                if(isNaN(next[0])){ // 锚点
-                    let anchor = next[0];
-                    let mode = ANCHOR_MAP[anchor];
-                    let pname = anchor.substring(0,anchor.length-1); // a,b,c,d,e,f,g,h,i1,i2,j,k
-                    let pside = anchor[anchor.length-1]; // 1 或 2
-                    if(mode==2){ // 曲线
-                        next[0] = `${pname}${pside==1?2:1}`;
-                        next[1] = CVSWIDTH-next[1];
-                        next[3] = CVSWIDTH-next[3];
-                    }
-                    else if(mode==1){ // 直线
-                        next[0] = `${pname}${pside==1?2:1}`;
-                        next[1] = CVSWIDTH-next[1];
-                    }
                 }
                 frag.outline[k] = next;
             }
@@ -770,10 +744,7 @@ export default {
                 ctx.strokeStyle = '#000';
             }
             for(let option of outline){
-                let mode = option[0];
-                if(isNaN(mode)){
-                    mode = ANCHOR_MAP[mode];
-                }
+                let mode = this.formatMode(option[0])[0];
                 switch(mode){
                     case 0: // 移动
                         ctx.moveTo(option[1],option[2],);
@@ -946,6 +917,7 @@ export default {
         height: 100%;
         background-color: transparent;
         z-index: 10;
+        opacity: .8;
     }
     .float-tip{
         display: block;
