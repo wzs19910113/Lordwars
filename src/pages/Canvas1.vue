@@ -243,13 +243,13 @@ export default {
         formatMode(mode){ // 锚点格式转化
             if(isNaN(mode)){
                 /*
-                    '{绘制模式[0|1|2|3]},是否连贯{1|0},{锚点名[c1-k]}_{对齐轴[x|y]}_{紧致度百分比[R]}'
+                    '{绘制模式[0|1|2|3]},{是否连贯1|0|'c1-k2'},{锚点名[c1-k2]}_{对齐轴[x|y]}_{紧致度百分比[R]}'
                     '2,0,c1_x_0,i22_y_50' => [2,0,[['c1','x',0],['i22','y',50],]]
                 */
                 let res = [];
                 let d1 = mode.split(',');
                 res[0] = parseInt(d1[0]);
-                res[1] = parseInt(d1[1]);
+                res[1] = d1[1];
                 res[2] = [];
                 for(let i=2;i<d1.length;i++){
                     let d2 = d1[i].split('_');
@@ -604,6 +604,7 @@ export default {
                 let next = [...frag.outline[k]];
                 let formatedMode = this.formatMode(next[0]);
                 let mode = formatedMode[0];
+                let isConn = formatedMode[1];
                 let moptionarr = formatedMode[2];
                 if(isNaN(next[0])){
                     let newMoptionArr = [];
@@ -616,6 +617,11 @@ export default {
                         newMoptionArr.push(newMoption);
                     }
                     newMoptionArr = newMoptionArr.join(',');
+                    if(isNaN(isConn)){ // 精准锚点
+                        let pname = isConn.substring(0,isConn.length-1); // a,b,c,d,e,f,g,h,i1,i2,j,k
+                        let pside = isConn[isConn.length-1]; // 1 或 2
+                        formatedMode[1] = `${pname}${pside==1?2:1}`;
+                    }
                     next[0] = `${mode},${formatedMode[1]},${newMoptionArr}`;
                 }
                 if(mode==0||mode==1){
@@ -643,6 +649,7 @@ export default {
                 let next = frag.outline[k];
                 let formatedMode = this.formatMode(next[0]);
                 let mode = formatedMode[0];
+                let isConn = formatedMode[1];
                 let moptionarr = formatedMode[2];
                 if(isNaN(next[0])){
                     let newMoptionArr = [];
@@ -655,6 +662,11 @@ export default {
                         newMoptionArr.push(newMoption);
                     }
                     newMoptionArr = newMoptionArr.join(',');
+                    if(isNaN(isConn)){ // 精准锚点
+                        let pname = isConn.substring(0,isConn.length-1); // a,b,c,d,e,f,g,h,i1,i2,j,k
+                        let pside = isConn[isConn.length-1]; // 1 或 2
+                        formatedMode[1] = `${pname}${pside==1?2:1}`;
+                    }
                     next[0] = `${mode},${formatedMode[1]},${newMoptionArr}`;
                 }
                 if(mode==0||mode==1){
