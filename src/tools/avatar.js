@@ -751,6 +751,8 @@ export function genRandomAvatar(person){ // 随机生成肖像
     let hairColor = genHairColor(gender);
     let { color, grd, } = hairColor;
 
+    // bald = 1;
+
     // 生成基本脸
     let faceData = genFaceData(gender,age,bald);
     // 生成双耳
@@ -2269,8 +2271,8 @@ function genFaceData(gender,age,bald){ // 生成脸
         d = [r(435,455)+ysr*9,b[1]+r(142,148)-ysr*5]; // 左眉毛中心
         e = [d[0],d[1]+r(42,48-ysr*8)+ysr*25]; // 左眼下
         f = [500,e[1]+r(107,117-ysr*9)-ysr*25]; // 鼻下
-        g = [500,f[1]+r(29,46-ysr*4)-ysr*30]; // 唇上
-        h = [r(422,432-ysr*9)+ysr*11,c[1]+r(248,257-ysr*4)-ysr*27]; // 颊左
+        g = [500,f[1]+r(34,51-ysr*4)-ysr*30]; // 唇上
+        h = [r(422,432-ysr*9)+ysr*16,c[1]+r(248,257-ysr*4)-ysr*27]; // 颊左
         i = [500,h[1]+r(35,45-ysr*4)-ysr*18]; // 下巴
 
         let colorDeep = r(2,7);
@@ -2317,16 +2319,34 @@ function genFaceData(gender,age,bald){ // 生成脸
             oldImpact = Math.round(age*.9);
         }
         cp1 = [r(c[0]+5,c[0]+10),r(a[1],a[1]+20)];
-        cp2 = [r(c[0]+0,c[0]+15-ysr*15)+oldImpact*.6,r(h[1]-90,h[1]-65+ysr*10)+oldImpact];
-        cp3 = [r(h[0]+14,h[0]+23),r(h[1]+15,h[1]+27-ysr*20)];
+        cp2 = [r(c[0]+0,c[0]+15-ysr*15),r(h[1]-90,h[1]-65+ysr*10)];
+        let hiWidth = i[0]-cp2[0];
+        let hiHeight = i[1]-cp2[1];
+        let sharp = r(10+ysr*8,15);
+        cp3 = [h[0]+hiWidth*.023*sharp-ysr*13,h[1]+hiHeight*.03*sharp+ysr*28];
+        // 调整
+        cp2[0] += oldImpact*.6;
+        cp2[1] += oldImpact*1;
+        if(cp3[1]>i[1]){
+            cp3[1] = i[1];
+        }
     }
     else{ // 男
         if(age>60){
             oldImpact = Math.round(age*1.4);
         }
         cp1 = [r(c[0]+5,c[0]+10),r(a[1],a[1]+20)];
-        cp2 = [r(c[0]+1,c[0]+10-ysr*9)+oldImpact*.2,r(h[1]-100,h[1]-75+ysr*10)+oldImpact];
-        cp3 = [r(h[0]+22,h[0]+29),r(h[1]+40-ysr*20,h[1]+35-ysr*20)];
+        cp2 = [r(c[0]+1,c[0]+10-ysr*9),r(h[1]-100,h[1]-75+ysr*10)];
+        let hiWidth = i[0]-cp2[0];
+        let hiHeight = i[1]-cp2[1];
+        let sharp = r(10,15);
+        cp3 = [h[0]+hiWidth*.019*sharp,h[1]+hiHeight*.03*sharp];
+        // 调整
+        cp2[0] += oldImpact*.2;
+        cp2[1] += oldImpact*1;
+        if(cp3[1]>i[1]){
+            cp3[0] = h[0]+hiWidth*.3;
+        }
     }
 
     let radialX, radialY;
@@ -2901,10 +2921,10 @@ function genLipData(faceData,gender,age,emotion){ // 生成嘴唇
         a = [faceData.g[0]+lipWidth,faceData.g[1]];
         b = [faceData.g[0]-lipWidth,faceData.g[1]];
         lineWidth = 1;
-        if(age>=18&&age<50&&r(0,100)<10){
-            strokeColor = lipColor.color;
-            lineWidth = r(1,3);
-        }
+        // if(age>=18&&age<50&&r(0,100)<10){
+        //     strokeColor = lipColor.color;
+        //     lineWidth = r(1,3);
+        // }
         if(age>=16&&age<60){
             color = {
                 r: 255,
