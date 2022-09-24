@@ -2,9 +2,7 @@ module.exports = {
 	DEBUG: 0,
 	CACHE: {
 		save1: 'D1',
-		save2: 'D2',
-		save3: 'D3',
-		preset: 'P',
+		savedAvatars: 'SA',
 	},
 	CONFIG:{
         init:{

@@ -47,11 +47,10 @@
                     <a class="btn" @click="onClickSelectiItemStyle(2)">选择刘海</a>
                     <a class="btn" @click="onClickSelectiItemStyle(3)">选择后头发</a>
                     <a class="btn" @click="onClickSelectiItemStyle(4)">选择眼镜</a>
-                    <a class="btn" @click="onClickSelectiItemStyle(5)">选择衣服</a>
+                    <a class="btn" @click="onClickChangeCloth()">换衣服</a>
                 </div>
                 <br/>
-                <a class="btn" @click="onClickExport">输出</a>
-                <a class="btn" @click="onClickImport">导入</a>
+                <a class="btn" @click="onClickSave">保存的头像</a>
             </div>
         </div>
         <div class="wrap op">
@@ -100,6 +99,16 @@
             </div>
             <a class="btn btn-close" @click="onClickCloseItemStylePop">关闭</a>
         </div>
+        <div class="pop save-pop" v-if="showSavedAvatars">
+            <div class="panel">
+                <div class="avatar-icon" v-if="avatar.name" v-for="(avatar,index) in savedAvatars">
+                    <a class="btn btn-avatar" @click="onClickImportSave(index)">{{avatar.name}}</a>
+                    <a class="btn btn-avatar-del" @click="onClickDeleteSave(index)">删</a>
+                </div>
+            </div>
+            <a class="btn" @click="onClickExportSave">保存当前头像</a>
+            <a class="btn btn-close" @click="onClickCloseSave">关闭</a>
+        </div>
     </div>
 </template>
 
@@ -107,9 +116,9 @@
 // Copyright (c) 2018 Copyright Holder All Rights Reserved.
 import { query, r, exptr, bulbsort, cloneObj, getParentNode, getMatchList, removeFromList, arrContains, rr, fullScreen, exitFullScreen, isFullScreen, calcDistance, } from '../tools/utils';
 import * as common from '../tools/common';
-import { genRandomAvatar, paintAvatar, genForeHairData, genBangsData, genBackHairData, genGlassData, generalForeHairTemplates, genClothData, maleForeHairTemplates, femaleForeHairTemplates, generalBangsTemplates, maleBangsTemplates, femaleBangsTemplates, generalBackHairTemplates, maleBackHairTemplates, femaleBackHairTemplates, glassTemplates, generalClothTemplates, maleClothTemplates, femaleClothTemplates, } from '../tools/avatar';
+import { genRandomAvatar, paintAvatar, genForeHairData, genBangsData, genBackHairData, genGlassData, generalForeHairTemplates, genClothData, maleForeHairTemplates, femaleForeHairTemplates, generalBangsTemplates, maleBangsTemplates, femaleBangsTemplates, generalBackHairTemplates, maleBackHairTemplates, femaleBackHairTemplates, glassTemplates, } from '../tools/avatar';
 import * as ai from '../tools/ai';
-import { DEBUG, CONFIG, CACHE } from '../config/config';
+import { DEBUG, CONFIG, CACHE, } from '../config/config';
 const CVSWIDTH = 500;
 const CVSHEIGHT = 600;
 export default {
@@ -137,6 +146,9 @@ export default {
 
             itemStylePop: [],
             itemStyleMode: 0, // 修改发型模式[1:前头发|2:刘海|3:后头发|4:装饰]
+
+            showSavedAvatars: false,
+            savedAvatars: [], // 保存的头像数据列表
 
             ctx: null,
             loading: false,
@@ -575,7 +587,7 @@ export default {
                     itemTemplates = [...glassTemplates];
                 break;
                 case 5:
-                    itemTemplates = [...generalClothTemplates,...maleClothTemplates,...femaleClothTemplates];
+                    // itemTemplates = [...generalClothTemplates,...maleClothTemplates,...femaleClothTemplates];
                 break;
             }
             this.itemStylePop = [{name:'/'},...itemTemplates];
@@ -604,10 +616,6 @@ export default {
                         let glassData = genGlassData(faceData,gender,itemStyle.name);
                         avatarData.glassData = glassData;
                     break;
-                    case 5: // 衣服
-                        let clothData = genClothData(bodyData,breastData,gender,itemStyle.name);
-                        avatarData.clothData = clothData;
-                    break;
                 }
             }
             else{ // 取消发型
@@ -624,9 +632,6 @@ export default {
                     case 4: // 眼镜
                         avatarData.glassData = undefined;
                     break;
-                    case 5: // 衣服
-                        avatarData.clothData = undefined;
-                    break;
                 }
             }
             paintAvatar(this.ctx,avatarData,CVSWIDTH,CVSHEIGHT,1);
@@ -637,6 +642,14 @@ export default {
             this.itemStylePop = [];
             this.itemStyleMode = 0;
         },
+        onClickChangeCloth(){ // 点击【换衣服】按钮
+            let avatarData = this.person.avatarData;
+            let gender = this.person.gender;
+            let { faceData, bodyData, breastData, } = avatarData;
+            let clothData = genClothData(bodyData,breastData,gender);
+            avatarData.clothData = clothData;
+            paintAvatar(this.ctx,avatarData,CVSWIDTH,CVSHEIGHT,1);
+        },
         onClickRandom(gender){ // 点击【随机人物】按钮
             // this.inputs[this.inputsIndex] = [];
             // for(let i=1;i<500;i++){
@@ -644,7 +657,7 @@ export default {
             // }
             // this.drawInput();
 
-            // let person = common.genRandomPerson({gender,age:r(5,15)});
+            // let person = common.genRandomPerson({gender,age:r(5,10)});
             let person = common.genRandomPerson({gender});
             let avatarData = genRandomAvatar(person);
             person.avatarData = avatarData;
@@ -659,13 +672,43 @@ export default {
             // let t2 = cloneObj(t1);
             // console.log(`t2======>`,t2)
         },
-        onClickExport(){ // 点击【输出】按钮
-            localStorage.setItem('AVATAR',JSON.stringify(this.person.avatarData));
+        onClickSave(){ // 点击【保存】按钮
+            let _savedAvatars = localStorage.getItem(CACHE.savedAvatars);
+            let savedAvatars = JSON.parse(_savedAvatars);
+            if(savedAvatars){
+                this.savedAvatars = savedAvatars;
+            }
+            else{
+                this.savedAvatars = [];
+            }
+            this.showSavedAvatars = true;
         },
-        onClickImport(){ // 点击【导入】按钮
-            let _avatar = localStorage.getItem('AVATAR');
-            this.person.avatarData = JSON.parse(_avatar);
+        onClickCloseSave(){ // 点击【关闭保存】按钮
+            this.showSavedAvatars = false;
+        },
+        onClickExportSave(){ // 点击【输出保存】按钮
+            if(this.person.avatarData){
+                let newEle = {
+                    name: `${this.person.name}（${this.person.gender==1?'男':'女'} ${this.person.age}）`,
+                    ...this.person.avatarData
+                };
+                if(this.savedAvatars[0]&&this.savedAvatars[0].name){
+                    this.savedAvatars.push(newEle);
+                }
+                else{
+                    this.savedAvatars[0] = newEle;
+                }
+                localStorage.setItem(CACHE.savedAvatars,JSON.stringify(this.savedAvatars));
+                this.onClickSave();
+            }
+        },
+        onClickImportSave(index){ // 点击【导入保存】按钮
+            this.person.avatarData = this.savedAvatars[index];
             paintAvatar(this.ctx,this.person.avatarData,CVSWIDTH,CVSHEIGHT,1);
+        },
+        onClickDeleteSave(index){ // 点击【删除保存】按钮
+            this.savedAvatars.splice(index,1);
+            localStorage.setItem(CACHE.savedAvatars,JSON.stringify(this.savedAvatars));
         },
         findClosetPointIndex(x,y,points){ // 寻找最近点的下标值
             let targetPointIndex = -1; // 目标点下标
@@ -899,5 +942,41 @@ export default {
         font-size: 18px;
         white-space: nowrap;
         word-wrap: break-word;
+    }
+
+    .pop .panel .avatar-icon{
+        display: inline-block;
+        margin-right: 45px;
+        position: relative;
+        width: 25%;
+        height: 40px;
+        margin-bottom: 8px;
+        border: 1px solid #131313;
+        color: orange;
+        background-color: #eee;
+    }
+    .btn-avatar{
+        margin: 0;
+        height: 100%;
+        line-height: 40px;
+        width: 100%;
+        color: #131313;
+        display: inline-block;
+        background-color: transparent;
+    }
+    .btn-avatar-del{
+        position: absolute;
+        right: -35px;
+        top: 0;
+        bottom: 0;
+        margin: auto 0;
+        display: inline-block;
+        width: 30px;
+        height: 30px;
+        background-color: #e81313;
+        border-radius: 15px;
+        text-align: center;
+        line-height: 30px;
+        font-weight: bold;
     }
 </style>
