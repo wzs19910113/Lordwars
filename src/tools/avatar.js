@@ -911,20 +911,27 @@ export function paintAvatar(ctx,avatarData,canvasWidth,canvasHeight,showBg){ // 
         fill(data,mode);
     }
     let drawClothData = (data,mode) =>{ // 画衣服
-        let baseFrag = data[0]; // base元素
-        let otherFrags = []; // 其他元素数组
-        let clipType1Frags = []; // 被base元素切割的元素数组
+        let baseFrag = data[0]; // base碎片
+        let otherFrags = []; // 其他碎片数组
         for(let i=1;i<data.length;i++){
-            let frag = data[i];
-            if(frag.clipType==1){
-                clipType1Frags.push(frag);
+            otherFrags.push(data[i]);
+        }
+        drawData(baseFrag); // 绘制base碎片
+        for(let i=0;i<otherFrags.length;i++){ // 绘制所有其他碎片
+            let frag = otherFrags[i];
+            if(frag.clipOutline){ // 需要被裁剪
+                ctx.save();
+                drawData({outline:frag.clipOutline,strokeColor:{r:255,g:0,b:200},noStroke:true});
+                ctx.clip();
+                drawData(frag);
+                ctx.restore();
             }
             else{
-                otherFrags.push(frag);
+                drawData(frag);
             }
         }
 
-        ctx.save();
+        /*ctx.save();
         drawData(data[0]); // base frag
         ctx.clip();
         for(let i=0;i<clipType1Frags.length;i++){ // 绘制所有被裁剪的元素
@@ -935,8 +942,7 @@ export function paintAvatar(ctx,avatarData,canvasWidth,canvasHeight,showBg){ // 
         for(let i=0;i<otherFrags.length;i++){ // 绘制所有其他元素
             let frag = otherFrags[i];
             drawData(frag);
-        }
-        console.log(clipType1Frags,otherFrags);
+        }*/
     }
     let transferedData = transferAvatarSize(avatarData,canvasWidth);
     let {
@@ -999,16 +1005,18 @@ export function paintAvatar(ctx,avatarData,canvasWidth,canvasHeight,showBg){ // 
     drawData(collarData);
     if(breastData){
         // 画乳房阴影
-        ctx.save();
-        drawData({ // 身体裁剪
-            outline: bodyData.outline,
-            noStroke: true,
-        });
-        ctx.clip();
-        if(breastShadowData){
-            drawData(breastShadowData);
+        if(!clothData){
+            ctx.save();
+            drawData({ // 身体裁剪
+                outline: bodyData.outline,
+                noStroke: true,
+            });
+            ctx.clip();
+            if(breastShadowData){
+                drawData(breastShadowData);
+            }
+            ctx.restore();
         }
-        ctx.restore();
 
         // 画乳房
         drawData(breastData);
@@ -1381,6 +1389,7 @@ function transferAvatarSize(data,canvasWidth){
     if(clothData){
         for(let frag of clothData){
             frag.outline = formatPx(frag.outline,canvasWidth);
+            frag.clipOutline = formatPx(frag.clipOutline,canvasWidth);
             if(frag.radial){
                 frag.radial.x1 = formatPx(frag.radial.x1,canvasWidth);
                 frag.radial.y1 = formatPx(frag.radial.y1,canvasWidth);
@@ -2144,7 +2153,7 @@ export function genClothData(bodyData,breastData,gender){ // 生成衣服
     let fragList = [];
 
     // 内部方法
-    let breastExpand = ({outline:[],noStroke,clothColor,i11_idx,i21_idx,j1_idx,k1_idx,i12_idx,i22_idx,j2_idx,k2_idx,}) =>{// 乳房扩撑
+    let breastExpand = ({outline:[],noStroke,bottomL,clothColor,i11_idx,i21_idx,j1_idx,k1_idx,i12_idx,i22_idx,j2_idx,k2_idx,}) =>{// 乳房扩撑
         let {
             a: ba,
             b: bb,
@@ -2216,31 +2225,40 @@ export function genClothData(bodyData,breastData,gender){ // 生成衣服
             strokeColor: {r:0,g:0,b:0,},
             noStroke,
         }
-        i21_idx&&newFrag1.outline.push(outline[i21_idx]);
-        j1_idx&&newFrag1.outline.push(outline[j1_idx]);
-        k1_idx&&newFrag1.outline.push(outline[k1_idx]);
-        i22_idx&&newFrag1.outline.push([0,outline[i22_idx][1],outline[i22_idx][2]]);
-        i22_idx&&newFrag1.outline.push(outline[i22_idx]);
-        j2_idx&&newFrag1.outline.push(outline[j2_idx]);
-        k2_idx&&newFrag1.outline.push(outline[k2_idx]);
+        let clipOutline = [];
+        newFrag1.outline.push(outline[i21_idx]);
+        newFrag1.outline.push(outline[j1_idx]);
+        newFrag1.outline.push(outline[k1_idx]);
+        newFrag1.outline.push([0,outline[i22_idx][1],outline[i22_idx][2]]);
+        newFrag1.outline.push(outline[i22_idx]);
+        newFrag1.outline.push(outline[j2_idx]);
+        newFrag1.outline.push(outline[k2_idx]);
         fragList.push(newFrag1);
+        clipOutline.push(newFrag1.outline[0]);
+        clipOutline.push(newFrag1.outline[1]);
+        clipOutline.push(newFrag1.outline[2]);
+        clipOutline.push([2,500,bottomL||1200,outline[k2_idx][3],outline[k2_idx][4]]);
+        clipOutline.push([2,newFrag1.outline[6][1],newFrag1.outline[6][2],newFrag1.outline[5][3],newFrag1.outline[5][4]]); // k2-j2
+        clipOutline.push([2,newFrag1.outline[5][1],newFrag1.outline[5][2],newFrag1.outline[4][3],newFrag1.outline[4][4]]); // j2-i22
+        clipOutline.push([1,newFrag1.outline[0][3],newFrag1.outline[0][4]]); // i22-i21
+
         // 乳房底部阴影
         if(size>=3.5){
             let newFrag2 = {
                 outline: [],
-                clipType: 1, // 被base元素切割
+                clipOutline,// 被碎片切割
                 color: clothColor||{r:100,g:100,b:100,alpha:0},
                 grd: `rgba(10,10,10,.4)`,
-                topY: bb[1],
+                topY: bb[1]-size*8,
                 bottomY: bb[1]+size*10,
                 leftX: 500,
                 rightX: 500,
                 noStroke: true,
             }
             let nf2ps = {
-                a: [i11[0],bb[1]],
-                b: [bc[0]+size*2,bc[1]+r(0,40)],
-                c: [i11[0],bc[1]+size*10],
+                a: [i11[0]-100,bb[1]-size*8],
+                b: [bc[0]+((size-3.5)*size*20),bc[1]+r(0,40)],
+                c: [i11[0]-100,bc[1]+size*10],
                 cp1: [bcp2[0],bcp2[1]],
                 cp2: [bb[0]+size*2,bb[1]+size*13],
             };
@@ -2266,7 +2284,7 @@ export function genClothData(bodyData,breastData,gender){ // 生成衣服
     }
     else if(gender==2){
         underwearRandomPool = [1,1,1,1,2,2,2,2,3,3,4,];
-        // underwearRandomPool = [2,];
+        // underwearRandomPool = [4];
     }
     underwearType = underwearRandomPool[r(0,underwearRandomPool.length-1)];
     let outline;
@@ -2382,7 +2400,7 @@ export function genClothData(bodyData,breastData,gender){ // 生成衣服
 
             ];
             if(size&&weight){ // 乳房扩撑
-                breastExpand({outline,clothColor,noStroke:true,i21_idx:1,j1_idx:2,k1_idx:3,i22_idx:6,j2_idx:7,k2_idx:8});
+                breastExpand({outline,clothColor,bottomL:1200-temp1*2,noStroke:true,i21_idx:1,j1_idx:2,k1_idx:3,i22_idx:6,j2_idx:7,k2_idx:8});
                 outline[1][4] += temp2;
                 outline[6][4] += temp2;
             }
@@ -2553,15 +2571,15 @@ function genFaceData(gender,age,bald){ // 生成脸
     let ysr = 1-shrinkYoung(age); // 年幼影响比率
     // let ysr = 0; // 年幼影响比率
     if(gender==2){ // 女
-        a = [500,r(250,270)+ysr*139]; // 头顶 千分比
-        b = [500,a[1]+r(40,48)]; // 刘海中心
-        c = [r(327,340)+ysr*14,b[1]+r(115,125)-ysr*10]; // 脸左
-        d = [r(435,455)+ysr*9,b[1]+r(142,148)-ysr*5]; // 左眉毛中心
-        e = [d[0],d[1]+r(42,48-ysr*8)+ysr*25]; // 左眼下
-        f = [500,e[1]+r(107,117-ysr*9)-ysr*25]; // 鼻下
-        g = [500,f[1]+r(34,51-ysr*4)-ysr*30]; // 唇上
-        h = [r(422,432-ysr*9)+ysr*16,c[1]+r(248,257-ysr*4)-ysr*27]; // 颊左
-        i = [500,h[1]+r(35,45-ysr*4)-ysr*18]; // 下巴
+        a = [500,r(250,270)+ysr*183]; // 头顶 千分比
+        b = [500,a[1]+r(40,48)-ysr*7]; // 刘海中心
+        c = [r(327,340)+ysr*14,b[1]+r(115,125)-ysr*8]; // 脸左
+        d = [r(435,455)+ysr*9,b[1]+r(142,148)-ysr*8]; // 左眉毛中心
+        e = [d[0],d[1]+r(42,48-ysr*8)+ysr*18]; // 左眼下
+        f = [500,e[1]+r(107,117-ysr*9)-ysr*18]; // 鼻下
+        g = [500,f[1]+r(34,51-ysr*4)-ysr*20]; // 唇上
+        h = [r(422,432-ysr*9)+ysr*16,c[1]+r(248,257-ysr*4)-ysr*20]; // 颊左
+        i = [500,h[1]+r(35,45-ysr*4)-ysr*15]; // 下巴
 
         let colorDeep = r(2,7);
         color = {
@@ -2576,8 +2594,8 @@ function genFaceData(gender,age,bald){ // 生成脸
         }
     }
     else{ // 男
-        a = [500,r(227,247)+ysr*145]; // 头顶 千分比
-        b = [500,a[1]+r(45,55)-ysr*1]; // 刘海中心
+        a = [500,r(227,247)+ysr*183]; // 头顶 千分比
+        b = [500,a[1]+r(45,55)-ysr*7]; // 刘海中心
         c = [r(318,326)+ysr*23,b[1]+r(122,132)-ysr*9]; // 脸左
         d = [r(420,440)+ysr*9,b[1]+r(135,145)-ysr*9]; // 左眉毛中心
         e = [d[0],d[1]+r(48,58-ysr*7)+ysr*18]; // 左眼下
@@ -2685,8 +2703,8 @@ function genBodyData(faceData,gender,age){ // 生成身体
         armWidth = 102-ysr*32;
         a = [faceData.g[0],faceData.g[1]];
         b = [faceData.h[0]+r(5,7)+ysr*30,faceData.g[1]];
-        c = [b[0]+(r(20,25)/100)*(500-b[0]),b[1]+r(45+ysr*30,80)-ysr*30];
-        d = [b[0]-(r(15,20)/100)*30-73+ysr*30,c[1]+r(80,90)-ysr*20];
+        c = [b[0]+(r(20,25)/100)*(500-b[0]),b[1]+r(45+ysr*30,80)-ysr*40];
+        d = [b[0]-(r(15,20)/100)*30-73+ysr*30,c[1]+r(80,90)-ysr*30];
         e = [d[0]-(r(10+ysr*4,20-ysr*4)/100)*30-shoulderWidth-ysr*30,d[1]+6+r(1,3)-ysr*7];
         f = [e[0]-(r(1,40)/100)*20-110+ysr*5,e[1]+r(50,75)-ysr*2];
         g = [f[0]-10+r(-5,5),1200];
