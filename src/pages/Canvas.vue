@@ -645,8 +645,9 @@ export default {
         onClickChangeCloth(){ // 点击【换衣服】按钮
             let avatarData = this.person.avatarData;
             let gender = this.person.gender;
+            let age = this.person.age;
             let { faceData, bodyData, breastData, } = avatarData;
-            let clothData = genClothData(bodyData,breastData,gender);
+            let clothData = genClothData(bodyData,breastData,gender,age);
             avatarData.clothData = clothData;
             paintAvatar(this.ctx,avatarData,CVSWIDTH,CVSHEIGHT,1);
         },

@@ -803,7 +803,7 @@ export function genRandomAvatar(person){ // 随机生成肖像
     let clothData;
     // 生成衣服
     if(r(0,100)<=100){
-        clothData = genClothData(bodyData,breastData,gender);
+        clothData = genClothData(bodyData,breastData,gender,age);
     }
 
     res = {
@@ -2138,7 +2138,7 @@ export function _genClothData(bodyData,breastData,gender,clothName){ // 生成�
     res = data;
     return res;
 }
-export function genClothData(bodyData,breastData,gender){ // 生成衣服
+export function genClothData(bodyData,breastData,gender,age){ // 生成衣服
     let res,rCloth;
     let {size,weight,} = breastData||{};
     let {
@@ -2147,6 +2147,7 @@ export function genClothData(bodyData,breastData,gender){ // 生成衣服
         cp11,cp21,cp31,cp41,cp51,cp61,cpi1,cp71,cp81,
         cp12,cp22,cp32,cp42,cp52,cp62,cpi2,cp72,cp82,
     } = bodyData;
+    let ysr = 1-shrinkYoung(age); // 年幼影响比率
     let underwearData = {
         outline: [],
     };
@@ -2281,6 +2282,7 @@ export function genClothData(bodyData,breastData,gender){ // 生成衣服
     let underwearRandomPool;
     if(gender==1){
         underwearRandomPool = [1,2,3,];
+        // underwearRandomPool = [3,];
     }
     else if(gender==2){
         underwearRandomPool = [1,1,1,1,2,2,2,2,3,3,4,];
@@ -2298,20 +2300,21 @@ export function genClothData(bodyData,breastData,gender){ // 生成衣服
             temp1 = r(50,150);
             temp2 = r(0,i21[0]-i11[0]); // 宽松度1
             temp3 = r(0,j1[0]-h1[0]); // 宽松度2
+            // temp3 = 0;
             outline = [
                 [0,midPoint[0],midPoint[1]],
                 [2,midPoint[0]-temp1,midPoint[1]-temp1*.2,d1[0]-2,d1[1]-3],
                 [2,cp31[0],cp31[1],e1[0],e1[1]], [2,cp41[0],cp41[1],f1[0],f1[1]],
                 [2,cp51[0],cp51[1],g1[0],1200], [1,h1[0],1200],
                 [2,cp61[0],cp61[1],i11[0],i11[1]], [2,cpi1[0]-temp2*.3,cpi1[1],i21[0]-temp2*.5,i21[1]],
-                [2,cp71[0]-temp3*.5,cp71[1],j1[0]-temp3*.5,j1[1]], [2,cp81[0]-temp3*.8,cp81[1],k1[0]-temp3*.8,k1[1]],
+                [2,cp71[0]-temp3*.5,cp71[1],j1[0]-temp3*.5,j1[1]], [2,cp81[0]-temp3*.5,cp81[1],k1[0]-temp3*.5,k1[1]],
                 [1,500,1200],
                 [0,midPoint[0],midPoint[1]],
                 [2,midPoint[0]+temp1,midPoint[1]-temp1*.2,d2[0]-2,d2[1]-3],
                 [2,cp32[0],cp32[1],e2[0],e2[1]], [2,cp42[0],cp42[1],f2[0],f2[1]],
                 [2,cp52[0],cp52[1],g2[0],1200], [1,h2[0],1200],
                 [2,cp62[0],cp62[1],i12[0],i12[1]], [2,cpi2[0]+temp2*.3,cpi2[1],i22[0]+temp2*.3,i22[1]],
-                [2,cp72[0]+temp3*.5,cp72[1],j2[0]+temp3*.5,j2[1]], [2,cp82[0]+temp3*.8,cp82[1],k2[0]+temp3*.8,k2[1]],
+                [2,cp72[0]+temp3*.5,cp72[1],j2[0]+temp3*.5,j2[1]], [2,cp82[0]+temp3*.5,cp82[1],k2[0]+temp3*.5,k2[1]],
                 [1,500,1200]
             ];
             if(size&&weight){ // 乳房扩撑
@@ -2333,14 +2336,14 @@ export function genClothData(bodyData,breastData,gender){ // 生成衣服
                 [2,cp31[0],cp31[1],e1[0],e1[1]], [2,cp41[0],cp41[1],f1[0],f1[1]],
                 [2,cp51[0],cp51[1]-shortRange/4,g1[0]-8,1200-shortRange], [1,h1[0]+4,1200-shortRange],
                 [2,cp61[0],cp61[1]-shortRange/4,i11[0],i11[1]], [2,cpi1[0]-temp2*.3,cpi1[1],i21[0]-temp2*.5,i21[1]],
-                [2,cp71[0]-temp3*.5,cp71[1],j1[0]-temp3*.5,j1[1]], [2,cp81[0]-temp3*.8,cp81[1],k1[0]-temp3*.8,k1[1]],
+                [2,cp71[0]-temp3*.5,cp71[1],j1[0]-temp3*.5,j1[1]], [2,cp81[0]-temp3*.5,cp81[1],k1[0]-temp3*.5,k1[1]],
                 [1,500,1200],
                 [0,midPoint[0],midPoint[1]],
                 [2,midPoint[0]+temp1,midPoint[1]-temp1*.2,d2[0]-2,d2[1]-3],
                 [2,cp32[0],cp32[1],e2[0],e2[1]], [2,cp42[0],cp42[1],f2[0],f2[1]],
                 [2,cp52[0],cp52[1]-shortRange/4,g2[0]+8,1200-shortRange], [1,h2[0]-4,1200-shortRange],
                 [2,cp62[0],cp62[1]-shortRange/4,i12[0],i12[1]], [2,cpi2[0]+temp2*.3,cpi2[1],i22[0]+temp2*.5,i22[1]],
-                [2,cp72[0]+temp3*.5,cp72[1],j2[0]+temp3*.5,j2[1]], [2,cp82[0]+temp3*.8,cp82[1],k2[0]+temp3*.8,k2[1]],
+                [2,cp72[0]+temp3*.5,cp72[1],j2[0]+temp3*.5,j2[1]], [2,cp82[0]+temp3*.5,cp82[1],k2[0]+temp3*.5,k2[1]],
                 [1,500,1200]
             ];
             if(size&&weight){ // 乳房扩撑
@@ -2363,16 +2366,16 @@ export function genClothData(bodyData,breastData,gender){ // 生成衣服
                 [2,midPoint[0]-temp1,midPoint[1]-temp1*.22,d1[0]+3,d1[1]],
                 [2,cp31[0],cp31[1],e1[0],e1[1]],
                 [2,cpi1[0]+5,cpi1[1]-28,cpi1[0]-6,cpi1[1]],
-                [2,cp71[0]-temp2*1.2,cp71[1],j1[0]-temp2*2,j1[1]],
-                [2,cp81[0]-temp2*3,cp81[1],k1[0]-temp2*3,k1[1]],
+                [2,cp71[0]-temp2*1.2,cp71[1],j1[0]-temp2*1.5,j1[1]],
+                [2,cp81[0]-temp2*1.5,cp81[1],k1[0]-temp2*1.5,k1[1]],
                 [1,500,1200],
 
                 [0,midPoint[0],midPoint[1]],
                 [2,midPoint[0]+temp1,midPoint[1]-temp1*.22,d2[0]-3,d2[1]],
                 [2,cp32[0],cp32[1],e2[0],e2[1]],
                 [2,cpi2[0]-5,cpi2[1]-28,cpi2[0]+6,cpi2[1]],
-                [2,cp72[0]+temp2*1.2,cp72[1],j2[0]+temp2*2,j2[1]],
-                [2,cp82[0]+temp2*3,cp82[1],k2[0]+temp2*3,k2[1]],
+                [2,cp72[0]+temp2*1.2,cp72[1],j2[0]+temp2*1.5,j2[1]],
+                [2,cp82[0]+temp2*1.5,cp82[1],k2[0]+temp2*1.5,k2[1]],
                 [1,500,1200],
             ];
             if(size&&weight){ // 乳房扩撑
