@@ -698,7 +698,7 @@ person:{
 	strikingLevel: 50, // 地图存在感百分比（0-100）
 
 	mapID: 12, // 当前所在地图 ID
-	cellID: 33, // 当前所在格子 ID
+	position: [x,y], // 坐标
 
 	job: {
 		cover: [1,4,10,], // 担任职位 ID 数组
@@ -755,6 +755,16 @@ skill:{
 	consume: 7, // 意志消耗
 	fixawareness: 0,
 	absolute: 0, // 必中，无视对方存在感
+}
+
+map: {
+	id: 3,
+	name: '龙虾村',
+	type: 0, // [0:城镇|1:野外]
+	position: [x,y],
+	size: 75,
+	color: {r:0,g:0,b:0,}
+	roads: [2,7,13,],
 }
 
 */

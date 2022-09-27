@@ -1,5 +1,6 @@
 <template>
     <div class="home">
+        <Mappage ref="map" v-if="state==1" :game="game" />
         <Scenepage ref="scene" v-if="state==2" :data="sceneData" :game="game" :onEnd="onBattleEnd" />
         <div class="alert" v-for="(alertMsg,index) in alertMsgs" v-if="alertMsgs.length>0">{{alertMsg}}</div>
         <div class="confirm" v-if="confirmTip">
@@ -13,6 +14,7 @@
 </template>
 
 <script>
+import Mappage from './Mappage';
 import Scenepage from './Scenepage';
 import { query, r, rr, bulbsort, shuffle, getParentNode, getMatchList, removeFromList, arrContains, removeFromNumberList, } from '../tools/utils';
 import * as common from '../tools/common';
@@ -28,7 +30,6 @@ export default {
                 meTeam: [],
                 youTeam: [],
                 mode: 0, // 战斗模式 [0:非战斗状态|1:过招|2:厮杀|3:观战|4:战前调整]
-                cell: null,
                 map: null,
             },
 
@@ -40,6 +41,8 @@ export default {
 
             },
 
+
+            itv: null,
             common,
         };
     },
@@ -53,7 +56,7 @@ export default {
     },
     methods: {
         init(){
-            this._confirm('开始测试？',_=>{
+            /*this._confirm('开始测试？',_=>{
                 let skills1 = [
                     { // 技能数组
                         id: 1,
@@ -228,7 +231,16 @@ export default {
                     map: null,
                 };
                 this.state = 2;
-            });
+            });*/
+            try{
+                let _game = localStorage.getItem(CACHE.save1);
+                this.game = JSON.parse(_game);
+                this.state = 1;
+            }
+            catch(err){
+                console.log(err);
+                this.$router.push('/');
+            }
         },
         onBattleEnd(data){
             console.log(data);
@@ -256,6 +268,7 @@ export default {
         },
     },
     components:{
+        Mappage,
         Scenepage,
     },
 }
@@ -263,14 +276,11 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-    .btn{
-        cursor: pointer;
-    }
-    .btn:hover{
-        background-color: #131313;
-        color: #fff;
-    }
+    @import '../style/common.css';
     .home{
+        position: relative;
+        width: 100%;
+        height: 100%;
         background-color: #131313;
     }
     .shadow{

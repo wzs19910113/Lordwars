@@ -150,9 +150,6 @@ export default {
             map: {
 
             },
-            cell: {
-
-            },
             mode: 1, // 战斗模式 [0:非战斗状态|1:过招|2:厮杀|3:观战]
         }
         */
@@ -259,7 +256,6 @@ export default {
                 console.log('敌方队伍',this.youTeam);
                 console.log('模式',this.data.mode);
                 console.log('地图',this.data.map);
-                console.log('格子',this.data.cell);
             }
             for(let unit of this.meTeam){
                 if(unit.isTempMember){
@@ -2268,7 +2264,6 @@ export default {
             this.detailInform = ['获胜','失败','逃跑成功','结束调整','认输','观战结束'][resultData.type];
             resultData = {
                 ...resultData,
-                cell: this.data.cell,
                 map: this.data.map,
                 mode: this.data.mode,
                 meTeam: this.meTeam,

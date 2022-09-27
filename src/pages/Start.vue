@@ -21,6 +21,8 @@ export default {
             state: 1, // 状态[1:初始界面|2:|3:]
             showResumeBtn: false,
 
+            game: {}, // 游戏数据
+
             loading: false,
         };
     },
@@ -41,11 +43,150 @@ export default {
             this.$router.push('home');
         },
         onTapStart(){
-
+            this.initGameData();
         },
         onTapBack(){ // 点击【返回】按钮
             this.state = 2;
         },
+
+        initGameData(){ // 初始化游戏数据
+            this.game = {
+                allMaps: [],
+                allRoles: [],
+            };
+            this.initAllMaps();
+            this.initAllRoles(this.game.allMaps);
+            localStorage.setItem(CACHE.save1,JSON.stringify(this.game));
+            console.log(this.game);
+            this.$router.push('home');
+        },
+        initAllMaps(){ // 初始化地图数据
+            let largeMapCount = r(7,8);
+            let smallMapCount = 30-largeMapCount/2;
+            let wildMapCount = 50-smallMapCount;
+            let getDistance = (x1,y1,x2,y2) =>{
+                return Math.abs(x1-x2)+Math.abs(y1-y2);
+            }
+            let isTooClose = position =>{
+                let x = position[0], y = position[1];
+                for(let i=0;i<this.game.allMaps.length;i++){
+                    let map = this.game.allMaps[i];
+                    let mx = map.position[0], my = map.position[1];
+                    let distance = getDistance(mx,my,x,y);
+                    if(distance<Math.sqrt(map.size)*5){
+                        return true;
+                    }
+                }
+                return false;
+            }
+            for(let i=0;i<largeMapCount;i++){ // 大城市
+                let name = common.genAreaName(0);
+                let position = [r(100,700),r(100,700)];
+                let loop = 0;
+                while(isTooClose(position)&&(loop++)<100){
+                    position = [r(100,700),r(100,700)];
+                }
+                this.game.allMaps.push({
+                    id: this.game.allMaps.length+1,
+                    name,
+                    type: 0,
+                    size: r(800,1100),
+                    position,
+                    roads: [],
+                    color: {r:255,g:255,b:255,},
+                });
+            }
+            for(let i=0;i<smallMapCount;i++){ // 小城市
+                let name = common.genAreaName(0);
+                let position = [r(20,780),r(20,780)];
+                let loop = 0;
+                while(isTooClose(position)&&(loop++)<100){
+                    position = [r(20,780),r(20,780)];
+                }
+                this.game.allMaps.push({
+                    id: this.game.allMaps.length+1,
+                    name,
+                    type: 0,
+                    size: r(150,300),
+                    position,
+                    roads: [],
+                    color: {r:255,g:255,b:255,},
+                });
+            }
+            for(let i=0;i<wildMapCount;i++){ // 野外
+                let name = common.genAreaName(1);
+                let position = [r(20,780),r(20,780)];
+                let loop = 0;
+                while(isTooClose(position)&&(loop++)<100){
+                    position = [r(20,780),r(20,780)];
+                }
+                this.game.allMaps.push({
+                    id: this.game.allMaps.length+1,
+                    name,
+                    type: 1,
+                    size: r(100,400),
+                    position,
+                    roads: [],
+                    color: {r:10,g:10,b:10,},
+                });
+            }
+            // 初始化道路
+            let fromMap, toMap;
+            for(let i=0;i<largeMapCount;i++){
+                fromMap = this.game.allMaps[i];
+                for(let j=0;j<largeMapCount;j++){
+                    if(i!=j){
+                        toMap = this.game.allMaps[j];
+                        let distance = getDistance(fromMap.position[0],fromMap.position[1],toMap.position[0],toMap.position[1]);
+                        if(distance<400){
+                            fromMap.roads.push(toMap.id);
+                            if(arrContains(toMap.roads,fromMap.id)==-1){
+                                toMap.roads.push(fromMap.id);
+                            }
+                        }
+                    }
+                }
+            }
+            for(let i=0;i<this.game.allMaps.length;i++){
+                fromMap = this.game.allMaps[i];
+                for(let j=0;j<this.game.allMaps.length;j++){
+                    if(i!=j){
+                        toMap = this.game.allMaps[j];
+                        let distance = getDistance(fromMap.position[0],fromMap.position[1],toMap.position[0],toMap.position[1]);
+                        if(distance<Math.sqrt(fromMap.size)*8){
+                            fromMap.roads.push(toMap.id);
+                            if(arrContains(toMap.roads,fromMap.id)==-1){
+                                toMap.roads.push(fromMap.id);
+                            }
+                        }
+                    }
+                }
+            }
+            for(let i=0;i<this.game.allMaps.length;i++){
+                fromMap = this.game.allMaps[i];
+                if(fromMap.roads.length<=0){
+                    let toMapID = r(1,this.game.allMaps.length);
+                    while(toMapID==fromMap.id){
+                        toMapID = r(1,this.game.allMaps.length);
+                    }
+                    fromMap.roads.push(toMapID);
+                    if(arrContains(toMap.roads,fromMap.id)==-1){
+                        toMap.roads.push(fromMap.id);
+                    }
+                }
+            }
+        },
+        initAllRoles(maps){ // 初始化人物数据
+            let roleCount = r(295,305);
+            for(let i=0;i<roleCount;i++){
+                let newRole = common.genRandomPerson({});
+                let map = maps[r(0,maps.length-1)];
+                newRole.mapID = map.id;
+                newRole.position = [r(20,map.size-20),r(20,map.size-20)];
+                newRole.id = this.game.allRoles.length+1;
+                this.game.allRoles.push(newRole);
+            }
+        }
     },
     components:{
 
@@ -55,6 +196,7 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+    @import '../style/common.css';
     .start{
         text-align: center;
         background-color: #fafafa;
@@ -69,16 +211,6 @@ export default {
     .tip{
         font-size: 16px;
         color: grey;
-    }
-    .btn{
-        display: block;
-        cursor: pointer;
-        background-color: #131313;
-        color: #fff;
-        width: 180px;
-        height: 40px;
-        line-height: 40px;
-        margin: 0 auto 12px auto;
     }
     .sm{
         color: #888;
