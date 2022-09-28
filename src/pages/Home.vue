@@ -245,6 +245,9 @@ export default {
         onBattleEnd(data){
             console.log(data);
         },
+        passTime(hour){ // 经历时间
+            this.game.time.hour += hour;
+        },
 
         _confirm(tip,onClickConfirm,hideCancel){ // 显示确认文本
             this.confirmTip = tip;

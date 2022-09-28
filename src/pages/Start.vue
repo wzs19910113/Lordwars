@@ -13,6 +13,7 @@
 import { query, r, bulbsort, getParentNode, getMatchList, removeFromList, arrContains, rr, fullScreen, exitFullScreen, isFullScreen, } from '../tools/utils';
 import * as common from '../tools/common';
 import * as ai from '../tools/ai';
+import { genRandomAvatar, paintAvatar, genForeHairData, genBangsData, genBackHairData, genGlassData, generalForeHairTemplates, genClothData, maleForeHairTemplates, femaleForeHairTemplates, generalBangsTemplates, maleBangsTemplates, femaleBangsTemplates, generalBackHairTemplates, maleBackHairTemplates, femaleBackHairTemplates, glassTemplates, } from '../tools/avatar';
 import { DEBUG, CONFIG, CACHE } from '../config/config';
 export default {
     name: 'Start',
@@ -51,6 +52,7 @@ export default {
 
         initGameData(){ // 初始化游戏数据
             this.game = {
+                time: [2500,1,1,6], // 年月日时
                 allMaps: [],
                 allRoles: [],
             };
@@ -90,6 +92,7 @@ export default {
                     id: this.game.allMaps.length+1,
                     name,
                     type: 0,
+                    level: r(4,5),
                     size: r(800,1100),
                     position,
                     roads: [],
@@ -107,6 +110,7 @@ export default {
                     id: this.game.allMaps.length+1,
                     name,
                     type: 0,
+                    level: r(1,3),
                     size: r(150,300),
                     position,
                     roads: [],
@@ -124,13 +128,14 @@ export default {
                     id: this.game.allMaps.length+1,
                     name,
                     type: 1,
+                    level: r(1,5),
                     size: r(100,400),
                     position,
                     roads: [],
                     color: {r:10,g:10,b:10,},
                 });
             }
-            // 初始化道路
+            // 初始化通路
             let fromMap, toMap;
             for(let i=0;i<largeMapCount;i++){
                 fromMap = this.game.allMaps[i];
@@ -175,14 +180,113 @@ export default {
                     }
                 }
             }
+            // 初始化格子
+            for(let i=0;i<this.game.allMaps.length;i++){
+                let map = this.game.allMaps[i];
+                let len = Math.sqrt(map.size)/2;
+                map.cells = [];
+                if(map.type==0){ // 城镇
+                    let initCellTypePool = [0,0,0,0,0,0,0,0,0,0,0,52,52,53,54,];
+                    for(let y=0;y<len;y++){
+                        for(let x=0;x<len;x++){
+                            let level = r(1,len/5);
+                            if(level>5){
+                                level = 5;
+                            }
+                            let newCell = {
+                        		level,
+                                type: initCellTypePool[r(0,initCellTypePool.length-1)],
+                        		completeness: 0,
+                                ownerID: 0,
+                        		unionID: 0,
+                                x,
+                                y,
+                        		color: {r:200,g:200,b:200,},
+                            };
+                            if(newCell.type==52){ // 公寓
+                                newCell.completeness = r(10,200)*50;
+                                newCell.price = level*250+1000;
+                                newCell.capacity = [0,level*5+5];
+                            }
+                            else if(newCell.type==52){ // 粮棚
+                                newCell.completeness = 10000;
+                                newCell.price = level*500+2000;
+                                newCell.capacity = [0,level];
+                            }
+                            else if(newCell.type==53){ // 工厂
+                                newCell.completeness = r(10,50)*50;
+                                newCell.price = level*500+2000;
+                                newCell.capacity = [0,level];
+                            }
+                            map.cells.push(newCell);
+                        }
+                    }
+                    // 生成道路
+                    let xRoadCount = r(0,len/3);
+                    let yRoadCount = r(0,len/3);
+                    if(xRoadCount==0&&yRoadCount==0){
+                        xRoadCount = 1;
+                    }
+                    let xGap = Math.floor(len/xRoadCount);
+                    let yGap = Math.floor(len/yRoadCount);
+                    for(let i=Math.floor(xGap/2);i<len;i+=xGap){
+                        for(let j=0;j<map.cells.length;j++){ // 纵坐标为 i 的所有格子都变成道路
+                            if(map.cells[j].x==i){
+                                map.cells[j].type = 1;
+                                map.cells[j].price = 0;
+                                map.cells[j].capacity = [0,0,];
+                                map.cells[j].completeness = 0;
+                            }
+                        }
+                    }
+                    for(let i=Math.floor(yGap/2);i<len;i+=yGap){
+                        for(let j=0;j<map.cells.length;j++){ // 横坐标为 i 的所有格子都变成道路
+                            if(map.cells[j].y==i){
+                                map.cells[j].type = 1;
+                                map.cells[j].price = 0;
+                                map.cells[j].capacity = [0,0,];
+                                map.cells[j].completeness = 0;
+                            }
+                        }
+                    }
+                }
+                else if(map.type==1){ // 野外
+                    let initCellTypePool = [201,201,201,201,201,201,202,203,204,205,];
+                    for(let y=0;y<len;y++){
+                        for(let x=0;x<len;x++){
+                            let level = r(1,len/5);
+                            if(level>5){
+                                level = 5;
+                            }
+                            let newCell = {
+                        		level,
+                                completeness: 0,
+                                capacity: [0,0,],
+                                price: 0,
+                                type: initCellTypePool[r(0,initCellTypePool.length-1)],
+                        		completeness: 0,
+                                ownerID: 0,
+                        		unionID: 0,
+                                x,
+                                y,
+                        		color: {r:200,g:200,b:200,},
+                            };
+                            newCell.price = 0;
+                            map.cells.push(newCell);
+                        }
+                    }
+                }
+            }
         },
         initAllRoles(maps){ // 初始化人物数据
             let roleCount = r(295,305);
             for(let i=0;i<roleCount;i++){
                 let newRole = common.genRandomPerson({});
+                let avatarData = genRandomAvatar(newRole);
                 let map = maps[r(0,maps.length-1)];
+                newRole.avatarData = avatarData;
                 newRole.mapID = map.id;
-                newRole.position = [r(20,map.size-20),r(20,map.size-20)];
+                newRole.cellIndex = r(0,map.cells.length-1);
                 newRole.id = this.game.allRoles.length+1;
                 this.game.allRoles.push(newRole);
             }

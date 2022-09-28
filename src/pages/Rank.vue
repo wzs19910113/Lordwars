@@ -1,23 +1,13 @@
 <template>
     <div class="main">
+        <h1>排行榜</h1>
         <Header />
-        <h1>首页TEST</h1>
-        <div class="banner">
-            <div class="block user-wrap">
-                <a class="btn"><img src="" /></a>
-            </div>
-        </div>
         <div class="act-list-wrap">
             <ol class="block act-list">
-                <li class="block act" v-for="act in actList">
+                <li class="block act" v-for="(rank,index) in rankList">
+                    <div class="number">{{index+1}}</div>
                     <a class="btn">
-                        <div class="act-icon">
-                            <img :src="act.icon" />
-                        </div>
-                        <div class="act-detail">
-                            <h3>{{act.name}}</h3>
-                            <div>{{act.desc}}</div>
-                        </div>
+                        {{rank.name}}
                     </a>
                 </li>
             </ol>
@@ -35,13 +25,14 @@ import Nav from '../components/Nav';
 const CVSWIDTH = 500;
 const CVSHEIGHT = 600;
 export default {
-    name: 'Canvas1',
+    name: 'Rank',
     data(){
         return {
 
+            keywords: '',
             loading: false,
 
-            actList: [],
+            rankList: [],
 
             CONFIG,
         };
@@ -51,10 +42,10 @@ export default {
     },
     methods: {
         init(){
-            this.actList = [];
+            this.rankList = [];
             for(let i=0;i<48;i++){
-                this.actList.push({
-                    name: `活动${i+1}`,
+                this.rankList.push({
+                    name: `用户名${i+1}`,
                     desc: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
                 });
             }
@@ -89,8 +80,24 @@ export default {
         width: 75%;
     }
     .act{
+        position: relative;
         width: 100%;
         height: 65px;
+        padding-left: 80px;
+    }
+    .number{
+        position: absolute;
+        left: 10px;
+        top: 10px;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: #131313;
+        color: #fff;
+        font-weight: bold;
+        font-size: 30px;
+        text-align: center;
+        line-height: 50px;
     }
     .act .btn{
         width: 100%;

@@ -5,6 +5,7 @@ import Start from '@/pages/Start'
 import Canvas from '@/pages/Canvas'
 import Canvas1 from '@/pages/Canvas1'
 import Test from '@/pages/Test'
+import Rank from '@/pages/Rank'
 
 Vue.use(Router)
 
@@ -35,6 +36,11 @@ export default new Router({
             path: '/test',
             name: 'Test',
             component: Test
+        },
+        {
+            path: '/rank',
+            name: 'Rank',
+            component: Rank
         },
     ]
 })
