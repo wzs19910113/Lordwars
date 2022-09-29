@@ -10,6 +10,9 @@
                 <a class="btn" @click="onClickCancel()" v-if="!hideConfirmCancel">取消</a>
             </div>
         </div>
+        <div class="loading" v-if="loading">
+            <i class="iconfont">&#xe65c;</i>
+        </div>
     </div>
 </template>
 
@@ -19,6 +22,7 @@ import Scenepage from './Scenepage';
 import { query, r, rr, bulbsort, shuffle, getParentNode, getMatchList, removeFromList, arrContains, removeFromNumberList, } from '../tools/utils';
 import * as common from '../tools/common';
 import * as ai from '../tools/ai';
+import * as IDB from '../tools/indexedDB';
 import { genRandomAvatar, paintAvatar, genForeHairData, genBangsData, genBackHairData, formatPx, } from '../tools/avatar';
 import { DEBUG, CONFIG, CACHE } from '../config/config';
 export default {
@@ -42,6 +46,7 @@ export default {
             },
 
 
+            loading: false,
             itv: null,
             common,
         };
@@ -233,9 +238,19 @@ export default {
                 this.state = 2;
             });*/
             try{
-                let _game = localStorage.getItem(CACHE.save1);
-                this.game = JSON.parse(_game);
-                this.state = 1;
+                this.loading = true;
+                IDB.initIDB({callback: event=>{
+                    IDB.readIDB({
+                        success: game=>{
+                            console.log(game);
+                            this.game = game;
+                            this.state = 1;
+                        },
+                        callback: event=>{
+                            this.loading = false;
+                        }
+                    });
+                }});
             }
             catch(err){
                 console.log(err);

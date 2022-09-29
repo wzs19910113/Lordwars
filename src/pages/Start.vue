@@ -5,6 +5,9 @@
             <a class="btn" @click="onTapResume()" v-if="showResumeBtn">继续游戏</a>
             <a class="btn" @click="onTapStart()">开始新游戏</a>
         </div>
+        <div class="loading" v-if="loading">
+            <i class="iconfont">&#xe65c;</i>
+        </div>
     </div>
 </template>
 
@@ -13,6 +16,7 @@
 import { query, r, bulbsort, getParentNode, getMatchList, removeFromList, arrContains, rr, fullScreen, exitFullScreen, isFullScreen, } from '../tools/utils';
 import * as common from '../tools/common';
 import * as ai from '../tools/ai';
+import * as IDB from '../tools/indexedDB';
 import { genRandomAvatar, paintAvatar, genForeHairData, genBangsData, genBackHairData, genGlassData, generalForeHairTemplates, genClothData, maleForeHairTemplates, femaleForeHairTemplates, generalBangsTemplates, maleBangsTemplates, femaleBangsTemplates, generalBackHairTemplates, maleBackHairTemplates, femaleBackHairTemplates, glassTemplates, } from '../tools/avatar';
 import { DEBUG, CONFIG, CACHE } from '../config/config';
 export default {
@@ -32,12 +36,17 @@ export default {
     },
     methods: {
         init(){
-            window.GLOBAL = null;
-            let s_data = localStorage.getItem(CACHE.save1);
-            let data = JSON.parse(s_data)||{};
-            if(s_data){
-                this.showResumeBtn = true;
-            }
+            this.loading = true;
+            IDB.initIDB({callback: event=>{
+                IDB.readIDB({
+                    success: game=>{
+                        this.showResumeBtn = true;
+                    },
+                    callback: event=>{
+                        this.loading = false;
+                    }
+                });
+            }});
         },
         onTapResume(){
             // fullScreen();
@@ -46,21 +55,43 @@ export default {
         onTapStart(){
             this.initGameData();
         },
-        onTapBack(){ // 点击【返回】按钮
-            this.state = 2;
-        },
 
         initGameData(){ // 初始化游戏数据
-            this.game = {
-                time: [2500,1,1,6], // 年月日时
-                allMaps: [],
-                allRoles: [],
-            };
-            this.initAllMaps();
-            this.initAllRoles(this.game.allMaps);
-            localStorage.setItem(CACHE.save1,JSON.stringify(this.game));
-            console.log(this.game);
-            this.$router.push('home');
+            this.loading = true;
+            this.$nextTick(_=>{
+                this.game = {
+                    time: [2500,1,1,6], // 年月日时
+                    allMaps: [],
+                    allRoles: [],
+                };
+                this.initAllMaps();
+                this.initAllRoles(this.game.allMaps);
+                // 游戏数据完成，开始存储
+                if(this.showResumeBtn){ // 原本有存储的数据，则更新
+                    IDB.updateIDB({
+                        game: this.game,
+                        success: _=>{
+                            this.loading = false;
+                            this.$router.push('home');
+                        },
+                        error: event=>{
+                            console.error(event);
+                        }
+                    });
+                }
+                else{ // 原本没有存储的数据，直接添加
+                    IDB.addIDB({
+                        game: this.game,
+                        success: _=>{
+                            this.loading = false;
+                            this.$router.push('home');
+                        },
+                        error: event=>{
+                            console.error(event);
+                        }
+                    });
+                }
+            })
         },
         initAllMaps(){ // 初始化地图数据
             let largeMapCount = r(7,8);

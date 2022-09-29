@@ -8,12 +8,16 @@
                         <h4 class="name">{{CONFIG.cellNameMap[cell.type]}}</h4>
                     </a>
                 </div>
-                <div class="roles-cell" :style="{width:`${cellWidthPct}%`,left:`${cell.x*cellWidthPct}%`,top:`${cell.y*cellHeightPct}%`}" v-for="(cell,index) in curMap.cells">
-                    <a class="btn btn-role-icon" @click="onClickRoleIcon($event,role)" v-for="role in cell.roles">
+                <div class="roles-cell" :style="{width:`${cellWidthPct}%`,left:`${cell.x*cellWidthPct}%`,top:`${cell.y*cellHeightPct+.5*cellHeightPct}%`}" v-show="showRoleCells" v-for="(cell,index) in curMap.cells">
+                    <a class="btn btn-role-icon" :style="{left:`calc( -30px + ${role.style.offsetX}% )`}" @click="onClickRoleIcon($event,role)" v-for="role in cell.roles">
                         <canvas class="cvs-icon-role" :ref="`cvsIconMe${role.id}`" width="58" height="60"></canvas>
                         <h5 class="cvs-role-name">{{role.name}}</h5>
                     </a>
                 </div>
+                <a class="btn btn-view-roles" @click="onClickViewRoles" :title="`${showRoleCells?'隐藏':'显示'}人物头像`">
+                    <i class="iconfont" v-if="showRoleCells">&#xe634;</i>
+                    <i class="iconfont" v-else>&#xe633;</i>
+                </a>
             </div>
             <div class="bottom-board">
                 <a class="me" @click="onClickIconMe">
@@ -27,7 +31,8 @@
             <div class="world-wrap">
                 <canvas class="cvs-world-bg" ref="cvsWorldBg" width="800" height="800" @click="onClickCvsWorldBg"></canvas>
                 <a class="btn worldmap-item" :class="`${map.type?'worldmap-item-wild':''} ${map.id==choseMapID?'worldmap-item-choose':''}`" @click="onClickMap($event,map)" v-for="map in game.allMaps" :style="{left:map.position[0]+'px',top:map.position[1]+'px',width:Math.sqrt(map.size)*5+'px',height:Math.sqrt(map.size)*5+'px',backgroundColor:`rgba(${map.color.r},${map.color.g},${map.color.b},.3)`,}">
-                    <canvas class="cvs-world-loc" ref="cvsWorldLoc" v-if="me.mapID==map.id" width="50" height="50"></canvas>
+                    <!-- <canvas class="cvs-world-loc" ref="cvsWorldLoc" v-if="me.mapID==map.id" width="50" height="50"></canvas> -->
+                    <i class="loc iconfont" v-if="me.mapID==map.id">&#xe647;</i>
                     <h3 class="worldmap-item-name">{{map.name}}</h3>
                 </a>
             </div>
@@ -38,12 +43,6 @@
                 <a class="btn btn-option" v-for="(option,index) in options" @click="onClickOption($event,option,{mapID:choseMapID})">{{option.name}}</a>
             </div>
         </div>
-        <!-- <div class="option-pop" v-if="optionPopTitle" ref="options" :class="`${optionPopNeedFlip?'option-pop-flip':''}`" :style="{left:popPosition[0]+'px',top:popPosition[1]+'px'}">
-            <h4 class="option-pop-title">{{optionPopTitle}}：</h4>
-            <div class="option-wrap">
-                <a class="btn btn-option" v-for="(option,index) in options" @click="onClickOption($event,option,{mapID:choseMapID})">{{option.name}}</a>
-            </div>
-        </div> -->
     </div>
 </template>
 
@@ -67,6 +66,8 @@ export default {
             cellHeightPct: 0, // 格子高度像素百分比
             choseCellIndex: -1, // 选中的格子序号
             choseRole: null, // 选中的人物
+            showRoleCells: true, // 地图上显示人物
+
             me: {},
 
             showWorldMap: false,
@@ -152,7 +153,7 @@ export default {
                 this.ctxWorldBg.stroke();
                 this.ctxWorldBg.closePath();
             }
-            this.printAvatar('cvsWorldLoc',this.me.avatarData);
+            // this.printAvatar('cvsWorldLoc',this.me.avatarData);
         },
         popOption(evt,type){ // 弹出选项弹窗
             let { pageX, pageY, } = evt;
@@ -252,6 +253,14 @@ export default {
             this.choseRole = cloneObj(role);
             this.popOption(evt,3);
         },
+        onClickViewRoles(){ // 点击【显示人物图标】按钮
+            this.showRoleCells = !this.showRoleCells;
+            if(this.showRoleCells){
+                this.$nextTick(_=>{
+                    this.printMapRoleAvatars();
+                });
+            }
+        },
 
         onClickIconMe(){ // 点击【图标-我】 TODO
             console.log(this.me);
@@ -297,22 +306,30 @@ export default {
                 this.cellWidthPct = 100/len;
                 this.cellHeightPct = 100/len;
                 this.canInteract = this.me.mapID==map.id;
-                let mapRoles = []
+                let mapRoles = [];
                 for(let i=0;i<this.curMap.cells.length;i++){ // 获取并渲染人物
                     this.curMap.cells[i].roles = [];
                     let roles = getMatchList(this.game.allRoles,[['mapID',this.curMap.id],['cellIndex',i]]);
-                    for(let j=0;j<roles.length;j++){
-                        this.curMap.cells[i].roles.push(roles[j]);
-                        mapRoles.push(roles[j]);
-                        // for(let k=0;k<)
-                        // this.printAvatar(`cvsIconMe${roles[j].id}`,roles[j].avatarData);
+                    if(roles.length>0){
+                        let offsetXRange = 1/(roles.length+1)*100;
+                        for(let j=0;j<roles.length;j++){
+                            let style = {};
+                            style.offsetX = offsetXRange*(j+1);
+                            roles[j].style = style;
+                            this.curMap.cells[i].roles.push(roles[j]);
+                            mapRoles.push(roles[j]);
+                        }
                     }
                 }
+                this.curMap.roles = mapRoles;
                 this.$nextTick(_=>{
-                    for(let role of mapRoles){
-                        this.printAvatar(`cvsIconMe${role.id}`,role.avatarData);
-                    }
+                    this.printMapRoleAvatars();
                 });
+            }
+        },
+        printMapRoleAvatars(){ // 绘制地图中的人物
+            for(let role of this.curMap.roles){
+                this.printAvatar(`cvsIconMe${role.id}`,role.avatarData);
             }
         },
     },
@@ -349,6 +366,17 @@ export default {
         box-shadow: 0 0 12px 12px #131313;
         /* border: 2px solid #a81313; */
     }
+    .btn-view-roles{
+        position: absolute;
+        top: 0;
+        right: -60px;
+        width: 60px;
+        height: 30px;
+        line-height: 30px;
+        text-align: center;
+        font-size: 20px;
+        font-weight: bold;
+    }
     .cells-wrap{
         position: absolute;
         top: 0;
@@ -376,7 +404,6 @@ export default {
         justify-content: center;
         align-items: center;
         color: #fff;
-        width: 0;
         height: 0;
         margin: 0;
     }
@@ -390,7 +417,7 @@ export default {
         width: 60px;
         height: 60px;
         background-color: transparent;
-        transform: translate(0,-35px);
+        transform: translate(0,-55px);
     }
     .btn-role-icon:hover{
         opacity: 1;
@@ -426,7 +453,7 @@ export default {
         align-items: baseline;
         width: 60px;
         height: 15px;
-        text-shadow: 0 0 6px #000;
+        background-image: linear-gradient(to right, rgba(255,255,255,0) 0%, #000 15%, #000 85%, rgba(255,255,255,0) 100%);
         line-height: 15px;
         white-space: nowrap;
         word-break: keep-all;
@@ -492,7 +519,7 @@ export default {
     }
     .worldmap-item h3{
         font-size: 18px;
-        line-height: 18px;
+        line-height: 30px;
         white-space: nowrap;
         word-break: keep-all;
         color: #ddd;
@@ -521,7 +548,7 @@ export default {
         margin: auto;
         z-index: 55;
     }
-    .cvs-world-loc{
+    .loc{
         position: absolute;
         top: 0;
         bottom: 0;
@@ -531,16 +558,17 @@ export default {
         border-radius: 50%;
         width: 50px;
         height: 50px;
+        text-align: center;
+        line-height: 50px;
+        font-size: 40px;
+        text-shadow: 0 0 10px #000;
+        color: OrangeRed;
         z-index: 54;
-        transform: rotateY(0) translateY(-60%);
-        animation: ani-cvs-world-loc .9s ease-in-out infinite alternate;
+        animation: ani-cvs-world-loc .4s ease-in-out infinite alternate;
     }
     @keyframes ani-cvs-world-loc{
-        80%{
-            transform: rotateY(0) translateY(32%);
-        }
         100%{
-            transform: rotateY(180deg) translateY(40%);
+            box-shadow: 0 0 8px 8px OrangeRed;
         }
     }
     /* 底部面板 */
