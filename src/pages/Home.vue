@@ -1,6 +1,6 @@
 <template>
     <div class="home">
-        <Mappage ref="map" v-if="state==1" :game="game" />
+        <Mappage ref="map" v-if="state==1" :game="game" :saveGame="saveGame" />
         <Scenepage ref="scene" v-if="state==2" :data="sceneData" :game="game" :onEnd="onBattleEnd" />
         <div class="alert" v-for="(alertMsg,index) in alertMsgs" v-if="alertMsgs.length>0">{{alertMsg}}</div>
         <div class="confirm" v-if="confirmTip">
@@ -248,20 +248,45 @@ export default {
                         },
                         callback: event=>{
                             this.loading = false;
+                        },
+                        error: event=>{
+                            console.error(event);
+                            this.$router.push('/');
                         }
                     });
                 }});
             }
             catch(err){
-                console.log(err);
+                console.error(err);
+                this.$router.push('/');
+            }
+        },
+        saveGame(){ // 保存游戏数据
+            try{
+                this.loading = true;
+                IDB.initIDB({callback: event=>{
+                    IDB.updateIDB({
+                        game: this.game,
+                        success: game=>{
+                            console.log(`保存游戏数据`,game);
+                        },
+                        callback: event=>{
+                            this.loading = false;
+                        },
+                        error: event=>{
+                            console.error(event);
+                            this.$router.push('/');
+                        }
+                    });
+                }});
+            }
+            catch(err){
+                console.error(err);
                 this.$router.push('/');
             }
         },
         onBattleEnd(data){
             console.log(data);
-        },
-        passTime(hour){ // 经历时间
-            this.game.time.hour += hour;
         },
 
         _confirm(tip,onClickConfirm,hideCancel){ // 显示确认文本

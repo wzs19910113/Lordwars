@@ -2,30 +2,39 @@
     <div class="mappage" @click="onClickCloseOptionPop()">
         <div class="map" v-if="curMap">
             <a class="btn btn-open-worldmap" @click="onClickOpenWorldMap">世界地图</a>
+            <div class="time-board">
+                <small>{{game.time[0]}}年 {{game.time[1]}}月 {{game.time[2]}}日</small>
+                <br/>
+                <b>{{game.time[3]}}:00</b>
+            </div>
+            <div class="header-board">
+                <h1>{{curMap.name}}</h1>
+            </div>
             <div class="map-wrap">
                 <div class="cells-wrap">
-                    <a class="btn btn-cell" :class="`${cell.type!=1?'btn-cell-bd':''}`" @click="onClickCell($event,cell,index)" :style="{width:`${cellWidthPct}%`,height:`${cellHeightPct}%`,left:`${cell.x*cellWidthPct}%`,top:`${cell.y*cellHeightPct}%`}" v-for="(cell,index) in curMap.cells">
+                    <a class="btn btn-cell" :class="calcCellClassName(cell)" @click="onClickCell($event,cell,index)" :style="{width:`${cellWidthPct}%`,height:`${cellHeightPct}%`,left:`${cell.x*cellWidthPct}%`,top:`${cell.y*cellHeightPct}%`}" v-for="(cell,index) in curMap.cells">
                         <h4 class="name">{{CONFIG.cellNameMap[cell.type]}}</h4>
                     </a>
                 </div>
-                <div class="roles-cell" :style="{width:`${cellWidthPct}%`,left:`${cell.x*cellWidthPct}%`,top:`${cell.y*cellHeightPct+.5*cellHeightPct}%`}" v-show="showRoleCells" v-for="(cell,index) in curMap.cells">
+                <div class="roles-cell" :style="{width:`${cellWidthPct}%`,left:`${cell.x*cellWidthPct}%`,top:`${cell.y*cellHeightPct+.5*cellHeightPct}%`}" v-show="showRoleCells&&calcMapClickable()" v-for="(cell,index) in curMap.cells">
                     <a class="btn btn-role-icon" :style="{left:`calc( -30px + ${role.style.offsetX}% )`}" @click="onClickRoleIcon($event,role)" v-for="role in cell.roles">
                         <canvas class="cvs-icon-role" :ref="`cvsIconMe${role.id}`" width="58" height="60"></canvas>
                         <h5 class="cvs-role-name">{{role.name}}</h5>
                     </a>
                 </div>
-                <a class="btn btn-view-roles" @click="onClickViewRoles" :title="`${showRoleCells?'隐藏':'显示'}人物头像`">
+                <a class="btn btn-view-roles" @click="onClickViewRoles" v-if="calcMapClickable()" :title="`${showRoleCells?'隐藏':'显示'}人物头像`">
                     <i class="iconfont" v-if="showRoleCells">&#xe634;</i>
                     <i class="iconfont" v-else>&#xe633;</i>
                 </a>
             </div>
             <div class="bottom-board">
-                <a class="me" @click="onClickIconMe">
+                <a class="me" @click="onClickIconMe($event)">
                     <canvas class="cvs-icon-me" ref="cvsIconMe" width="220" height="220"></canvas>
                     <h4 class="name">{{me.name}}</h4>
                 </a>
             </div>
         </div>
+        <!-- 世界地图 -->
         <div class="worldmap" v-if="showWorldMap">
             <a class="btn btn-close" @click="onClickCloseWorldMap">关闭</a>
             <div class="world-wrap">
@@ -37,12 +46,15 @@
                 </a>
             </div>
         </div>
+        <!-- 选项弹窗 -->
         <div class="option-pop" v-if="optionPopTitle" ref="options" :class="`${optionPopNeedFlip?'option-pop-flip':''}`" :style="{left:popPosition[0]+'px',top:popPosition[1]+'px'}">
             <h4 class="option-pop-title">{{optionPopTitle}}：</h4>
             <div class="option-wrap">
-                <a class="btn btn-option" v-for="(option,index) in options" @click="onClickOption($event,option,{mapID:choseMapID})">{{option.name}}</a>
+                <a class="btn btn-option" v-for="(option,index) in options" @click="onClickOption($event,option)">{{option.name}}</a>
             </div>
         </div>
+        <!-- 测试按钮 -->
+        <a class="btn btn-test" @click="onClickTest" v-if="DEBUG">TEST</a>
     </div>
 </template>
 
@@ -57,6 +69,7 @@ export default {
     name: 'Map',
     props:{
         game: Object,
+        saveGame: Function,
     },
     data(){
         return {
@@ -127,7 +140,7 @@ export default {
             for(let i=0;i<this.game.allMaps.length;i++){
                 fromMap = this.game.allMaps[i];
                 for(let j=0;j<fromMap.roads.length;j++){
-                    let toMapID = fromMap.roads[j];
+                    let toMapID = fromMap.roads[j][0];
                     toMap = getMatchList(this.game.allMaps,[['id',toMapID]])[0];
                     if(toMap){
                         this.ctxWorldBg.moveTo(fromMap.position[0],fromMap.position[1]);
@@ -143,7 +156,7 @@ export default {
                 let roads = fromMap.roads;
                 this.ctxWorldBg.strokeStyle = `rgba(55,190,234,1)`;
                 for(let i=0;i<roads.length;i++){
-                    let toMapID = roads[i];
+                    let toMapID = roads[i][0];
                     toMap = getMatchList(this.game.allMaps,[['id',toMapID]])[0];
                     if(toMap){
                         this.ctxWorldBg.moveTo(fromMap.position[0],fromMap.position[1]);
@@ -155,33 +168,171 @@ export default {
             }
             // this.printAvatar('cvsWorldLoc',this.me.avatarData);
         },
-        popOption(evt,type){ // 弹出选项弹窗
+        passTime(){ // 经历时间
+            let time = this.game.time;
+            let calcDaycount = _ =>{
+                let mdMap = [31,28,31,30,31,30,31,31,30,31,30,31,];
+                if(time[0]%4==0){ // 闰年
+                    mdMap[1] = 29;
+                }
+                return mdMap[time[1]-1];
+            }
+            time[3] += 1;
+            if(time[3]>23){ // 时
+                time[3] = 0;
+                time[2] += 1;
+                if(time[2]>calcDaycount()){ // 天
+                    time[2] = 1;
+                    time[1] += 1;
+                    if(time[1]>12){ // 月
+                        time[1] = 1;
+                        time[0] += 1;
+                    }
+                }
+            }
+            this.$forceUpdate();
+        },
+
+        calcMapClickable(){ // 判断是否可交互
+            return this.curMap.id==this.me.mapID;
+        },
+        calcCellClassName(cell){ // 计算格子元素的类名
+            let res;
+            res = `${cell.type!=1?'btn-cell-bd':''}`;
+            return res;
+        },
+
+        onClickOpenWorldMap(){ // 点击【打开世界地图】按钮
+            this.showWorldMap = true;
+            this.$nextTick(_=>{
+                this.updateCvsWorldBg();
+            });
+        },
+        onClickCloseWorldMap(){ // 点击【关闭世界地图】按钮
+            this.choseMapID = 0;
+            this.showWorldMap = false;
+        },
+        onClickCvsWorldBg(){ // 点击【世界地图背景画板】
+            // this.choseMapID = 0;
+            // this.updateCvsWorldBg();
+        },
+        onClickCloseOptionPop(){ // 点击【关闭选项弹窗】
+            this.optionPopTitle = '';
+            this.options = [];
+            this.popPosition = [0,0,];
+            this.optionPopNeedFlip = false;
+        },
+        onClickViewRoles(){ // 点击【显示人物图标】按钮
+            if(!this.calcMapClickable()){
+                return ;
+            }
+            this.showRoleCells = !this.showRoleCells;
+            if(this.showRoleCells){
+                this.$nextTick(_=>{
+                    this.printMapRoleAvatars();
+                });
+            }
+        },
+
+        onClickIconMe(evt){ // 点击【图标-我】 TODO
+            this.popOption(evt,1);
+        },
+        onClickCell(evt,cell,index){ // 点击【格子】 TODO
+            if(!this.calcMapClickable()){
+                return ;
+            }
+            this.choseCell = cell;
+            if(cell.type>=50||cell.type==0){
+                this.popOption(evt,2);
+            }
+            else{
+                this.onClickCloseOptionPop();
+            }
+        },
+        onClickRoleIcon(evt,role){ // 点击【人物图标】 TODO
+            if(!this.calcMapClickable()){
+                return ;
+            }
+            this.choseRole = cloneObj(role);
+            this.popOption(evt,3);
+        },
+        onClickMap(evt,map){ // 点击【世界地图上的地图】 TODO
+            if(this.choseMapID!=map.id){
+                this.choseMapID = map.id;
+                this.updateCvsWorldBg(map.id);
+                this.popOption(evt,4);
+            }
+            else{
+                this.choseMapID = 0;
+                this.updateCvsWorldBg();
+                this.onClickCloseOptionPop();
+            }
+        },
+
+        popOption(evt,type){ // 弹出选项弹窗 TODO
+            evt.stopPropagation();
+            evt.preventDefault();
             let { pageX, pageY, } = evt;
             let options = [];
             let title;
-            let map;
             switch(type){
-                case 1: // 世界地图
-                    map = getMatchList(this.game.allMaps,[['id',this.choseMapID]])[0];
-                    title = map.name;
+                case 1: // 我
+                    title = `${this.me.name}`;
                     options = [
-                        { id:1, name:'查看', },
+                        { id:101, name:'我的位置', callback: _=>{
+                            let curMap = getMatchList(this.game.allMaps,[['id',this.me.mapID]])[0];
+                            if(curMap){ // 回到我所在的地图
+                                this.curMap = curMap;
+                                this.renderMap(curMap.id);
+                            }
+                        }},
+                        { id:102, name:'查看状态', callback: _=>{
+                            console.log(`我-查看状态`,title,this.me);
+                        }},
+                        { id:103, name:'查看背包', callback: _=>{
+                            console.log(`我-查看背包`,title,this.me);
+                        }},
                     ];
                 break;
                 case 2: // 格子
                     title = `${CONFIG.cellAllNameMap[this.choseCell.type]}`;
                     options = [
-                        { id:101, name:'查看', },
-                        { id:102, name:'建造', },
+                        { id:201, name:'建造', callback: _=>{
+                            console.log(`格子-建造`,title,this.choseCell);
+                        }},
+                        { id:202, name:'购买', callback: _=>{
+                            console.log(`格子-购买`,title,this.choseCell);
+                        }},
                     ];
                 break;
                 case 3: // 人物图标
                     title = `${this.choseRole.name}`;
                     options = [
-                        { id:201, name:'查看', },
-                        { id:202, name:'交流', },
-                        { id:203, name:'偷袭', },
-                        { id:204, name:'决斗', },
+                        { id:301, name:'闲聊', callback: _=>{
+                            console.log(`人物-闲聊`,title,this.choseRole);
+                        }},
+                        { id:302, name:'偷袭', callback: _=>{
+                            console.log(`人物-偷袭`,title,this.choseRole);
+                        }},
+                        { id:303, name:'决斗', callback: _=>{
+                            console.log(`人物-决斗`,title,this.choseRole);
+                        }},
+                        { id:304, name:'请求', callback: _=>{
+                            console.log(`人物-请求`,title,this.choseRole);
+                        }},
+                    ];
+                break;
+                case 4: // 世界地图
+                    let toMap = getMatchList(this.game.allMaps,[['id',this.choseMapID]])[0];
+                    title = toMap.name;
+                    options = [
+                        { id:401, name:'查看', callback: _=>{
+                            this.renderMap(toMap.id);
+                            this.onClickCloseWorldMap();
+                        }},
+                        { id:402, name:'移动至此', callback: _=>{
+
+                        }},
                     ];
                 break;
             }
@@ -201,101 +352,11 @@ export default {
                 }
             });
         },
-
-        onClickOpenWorldMap(){ // 点击【打开世界地图】按钮
-            this.showWorldMap = true;
-            this.$nextTick(_=>{
-                this.updateCvsWorldBg();
-            });
-        },
-        onClickCloseWorldMap(){ // 点击【关闭世界地图】按钮
-            this.choseMapID = 0;
-            this.showWorldMap = false;
-        },
-        onClickMap(evt,map){ // 点击【世界地图上的地图】
+        onClickOption(evt,option){ // 点击选项
             evt.stopPropagation();
             evt.preventDefault();
-            if(this.choseMapID!=map.id){
-                this.choseMapID = map.id;
-                this.updateCvsWorldBg(map.id);
-                this.popOption(evt,1);
-            }
-            else{
-                this.choseMapID = 0;
-                this.updateCvsWorldBg();
-                this.onClickCloseOptionPop();
-            }
-        },
-        onClickCvsWorldBg(){ // 点击【世界地图背景画板】
-            // this.choseMapID = 0;
-            // this.updateCvsWorldBg();
-        },
-        onClickCloseOptionPop(){ // 点击【关闭选项弹窗】
-            this.optionPopTitle = '';
-            this.options = [];
-            this.popPosition = [0,0,];
-            this.optionPopNeedFlip = false;
-        },
-        onClickCell(evt,cell,index){ // 点击【格子】
-            evt.stopPropagation();
-            evt.preventDefault();
-            this.choseCell = cell;
-            if(cell.type>=50||cell.type==0){
-                this.popOption(evt,2);
-            }
-            else{
-                this.onClickCloseOptionPop();
-            }
-        },
-        onClickRoleIcon(evt,role){ // 点击【人物图标】
-            evt.stopPropagation();
-            evt.preventDefault();
-            this.choseRole = cloneObj(role);
-            this.popOption(evt,3);
-        },
-        onClickViewRoles(){ // 点击【显示人物图标】按钮
-            this.showRoleCells = !this.showRoleCells;
-            if(this.showRoleCells){
-                this.$nextTick(_=>{
-                    this.printMapRoleAvatars();
-                });
-            }
-        },
-
-        onClickIconMe(){ // 点击【图标-我】 TODO
-            console.log(this.me);
-        },
-        onClickOption(evt,option,data){ // 点击选项 TODO
-            evt.stopPropagation();
-            evt.preventDefault();
-            switch(option.id){
-                case 1: // 查看地图
-                    this.renderMap(data.mapID);
-                    this.onClickCloseOptionPop();
-                    this.onClickCloseWorldMap();
-                break;
-
-                case 101: // 格子-查看
-                    this.onClickCloseOptionPop();
-                break;
-                case 102: // 格子-建造
-                    this.onClickCloseOptionPop();
-                break;
-
-                case 201: // 人物-查看
-                    this.onClickCloseOptionPop();
-                    console.log(this.choseRole);
-                break;
-                case 202: // 人物-交流
-                    this.onClickCloseOptionPop();
-                break;
-                case 203: // 人物-偷袭
-                    this.onClickCloseOptionPop();
-                break;
-                case 204: // 人物-决斗
-                    this.onClickCloseOptionPop();
-                break;
-            }
+            option.callback&&option.callback();
+            this.onClickCloseOptionPop();
         },
 
         renderMap(mapID){ // 渲染地图
@@ -332,6 +393,11 @@ export default {
                 this.printAvatar(`cvsIconMe${role.id}`,role.avatarData);
             }
         },
+
+        onClickTest(){ // 点击【测试】按钮
+            this.passTime();
+            this.saveGame();
+        },
     },
     components:{
 
@@ -353,6 +419,42 @@ export default {
         background-color: #343434;
         width: 100%;
         height: 100%;
+    }
+    /* 时间面板 */
+    .time-board{
+        position: absolute;
+        left: 40px;
+        top: 0;
+        width: 160px;
+        height: 85px;
+        padding: 10px;
+        line-height: 30px;
+        color: #c7d047;
+        font-size: 20px;
+        text-shadow: 0 0 12px #000;
+    }
+    .time-board b{
+        font-size: 40px;
+        text-shadow: 0 0 8px #000;
+    }
+    /* 头部面板 */
+    .header-board{
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        margin: 0 auto;
+        color: #fff;
+        height: 50px;
+        text-align: center;
+        padding-top: 10px;
+        letter-spacing: 10px;
+        line-height: 50px;
+        font-size: 20px;
+        text-shadow: 0 0 12px #000;
+    }
+    .header-board h1{
+
     }
     /* 地图 */
     .map-wrap{
@@ -671,6 +773,15 @@ export default {
     }
     .option-pop .btn-option:hover{
         background-color: OrangeRed;
+    }
+    /* test */
+    .btn-test{
+        position: absolute;
+        right: 0;
+        top: 20px;
+        width: 50px;
+        height: 20px;
+        line-height: 20px;
     }
 
 </style>

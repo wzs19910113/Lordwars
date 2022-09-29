@@ -1,5 +1,5 @@
 module.exports = {
-	DEBUG: 0,
+	DEBUG: 1,
 	CACHE: {
 		save1: 'D1',
 		savedAvatars: 'SA',
@@ -775,7 +775,7 @@ map: {
 	position: [x,y],
 	size: 175,
 	color: {r:0,g:0,b:0,},
-	roads: [2,7,13,],
+	roads: [[2,100],[7,150],[13,94],], // [[mapID,距离],……]
 	level: 2, // 等级(1-5)
 	cells: [{
 		price: 1300,

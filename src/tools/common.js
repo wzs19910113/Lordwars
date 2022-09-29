@@ -663,11 +663,11 @@ export function genRandomPerson({gender,age,level,weaponID,viceWeaponID,skillIDs
     abilities[3] = exptr(0,750,20)+r(5,250); // 智力
     abilities[4] = exptr(0,750,20)+r(1,250); // 经验
     let personalities = [];
-    personalities[0] = r(0,100); // 无欲度
-    personalities[1] = r(0,100); // 善良度
-    personalities[2] = r(0,100); // 自信度
+    personalities[0] = 50+(r(0,1)?1:-1)*exptr(0,50,10); // 无欲度
+    personalities[1] = 50+(r(0,1)?1:-1)*exptr(0,50,10); // 善良度
+    personalities[2] = 50+(r(0,1)?1:-1)*exptr(0,50,10); // 自信度
     personalities[3] = r((abilities[3]/500)*50,100); // 冷静度
-    personalities[4] = r(0,100); // 开朗度
+    personalities[4] = 50+(r(0,1)?1:-1)*exptr(0,50,10); // 开朗度
     /* 根据性别修正数据 */
     if(gender==2){ // 女
         hp = Math.round(hp*.85);

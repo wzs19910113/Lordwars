@@ -26,7 +26,11 @@ export default {
             state: 1, // 状态[1:初始界面|2:|3:]
             showResumeBtn: false,
 
-            game: {}, // 游戏数据
+            game: { // 游戏数据
+                time: [2500,1,1,6], // 年月日时
+                allMaps: [],
+                allRoles: [],
+            },
 
             loading: false,
         };
@@ -59,11 +63,6 @@ export default {
         initGameData(){ // 初始化游戏数据
             this.loading = true;
             this.$nextTick(_=>{
-                this.game = {
-                    time: [2500,1,1,6], // 年月日时
-                    allMaps: [],
-                    allRoles: [],
-                };
                 this.initAllMaps();
                 this.initAllRoles(this.game.allMaps);
                 // 游戏数据完成，开始存储
@@ -168,18 +167,20 @@ export default {
             }
             // 初始化通路
             let fromMap, toMap;
+            let buildARoad = (fromMap,toMap,distanceThreshold) =>{
+                let distance = getDistance(fromMap.position[0],fromMap.position[1],toMap.position[0],toMap.position[1]);
+                if(distance<distanceThreshold){
+                    fromMap.roads.push([toMap.id,distance]);
+                    if(arrContains(toMap.roads,fromMap.id)==-1){
+                        toMap.roads.push([fromMap.id,distance]);
+                    }
+                }
+            };
             for(let i=0;i<largeMapCount;i++){
                 fromMap = this.game.allMaps[i];
                 for(let j=0;j<largeMapCount;j++){
                     if(i!=j){
-                        toMap = this.game.allMaps[j];
-                        let distance = getDistance(fromMap.position[0],fromMap.position[1],toMap.position[0],toMap.position[1]);
-                        if(distance<400){
-                            fromMap.roads.push(toMap.id);
-                            if(arrContains(toMap.roads,fromMap.id)==-1){
-                                toMap.roads.push(fromMap.id);
-                            }
-                        }
+                        buildARoad(fromMap,this.game.allMaps[j],400);
                     }
                 }
             }
@@ -187,28 +188,18 @@ export default {
                 fromMap = this.game.allMaps[i];
                 for(let j=0;j<this.game.allMaps.length;j++){
                     if(i!=j){
-                        toMap = this.game.allMaps[j];
-                        let distance = getDistance(fromMap.position[0],fromMap.position[1],toMap.position[0],toMap.position[1]);
-                        if(distance<Math.sqrt(fromMap.size)*8){
-                            fromMap.roads.push(toMap.id);
-                            if(arrContains(toMap.roads,fromMap.id)==-1){
-                                toMap.roads.push(fromMap.id);
-                            }
-                        }
+                        buildARoad(fromMap,this.game.allMaps[j],Math.sqrt(fromMap.size)*8);
                     }
                 }
             }
             for(let i=0;i<this.game.allMaps.length;i++){
                 fromMap = this.game.allMaps[i];
                 if(fromMap.roads.length<=0){
-                    let toMapID = r(1,this.game.allMaps.length);
-                    while(toMapID==fromMap.id){
-                        toMapID = r(1,this.game.allMaps.length);
+                    let toMap = this.game.allMaps[r(0,this.game.allMaps.length-1)];
+                    while(toMap.id==fromMap.id){
+                        toMap = this.game.allMaps[r(0,this.game.allMaps.length-1)];
                     }
-                    fromMap.roads.push(toMapID);
-                    if(arrContains(toMap.roads,fromMap.id)==-1){
-                        toMap.roads.push(fromMap.id);
-                    }
+                    buildARoad(fromMap,toMap,Infinity);
                 }
             }
             // 初始化格子
@@ -314,7 +305,8 @@ export default {
             for(let i=0;i<roleCount;i++){
                 let newRole = common.genRandomPerson({});
                 let avatarData = genRandomAvatar(newRole);
-                let map = maps[r(0,maps.length-1)];
+                let townMaps = getMatchList(maps,[['type',0]]);
+                let map = townMaps[r(0,townMaps.length-1)];
                 newRole.avatarData = avatarData;
                 newRole.mapID = map.id;
                 newRole.cellIndex = r(0,map.cells.length-1);
