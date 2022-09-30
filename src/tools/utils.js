@@ -50,43 +50,62 @@ export function bulbsort(arr,valname='val',type=1){
 }
 /* 最短路径算法 */
 export function dijkstra(graph,src) {
-    let dist = []; //dist 用来存储路径值(权)
-    let visited = []; //visited  用来存储顶点是否访问
+    let paths = []; // 路径
+    let lastNode = []; // 最后一个节点
+    let dist = []; // dist 用来存储路径值(权)
+    let visited = []; // visited 用来存储顶点是否访问
     const length = graph.length;
     const INF = Number.MAX_SAFE_INTEGER;
-    //初始化dist 和 visited 列表
+    // 初始化dist 和 visited 列表
     for(let i=0;i<length;i++){
         dist[i] = INF;
+        lastNode[i] = '';
         visited[i] = false;
     }
-    //选择第一个节点 进入循环
+    // 选择第一个节点 进入循环
     dist[src] = 0;
     let i = 0;
     while(i<length-1){
-        visited[src] = true; //此时对应节点 已经访问设置 true
-        let currentEdges = graph[src]; //找到对应节点 的 对应的边集合
-        for(let i=0;i<currentEdges.length;i++){ //遍历边,更新路径
-            if(currentEdges[i]!==0){ //存在边 , 找到最短路径
-                if(dist[src]+currentEdges[i]<dist[i]){ //符合上面条件 更新dist[i] 保证dist[i]是每次探路的最短路径
-                    dist[i] = currentEdges[i]+dist[src];
+        if(src>=0){
+            visited[src] = true; // 此时对应节点 已经访问设置 true
+            let currentEdges = graph[src]; // 找到对应节点 的 对应的边集合
+            for(let i=0;i<currentEdges.length;i++){ // 遍历边,更新路径
+                if(currentEdges[i]!==0){ // 存在边 , 找到最短路径
+                    if(dist[src]+currentEdges[i]<dist[i]){ // 符合上面条件 更新dist[i] 保证dist[i]是每次探路的最短路径
+                        dist[i] = currentEdges[i]+dist[src];
+                        lastNode[i] = src;
+                    }
                 }
             }
-        }
-        //迪杰斯特拉的核心算法 , 找到最短路径 重新探路.
-        //选择最短路径
-        let min = INF;
-        let minIndex = -2;
-        for(leti=0;i<dist.length;i++) {
-            if(!visited[i]&&dist[i]<min) {
-                min = dist[i];
-                minIndex = i;
+            // 迪杰斯特拉的核心算法 , 找到最短路径 重新探路.
+            // 选择最短路径
+            let min = INF;
+            let minIndex = -2;
+            for(let i=0;i<dist.length;i++) {
+                if(!visited[i]&&dist[i]<min) {
+                    min = dist[i];
+                    minIndex = i;
+                }
             }
-        }
 
-        src = minIndex;
+            src = minIndex;
+        }
         i++;
     }
-    return dist;
+    // 计算 paths
+    for(let j=0;j<length;j++){
+        let jpaths = [];
+        let tNo = lastNode[j];
+        let k = 0;
+        while((!isNaN(tNo)&&tNo!=src)&&k++<1000){
+            jpaths.push(tNo);
+            tNo = lastNode[tNo];
+        }
+        jpaths.reverse().shift();
+        jpaths.push(j);
+        paths.push(jpaths);
+    }
+    return {dist,paths};
 }
 
 /* 随机排序 */

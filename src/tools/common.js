@@ -656,6 +656,9 @@ export function genRandomPerson({gender,age,level,weaponID,viceWeaponID,skillIDs
     let fixawareness = r(14,28)*50;
     let imm = age-14;
     let baseAttack;
+
+    let balance = 1000+exptr(0,50000,20)*10; // 余额
+
     let abilities = [];
     abilities[0] = exptr(0,750,20)+r(50,250); // 力量
     abilities[1] = exptr(0,750,20)+r(50,250); // 精准
@@ -792,6 +795,21 @@ export function genRandomPerson({gender,age,level,weaponID,viceWeaponID,skillIDs
         imm,
         baseAttack,
         fixawareness,
+
+        balance,
+        passed: false,
+        clubID: 0,
+        press: 0,
+        strikingLevel: 100,
+        privateOrders: [],
+        publicOrders: [],
+        job: {
+            cover: [],
+            authLevel: 0,
+            mapID: 0,
+        },
+        mapID: 0,
+        cellIndex: 0,
 
         personalities,
         abilities,

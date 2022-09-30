@@ -96,6 +96,9 @@ export default {
             let largeMapCount = r(7,8);
             let smallMapCount = 30-largeMapCount/2;
             let wildMapCount = 50-smallMapCount;
+            // let largeMapCount = 3;
+            // let smallMapCount = 2-largeMapCount/2;
+            // let wildMapCount = 3-smallMapCount;
             let getDistance = (x1,y1,x2,y2) =>{
                 return Math.abs(x1-x2)+Math.abs(y1-y2);
             }
@@ -195,11 +198,19 @@ export default {
             for(let i=0;i<this.game.allMaps.length;i++){
                 fromMap = this.game.allMaps[i];
                 if(fromMap.roads.length<=0){
-                    let toMap = this.game.allMaps[r(0,this.game.allMaps.length-1)];
-                    while(toMap.id==fromMap.id){
-                        toMap = this.game.allMaps[r(0,this.game.allMaps.length-1)];
+                    let minDistance = Infinity;
+                    let closestLargeMap;
+                    for(let j=0;j<largeMapCount;j++){
+                        let toMap = this.game.allMaps[j];
+                        let distance = getDistance(fromMap.position[0],fromMap.position[1],toMap.position[0],toMap.position[1]);
+                        if(distance<minDistance&&toMap.id!=fromMap.id){
+                            minDistance = distance;
+                            closestLargeMap = toMap;
+                        }
                     }
-                    buildARoad(fromMap,toMap,Infinity);
+                    if(closestLargeMap){
+                        buildARoad(fromMap,closestLargeMap,Infinity);
+                    }
                 }
             }
             // 初始化格子
@@ -302,6 +313,7 @@ export default {
         },
         initAllRoles(maps){ // 初始化人物数据
             let roleCount = r(295,305);
+            // let roleCount = 15;
             for(let i=0;i<roleCount;i++){
                 let newRole = common.genRandomPerson({});
                 let avatarData = genRandomAvatar(newRole);

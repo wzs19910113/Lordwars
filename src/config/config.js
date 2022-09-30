@@ -702,9 +702,9 @@ person:{
 	viceWeaponID: 0, // 副手武器 ID
 	skillIDs: [1,], // 技能 ID 数组
 
+	balance: 1200, // 余额
 	passed: false, // 已辞世
 	clubID: 4, // 所属公会 ID（0：无公会）
-	impaction: [0,0], // 社会影响力 [正面影响，负面影响]
 	press: 0, // 压力百分比（0-无限）
 	strikingLevel: 50, // 地图存在感百分比（0-100）
 

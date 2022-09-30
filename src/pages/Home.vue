@@ -242,7 +242,7 @@ export default {
                 IDB.initIDB({callback: event=>{
                     IDB.readIDB({
                         success: game=>{
-                            console.log(game);
+                            console.log(`初始化`,game);
                             this.game = game;
                             this.state = 1;
                         },

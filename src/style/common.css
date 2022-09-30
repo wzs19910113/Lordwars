@@ -11,6 +11,7 @@
     -webkit-text-stroke-width: 0.2px;
     -moz-osx-font-smoothing: grayscale;
 }
+/* loading */
 .loading{
     position: fixed;
     left: 0;
@@ -21,7 +22,7 @@
     height: 100%;
     margin: 0;
     background-color: rgba(0,0,0,.3);
-    z-index: 20000;
+    z-index: 20005;
 }
 .loading .iconfont{
     position: absolute;
@@ -47,6 +48,7 @@
         transform: rotateZ(360deg);
     }
 }
+/* 按钮 */
 .btn{
     display: block;
     cursor: pointer;
@@ -60,4 +62,98 @@
 .btn:hover{
     opacity: .8;
     transition: all .15s;
+}
+/* alert弹窗 */
+.alert-pop{
+    position: fixed;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    top: -67px;
+    padding: 10px;
+    margin: 0 auto;
+    left: 0;
+    right: 0;
+    width: auto;
+    max-width: 50%;
+    height: auto;
+    line-height: 18px;
+    background-color: #131313;
+    color: #fff;
+    border: 1px solid #fff;
+    text-align: center;
+    z-index: 20004;
+    font-size: 16px;
+    box-shadow: 0 0 10px 5px #131313;
+    animation: alertpop 4s ease-in-out forwards;
+}
+@keyframes alertpop {
+    4%{
+        transform: translateY(500%);
+    }
+    6%{
+        transform: translateY(400%);
+    }
+    98%{
+        transform: translateY(400%);
+    }
+    100%{
+        transform: translateY(0);
+    }
+}
+/* confirm弹窗 */
+.confirm-pop{
+    position: fixed;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: auto;
+    margin: 0 auto;
+    max-width: 50%;
+    height: auto;
+    z-index: 20003;
+    animation: confirmpop .25s ease-in-out forwards;
+}
+@keyframes confirmpop {
+    80%{
+        transform: translateY(100%);
+    }
+    100%{
+        transform: translateY(50%);
+    }
+}
+.confirm-pop .confirm-pop-title{
+    width: 100%;
+    min-height: 36px;
+    padding: 10px;
+    border: 1px solid #fff;
+    line-height: 18px;
+    background-color: #131313;
+    color: #fff;
+    font-size: 16px;
+    text-align: center;
+    box-shadow: 0 0 10px 5px #131313;
+}
+.confirm-pop .btn-cancel,
+.confirm-pop .btn-confirm{
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    height: 40px;
+    line-height: 40px;
+    width: 55px;
+    margin: 0;
+    border: 1px solid #131313;
+    text-align: center;
+}
+.confirm-pop .btn-cancel{
+    right: -125px;
+}
+.confirm-pop .btn-confirm{
+    right: -65px;
+    background-color: OrangeRed;
+    color: #fff;
 }

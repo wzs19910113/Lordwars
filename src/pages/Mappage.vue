@@ -1,14 +1,26 @@
 <template>
     <div class="mappage" @click="onClickCloseOptionPop()">
-        <div class="map" v-if="curMap">
-            <a class="btn btn-open-worldmap" @click="onClickOpenWorldMap">世界地图</a>
-            <div class="time-board">
+        <!-- 时间 -->
+        <a class="btn time-board" :class="this.gameTimeAcc>0?'timer-elapsing':''" @click="onClickTimer">
+            <span class="btn-timer" :class="this.gameTimeAcc>0?'btn-timer-elapsing':'btn-timer-paused'">
+                <i class="iconfont">&#xe638;</i>
+                <span class="timer-stat">{{this.gameTimeAcc>0?'时光流逝':'暂停'}}</span>
+            </span>
+            <span class="time">
                 <small>{{game.time[0]}}年 {{game.time[1]}}月 {{game.time[2]}}日</small>
                 <br/>
                 <b>{{game.time[3]}}:00</b>
-            </div>
+            </span>
+        </a>
+        <!-- 主界面 -->
+        <div class="map" v-if="curMap">
+            <a class="btn btn-open-worldmap" @click="onClickOpenWorldMap">世界地图</a>
             <div class="header-board">
                 <h1>{{curMap.name}}</h1>
+            </div>
+            <div class="wallet-board">
+                <h1>$</h1>
+                <b v-html="common.moneyFormat(me.balance)"></b>
             </div>
             <div class="map-wrap">
                 <div class="cells-wrap">
@@ -48,11 +60,20 @@
         </div>
         <!-- 选项弹窗 -->
         <div class="option-pop" v-if="optionPopTitle" ref="options" :class="`${optionPopNeedFlip?'option-pop-flip':''}`" :style="{left:popPosition[0]+'px',top:popPosition[1]+'px'}">
-            <h4 class="option-pop-title">{{optionPopTitle}}：</h4>
+            <h4 class="option-pop-title">{{optionPopTitle}}</h4>
             <div class="option-wrap">
-                <a class="btn btn-option" v-for="(option,index) in options" @click="onClickOption($event,option)">{{option.name}}</a>
+                <a class="btn btn-option" v-for="(option,index) in options" v-if="!option.hide" @click="onClickOption($event,option)">{{option.name}}</a>
             </div>
         </div>
+        <!-- alert弹窗 -->
+        <a class="btn alert-pop" v-if="alertMsg" @click="onClickAlert" v-html="alertMsg">
+        </a>
+        <!-- confirm弹窗 -->
+        <a class="confirm-pop" v-if="confirmMsg">
+            <div class="confirm-pop-title" v-html="confirmMsg"></div>
+            <a class="btn btn-confirm" @click="onClickConfirm">确认</a>
+            <a class="btn btn-cancel" @click="onClickCancelConfirm">取消</a>
+        </a>
         <!-- 测试按钮 -->
         <a class="btn btn-test" @click="onClickTest" v-if="DEBUG">TEST</a>
     </div>
@@ -60,7 +81,7 @@
 
 <script>
 import Scenepage from './Scenepage';
-import { query, r, rr, bulbsort, shuffle, getParentNode, getMatchList, removeFromList, arrContains, removeFromNumberList, cloneObj, } from '../tools/utils';
+import { query, r, rr, dijkstra, bulbsort, shuffle, getParentNode, getMatchList, removeFromList, arrContains, removeFromNumberList, cloneObj, } from '../tools/utils';
 import * as common from '../tools/common';
 import * as ai from '../tools/ai';
 import { genRandomAvatar, paintAvatar, genForeHairData, genBangsData, genBackHairData, formatPx, } from '../tools/avatar';
@@ -93,13 +114,20 @@ export default {
 
             ctxWorldBg: null,
 
+            confirmMsg: '', // confirm信息
+            alertMsg: '', // alert信息
+
+            gameItv: null, // 游戏计时器
+            gameTime: 0, // 一小时内的游戏时间
+            gameTimeAcc: 0, // 游戏时间增量
+
             DEBUG,
             CONFIG,
             common,
         };
     },
     destroyed(){
-        this.itv&&clearInterval(this.itv);
+        this.gameItv&&clearInterval(this.gameItv);
     },
     created(){
         this.init();
@@ -113,6 +141,27 @@ export default {
                 this.printAvatar('cvsIconMe',this.me.avatarData);
             });
             this.renderMap(this.me.mapID);
+            this.initGameItv();
+            this.initKeyboard();
+        },
+        initKeyboard(){ // 初始化键盘事件
+            if(!document.onkeyup){
+                document.onkeyup = event =>{
+                    let e = event||window.event||arguments.callee.caller.arguments[0];
+                    if(e&&(e.keyCode==32)){ // 按 回车 或 空格
+                        this.onKeyupSpace();
+                    }
+                };
+            }
+        },
+        initGameItv(){ // 启动游戏计时器
+            this.gameItv = setInterval(_=>{
+                this.gameTime += this.gameTimeAcc;
+                if(this.gameTime>=1000){
+                    this.gameTime = 0;
+                    this.everyHour();
+                }
+            },100);
         },
         printAvatar(ref,data,showBg=0){
             let ele = this.$refs[ref];
@@ -124,7 +173,7 @@ export default {
             ctx.height = ele.clientHeight;
             paintAvatar(ctx,data,ele.clientWidth,ele.clientHeight,0);
         },
-        updateCvsWorldBg(mapID){ // 同步世界地图背景画板
+        updateCvsWorldBg({mapID,indexPath}={}){ // 同步世界地图背景画板
             this.ctxWorldBg = this.$refs.cvsWorldBg.getContext(`2d`);
             this.ctxWorldBg.width = 800;
             this.ctxWorldBg.height = 800;
@@ -133,8 +182,8 @@ export default {
             this.ctxWorldBg.lineCap = 'round';
             this.ctxWorldBg.lineWidth = 5;
             this.ctxWorldBg.strokeStyle = `rgba(205,205,205,.4)`;
-            if(mapID){
-                this.ctxWorldBg.strokeStyle = `rgba(105,105,105,.4)`;
+            if(mapID||indexPath){
+                this.ctxWorldBg.strokeStyle = `rgba(105,105,105,.1)`;
             }
             let fromMap,toMap;
             for(let i=0;i<this.game.allMaps.length;i++){
@@ -150,11 +199,11 @@ export default {
             }
             this.ctxWorldBg.stroke();
             this.ctxWorldBg.closePath();
-            if(mapID){
+            if(mapID){ // 选中地图模式
                 this.ctxWorldBg.beginPath();
                 fromMap = getMatchList(this.game.allMaps,[['id',mapID]])[0];
                 let roads = fromMap.roads;
-                this.ctxWorldBg.strokeStyle = `rgba(55,190,234,1)`;
+                this.ctxWorldBg.strokeStyle = `rgba(59,190,234,1)`;
                 for(let i=0;i<roads.length;i++){
                     let toMapID = roads[i][0];
                     toMap = getMatchList(this.game.allMaps,[['id',toMapID]])[0];
@@ -166,9 +215,24 @@ export default {
                 this.ctxWorldBg.stroke();
                 this.ctxWorldBg.closePath();
             }
+            if(indexPath){ // 显示路径模式
+                this.ctxWorldBg.beginPath();
+                this.ctxWorldBg.strokeStyle = `rgba(225,53,6,1)`;
+                let fromMap, toMap;
+                for(let i=0;i<indexPath.length;i++){
+                    fromMap = this.game.allMaps[indexPath[i]];
+                    toMap = this.game.allMaps[indexPath[i+1]];
+                    if(fromMap&&toMap){
+                        this.ctxWorldBg.moveTo(fromMap.position[0],fromMap.position[1]);
+                        this.ctxWorldBg.lineTo(toMap.position[0],toMap.position[1]);
+                    }
+                }
+                this.ctxWorldBg.stroke();
+                this.ctxWorldBg.closePath();
+            }
             // this.printAvatar('cvsWorldLoc',this.me.avatarData);
         },
-        passTime(){ // 经历时间
+        everyHour(){ // 每过一小时
             let time = this.game.time;
             let calcDaycount = _ =>{
                 let mdMap = [31,28,31,30,31,30,31,31,30,31,30,31,];
@@ -192,6 +256,20 @@ export default {
             }
             this.$forceUpdate();
         },
+        _alert(msg){ // alert弹窗
+            this.alertMsg = '';
+            this.$nextTick(_=>{
+                this.alertMsg = msg;
+            })
+        },
+        _confirm(msg,onClickConfirm){
+            this.confirmMsg = '';
+            this.alertMsg = '';
+            this.$nextTick(_=>{
+                this.confirmMsg = msg;
+                this.onClickConfirm = onClickConfirm;
+            })
+        },
 
         calcMapClickable(){ // 判断是否可交互
             return this.curMap.id==this.me.mapID;
@@ -202,21 +280,46 @@ export default {
             return res;
         },
 
+        onKeyupSpace(){ // 按下【空格】事件
+            this.onClickTimer();
+        },
+
+        onClickAlert(){ // 点击【alert】按钮
+            this.pauseTime();
+            this.alertMsg = '';
+        },
+        onClickConfirm(){ // 点击弹窗【确认】按钮
+            this.pauseTime();
+        },
+        onClickCancelConfirm(){ // 点击弹窗【取消确认】按钮
+            this.pauseTime();
+            this.confirmMsg = '';
+        },
+        onClickTimer(){ // 点击【时间】按钮
+            if(this.gameTimeAcc>0){
+                this.pauseTime();
+            }
+            else{
+                this.resumeTime();
+            }
+        },
         onClickOpenWorldMap(){ // 点击【打开世界地图】按钮
+            this.pauseTime();
             this.showWorldMap = true;
             this.$nextTick(_=>{
                 this.updateCvsWorldBg();
             });
         },
         onClickCloseWorldMap(){ // 点击【关闭世界地图】按钮
+            this.pauseTime();
             this.choseMapID = 0;
             this.showWorldMap = false;
         },
         onClickCvsWorldBg(){ // 点击【世界地图背景画板】
-            // this.choseMapID = 0;
-            // this.updateCvsWorldBg();
+            this.pauseTime();
         },
         onClickCloseOptionPop(){ // 点击【关闭选项弹窗】
+            this.pauseTime();
             this.optionPopTitle = '';
             this.options = [];
             this.popPosition = [0,0,];
@@ -226,6 +329,7 @@ export default {
             if(!this.calcMapClickable()){
                 return ;
             }
+            this.pauseTime();
             this.showRoleCells = !this.showRoleCells;
             if(this.showRoleCells){
                 this.$nextTick(_=>{
@@ -235,12 +339,14 @@ export default {
         },
 
         onClickIconMe(evt){ // 点击【图标-我】 TODO
+            this.pauseTime();
             this.popOption(evt,1);
         },
         onClickCell(evt,cell,index){ // 点击【格子】 TODO
             if(!this.calcMapClickable()){
                 return ;
             }
+            this.pauseTime();
             this.choseCell = cell;
             if(cell.type>=50||cell.type==0){
                 this.popOption(evt,2);
@@ -253,13 +359,16 @@ export default {
             if(!this.calcMapClickable()){
                 return ;
             }
+            this.pauseTime();
             this.choseRole = cloneObj(role);
             this.popOption(evt,3);
         },
-        onClickMap(evt,map){ // 点击【世界地图上的地图】 TODO
+        onClickMap(evt,map){ // 点击【世界地图上的地图】
+            this.pauseTime();
             if(this.choseMapID!=map.id){
                 this.choseMapID = map.id;
-                this.updateCvsWorldBg(map.id);
+                this.onClickCancelConfirm();
+                this.updateCvsWorldBg({mapID:map.id});
                 this.popOption(evt,4);
             }
             else{
@@ -268,7 +377,25 @@ export default {
                 this.onClickCloseOptionPop();
             }
         },
+        onClickOption(evt,option){ // 点击选项
+            evt.stopPropagation();
+            evt.preventDefault();
+            this.pauseTime();
+            option.callback&&option.callback();
+            this.onClickCloseOptionPop();
+        },
 
+        getDistance(fromMap,toMap){ // 获取与相邻地图的距离
+            let res = -1;
+            let roads = fromMap.roads;
+            for(let road of roads){
+                if(road[0]==toMap.id){
+                    res = road[1];
+                    break;
+                }
+            }
+            return res;
+        },
         popOption(evt,type){ // 弹出选项弹窗 TODO
             evt.stopPropagation();
             evt.preventDefault();
@@ -277,7 +404,7 @@ export default {
             let title;
             switch(type){
                 case 1: // 我
-                    title = `${this.me.name}`;
+                    title = `${this.me.name}：`;
                     options = [
                         { id:101, name:'我的位置', callback: _=>{
                             let curMap = getMatchList(this.game.allMaps,[['id',this.me.mapID]])[0];
@@ -295,7 +422,7 @@ export default {
                     ];
                 break;
                 case 2: // 格子
-                    title = `${CONFIG.cellAllNameMap[this.choseCell.type]}`;
+                    title = `${CONFIG.cellAllNameMap[this.choseCell.type]}：`;
                     options = [
                         { id:201, name:'建造', callback: _=>{
                             console.log(`格子-建造`,title,this.choseCell);
@@ -306,7 +433,7 @@ export default {
                     ];
                 break;
                 case 3: // 人物图标
-                    title = `${this.choseRole.name}`;
+                    title = `${this.choseRole.name}：`;
                     options = [
                         { id:301, name:'闲聊', callback: _=>{
                             console.log(`人物-闲聊`,title,this.choseRole);
@@ -324,14 +451,58 @@ export default {
                 break;
                 case 4: // 世界地图
                     let toMap = getMatchList(this.game.allMaps,[['id',this.choseMapID]])[0];
-                    title = toMap.name;
+                    title = `${toMap.name}：`;
                     options = [
                         { id:401, name:'查看', callback: _=>{
                             this.renderMap(toMap.id);
                             this.onClickCloseWorldMap();
                         }},
-                        { id:402, name:'移动至此', callback: _=>{
-
+                        { id:402, name:'移动至此', hide:toMap.id==this.me.mapID, callback: _=>{
+                            let graph = [];
+                            let fromMapIndex = -1;
+                            let toMapIndex = -1;
+                            for(let i=0;i<this.game.allMaps.length;i++){
+                                if(this.game.allMaps[i].id==this.me.mapID){
+                                    fromMapIndex = i;
+                                }
+                                else if(this.game.allMaps[i].id==toMap.id){
+                                    toMapIndex = i;
+                                }
+                            }
+                            for(let x=0;x<this.game.allMaps.length;x++){
+                                let xMap = this.game.allMaps[x];
+                                let line = [];
+                                for(let y=0;y<this.game.allMaps.length;y++){
+                                    let distance = 0;
+                                    let yMap = this.game.allMaps[y];
+                                    for(let i=0;i<yMap.roads.length;i++){
+                                        if(yMap.roads[i][0]==xMap.id){
+                                            distance = yMap.roads[i][1];
+                                        }
+                                    }
+                                    line.push(distance);
+                                }
+                                graph.push(line);
+                            }
+                            let { paths } = dijkstra(graph,fromMapIndex);
+                            let indexPath = paths[toMapIndex];
+                            if(indexPath[0]==fromMapIndex){
+                                let meMap = getMatchList(this.game.allMaps,[['id',this.me.mapID]])[0];
+                                let isConnected = this.getDistance(meMap,toMap)!=-1;
+                                if(isConnected){
+                                    this.moveToMap(indexPath);
+                                }
+                                else{
+                                    this.updateCvsWorldBg({indexPath});
+                                    this._confirm(`确定按照此路线移动至「${toMap.name}」吗？`,_=>{
+                                        this.moveToMap(indexPath);
+                                        this.onClickCancelConfirm();
+                                    });
+                                }
+                            }
+                            else{
+                                this._alert(`无法抵达`);
+                            }
                         }},
                     ];
                 break;
@@ -342,21 +513,37 @@ export default {
             // 检查是否样式翻转
             this.$nextTick(_=>{
                 let optionEle = this.$refs.options;
-                let { offsetWidth: width, offsetHeight: height, } = optionEle;
-                let { clientWidth, clientHeight, } = document.body;
-                if((pageX+width)>clientWidth||(pageY+height)>clientHeight){
-                    this.optionPopNeedFlip = true;
-                }
-                else{
-                    this.optionPopNeedFlip = false;
+                if(optionEle){
+                    let { offsetWidth: width, offsetHeight: height, } = optionEle;
+                    let { clientWidth, clientHeight, } = document.body;
+                    if((pageX+width)>clientWidth||(pageY+height)>clientHeight){
+                        this.optionPopNeedFlip = true;
+                    }
+                    else{
+                        this.optionPopNeedFlip = false;
+                    }
                 }
             });
         },
-        onClickOption(evt,option){ // 点击选项
-            evt.stopPropagation();
-            evt.preventDefault();
-            option.callback&&option.callback();
-            this.onClickCloseOptionPop();
+        moveToMap(indexPath){ // 根据路径移动到地图
+            let newOrder = {
+                type: 1, // 移动到地图
+                indexPath: indexPath,
+            }
+            this.me.privateOrders.push(newOrder);
+            this.resumeTime();
+            // this.onClickCloseWorldMap();
+        },
+
+        resumeTime(){ // 时间流逝
+            this.onClickCancelConfirm();
+            this.onClickAlert();
+            this.$nextTick(_=>{
+                this.gameTimeAcc = 100;
+            });
+        },
+        pauseTime(){ // 时间暂停
+            this.gameTimeAcc = 0;
         },
 
         renderMap(mapID){ // 渲染地图
@@ -395,7 +582,7 @@ export default {
         },
 
         onClickTest(){ // 点击【测试】按钮
-            this.passTime();
+            this.everyHour();
             this.saveGame();
         },
     },
@@ -423,17 +610,76 @@ export default {
     /* 时间面板 */
     .time-board{
         position: absolute;
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
         left: 40px;
+        width: 220px;
+        height: 85px;
         top: 0;
+        margin: 0;
+        z-index: 1000;
+        background-color: rgba(255,255,255,.1);
+        border-bottom-right-radius: 30px;
+        animation: msflash 1s linear infinite;
+    }
+    .btn-timer{
+        display: block;
+        width: 85px;
+        height: 85px;
+        padding-top: 10px;
+        font-weight: bold;
+        text-align: center;
+        line-height: 85px;
+    }
+    .timer-elapsing{
+        background-image: linear-gradient(to right, rgba(255,255,255,0) 0, rgba(255,255,255,.5) 100%);
+    }
+    @keyframes msflash {
+        to{
+            background-position: -220px 0;
+        }
+    }
+    .btn-timer .iconfont{
+        display: block;
+        height: 40px;
+        line-height: 40px;
+        font-size: 30px;
+    }
+    .timer-stat{
+        height: 35px;
+        line-height: 35px;
+        display: block;
+        font-size: 17px;
+    }
+    .btn-timer-elapsing{
+        color: #fff;
+    }
+    .btn-timer-elapsing .iconfont{
+        animation: timer .5s linear infinite alternate;
+    }
+    @keyframes timer {
+        50%{
+            transform: translateY(8%);
+        }
+        100%{
+            transform: translateY(-8%);
+        }
+    }
+    .btn-timer-paused{
+        color: #ccc;
+    }
+    .time{
+        display: block;
         width: 160px;
         height: 85px;
         padding: 10px;
         line-height: 30px;
-        color: #c7d047;
+        color: #ccc;
         font-size: 20px;
         text-shadow: 0 0 12px #000;
     }
-    .time-board b{
+    .time b{
         font-size: 40px;
         text-shadow: 0 0 8px #000;
     }
@@ -445,6 +691,7 @@ export default {
         right: 0;
         margin: 0 auto;
         color: #fff;
+        width: 50%;
         height: 50px;
         text-align: center;
         padding-top: 10px;
@@ -455,6 +702,37 @@ export default {
     }
     .header-board h1{
 
+    }
+    /* 钱包面板 */
+    .wallet-board{
+        position: absolute;
+        left: 285px;
+        top: 10px;
+        width: 240px;
+        height: 40px;
+        line-height: 40px;
+        color: #c7d047;
+        /* border-left: 4px solid #c7d047; */
+        border-bottom: 4px double #fff;
+    }
+    .wallet-board h1{
+        position: absolute;
+        top: 20%;
+        left: 2%;
+        height: 40px;
+        line-height: 40px;
+        width: 20px;
+        font-size: 40px;
+        text-shadow: 0 0 12px #000;
+    }
+    .wallet-board b{
+        width: 100%;
+        height: 100%;
+        padding-left: 40px;
+        font-size: 30px;
+        display: inline-block;
+        white-space: nowrap;
+        word-break: keep-all;
     }
     /* 地图 */
     .map-wrap{
@@ -518,6 +796,7 @@ export default {
         margin: 0;
         width: 60px;
         height: 60px;
+        transition: .5s all;
         background-color: transparent;
         transform: translate(0,-55px);
     }
@@ -620,6 +899,9 @@ export default {
         transform: translate(-50%,-50%);
     }
     .worldmap-item h3{
+        display: flex;
+        justify-content: center;
+        align-items: center;
         font-size: 18px;
         line-height: 30px;
         white-space: nowrap;
@@ -666,6 +948,7 @@ export default {
         text-shadow: 0 0 10px #000;
         color: OrangeRed;
         z-index: 54;
+        transition: .5s all;
         animation: ani-cvs-world-loc .4s ease-in-out infinite alternate;
     }
     @keyframes ani-cvs-world-loc{
@@ -745,12 +1028,11 @@ export default {
         color: #aaa;
         font-size: 15px;
         font-weight: normal;
-        height: 20px;
         line-height: 20px;
         margin-bottom: 2px;
         background-image: linear-gradient(to right, #131313 0%, #131313 70%, rgba(255,255,255,0) 100%);
         width: auto;
-        padding: 0 6px;
+        padding: 4px 6px;
         text-shadow: 0 0 4px #000;
     }
     .option-pop .btn-option{
