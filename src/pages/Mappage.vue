@@ -1,7 +1,7 @@
 <template>
-    <div class="mappage" @click="onClickCloseOptionPop()">
+    <div class="mappage" :class="`${isNight()?'mappage-night':''}`" @click="onClickCloseOptionPop()">
         <!-- 时间 -->
-        <a class="btn time-board" :class="this.gameTimeAcc>0?'timer-elapsing':''" @click="onClickTimer">
+        <a class="btn time-board" :class="`${this.gameTimeAcc>0?'timer-elapsing':''}`" @click="onClickTimer">
             <span class="btn-timer" :class="this.gameTimeAcc>0?'btn-timer-elapsing':'btn-timer-paused'">
                 <i class="iconfont">&#xe638;</i>
                 <span class="timer-stat">{{this.gameTimeAcc>0?'时光流逝':'暂停'}}</span>
@@ -12,16 +12,17 @@
                 <b>{{game.time[3]}}:00</b>
             </span>
         </a>
+        <!-- 余额 -->
+        <div class="tag-board">
+            <h1>$</h1><b v-html="common.moneyFormat(me.balance)"></b>
+        </div>
         <!-- 主界面 -->
         <div class="map" v-if="curMap">
             <a class="btn btn-open-worldmap" @click="onClickOpenWorldMap">世界地图</a>
             <div class="header-board">
                 <h1>{{curMap.name}}</h1>
             </div>
-            <div class="wallet-board">
-                <h1>$</h1>
-                <b v-html="common.moneyFormat(me.balance)"></b>
-            </div>
+            <!-- 主界面-地面 -->
             <div class="map-wrap">
                 <div class="cells-wrap">
                     <a class="btn btn-cell" :class="calcCellClassName(cell)" @click="onClickCell($event,cell,index)" :style="{width:`${cellWidthPct}%`,height:`${cellHeightPct}%`,left:`${cell.x*cellWidthPct}%`,top:`${cell.y*cellHeightPct}%`}" v-for="(cell,index) in curMap.cells">
@@ -29,7 +30,7 @@
                     </a>
                 </div>
                 <div class="roles-cell" :style="{width:`${cellWidthPct}%`,left:`${cell.x*cellWidthPct}%`,top:`${cell.y*cellHeightPct+.5*cellHeightPct}%`}" v-show="showRoleCells&&calcMapClickable()" v-for="(cell,index) in curMap.cells">
-                    <a class="btn btn-role-icon" :style="{left:`calc( -30px + ${role.style.offsetX}% )`}" @click="onClickRoleIcon($event,role)" v-for="role in cell.roles">
+                    <a class="btn btn-role-icon" v-if="role.id!=me.id" :style="{left:`calc( -30px + ${role.style.offsetX}% )`}" @click="onClickRoleIcon($event,role,cell,index)" v-for="role in cell.roles">
                         <canvas class="cvs-icon-role" :ref="`cvsIconMe${role.id}`" width="58" height="60"></canvas>
                         <h5 class="cvs-role-name">{{role.name}}</h5>
                     </a>
@@ -39,23 +40,24 @@
                     <i class="iconfont" v-else>&#xe633;</i>
                 </a>
             </div>
+            <!-- 主界面-底部面板 -->
             <div class="bottom-board">
-                <a class="me" @click="onClickIconMe($event)">
-                    <canvas class="cvs-icon-me" ref="cvsIconMe" width="220" height="220"></canvas>
-                    <h4 class="name">{{me.name}}</h4>
+                <a class="bottom-role" @click="onClickIconCellRole($event,role)" v-for="(role,index) in cellRoles">
+                    <canvas class="cvs-icon-cellrole" :ref="`cvsIconCellRole${index}`" width="220" height="220"></canvas>
+                    <h4 class="name">{{role.name}}</h4>
                 </a>
             </div>
         </div>
         <!-- 世界地图 -->
-        <div class="worldmap" v-if="showWorldMap">
+        <div class="worldmap" v-show="showWorldMap">
             <a class="btn btn-close" @click="onClickCloseWorldMap">关闭</a>
             <div class="world-wrap">
                 <canvas class="cvs-world-bg" ref="cvsWorldBg" width="800" height="800" @click="onClickCvsWorldBg"></canvas>
                 <a class="btn worldmap-item" :class="`${map.type?'worldmap-item-wild':''} ${map.id==choseMapID?'worldmap-item-choose':''}`" @click="onClickMap($event,map)" v-for="map in game.allMaps" :style="{left:map.position[0]+'px',top:map.position[1]+'px',width:Math.sqrt(map.size)*5+'px',height:Math.sqrt(map.size)*5+'px',backgroundColor:`rgba(${map.color.r},${map.color.g},${map.color.b},.3)`,}">
                     <!-- <canvas class="cvs-world-loc" ref="cvsWorldLoc" v-if="me.mapID==map.id" width="50" height="50"></canvas> -->
-                    <i class="loc iconfont" v-if="me.mapID==map.id">&#xe647;</i>
                     <h3 class="worldmap-item-name">{{map.name}}</h3>
                 </a>
+                <i class="loc iconfont" :style="{left:meMap.position[0]+'px',top:meMap.position[1]+'px'}">&#xe647;</i>
             </div>
         </div>
         <!-- 选项弹窗 -->
@@ -81,7 +83,7 @@
 
 <script>
 import Scenepage from './Scenepage';
-import { query, r, rr, dijkstra, bulbsort, shuffle, getParentNode, getMatchList, removeFromList, arrContains, removeFromNumberList, cloneObj, } from '../tools/utils';
+import { query, r, rr, dijkstra, bulbsort, shuffle, getParentNode, getMatchList, filterList, removeFromList, arrContains, removeFromNumberList, cloneObj, } from '../tools/utils';
 import * as common from '../tools/common';
 import * as ai from '../tools/ai';
 import { genRandomAvatar, paintAvatar, genForeHairData, genBangsData, genBackHairData, formatPx, } from '../tools/avatar';
@@ -99,10 +101,12 @@ export default {
             cellWidthPct: 0, // 格子宽度像素百分比
             cellHeightPct: 0, // 格子高度像素百分比
             choseCellIndex: -1, // 选中的格子序号
+            cellRoles: [], // 选中的格子中的人物列表
             choseRole: null, // 选中的人物
             showRoleCells: true, // 地图上显示人物
 
             me: {},
+            meMap: {},
 
             showWorldMap: false,
             choseMapID: 0, // 世界地图选中的地图 ID
@@ -137,10 +141,8 @@ export default {
     methods: {
         init(){
             this.me = this.game.allRoles[0];
-            this.$nextTick(_=>{
-                this.printAvatar('cvsIconMe',this.me.avatarData);
-            });
             this.renderMap(this.me.mapID);
+            this.meMap = getMatchList(this.game.allMaps,[['id',this.me.mapID]])[0];
             this.initGameItv();
             this.initKeyboard();
         },
@@ -165,6 +167,9 @@ export default {
         },
         printAvatar(ref,data,showBg=0){
             let ele = this.$refs[ref];
+            if(!ele){
+                return;
+            }
             if(!ele.getContext){
                 ele = ele[0];
             }
@@ -232,14 +237,30 @@ export default {
             }
             // this.printAvatar('cvsWorldLoc',this.me.avatarData);
         },
+        isNight(){ // 判断当前是否为晚上
+            let hour = this.game.time[3];
+            return hour>=18||hour<=6;
+        },
+        adjustOrderList(role){ // 清理指令列表
+            let adjust = orderList =>{
+                let res;
+                let listFrags = [[],[],[],];
+                for(let order of orderList){
+                    listFrags[order.stat].push(order);
+                }
+                res = [...listFrags[0],];
+                return res;
+            }
+            role.privateOrders = adjust(role.privateOrders);
+            role.publicOrders = adjust(role.publicOrders);
+        },
         everyHour(){ // 每过一小时
             let time = this.game.time;
             let calcDaycount = _ =>{
-                let mdMap = [31,28,31,30,31,30,31,31,30,31,30,31,];
                 if(time[0]%4==0){ // 闰年
-                    mdMap[1] = 29;
+                    CONFIG.monthDayMap[1] = 29;
                 }
-                return mdMap[time[1]-1];
+                return CONFIG.monthDayMap[time[1]-1];
             }
             time[3] += 1;
             if(time[3]>23){ // 时
@@ -254,8 +275,48 @@ export default {
                     }
                 }
             }
+            // 每个人物执行命令
+            for(let role of this.game.allRoles){
+                let order = role.privateOrders[0];
+                if(order){
+                    if(order.type==1){ // 移动至地图
+                        this.moveToMapByOrder({role,order});
+                    }
+                }
+                // 清理指令列表
+                this.adjustOrderList(role);
+            }
             this.$forceUpdate();
         },
+        moveToMapByOrder({role,order}){ // 执行指令：移动至地图
+            let step = order.path[order.pathProgress];
+            let { map, cost, } = step;
+            if(role.balance>=cost){ // 移动
+                role.balance -= cost;
+                order.pathProgress += 1;
+                role.mapID = map.id;
+                role.cellIndex = r(0,map.cells.length-1);
+                if(role.id==this.me.id){
+                    this.meMap = map;
+                    this.renderMap(map.id);
+                }
+            }
+            else{
+                order.stat = 2;
+                if(role.id==this.me.id){
+                    this._alert(`旅途中断：金币不足以完成此次旅途！`);
+                    this.pauseTime();
+                }
+            }
+            if(order.pathProgress>=order.path.length){
+                order.stat = 1;
+                if(role.id==this.me.id){
+                    this._alert(`已到达「${map.name}」`);
+                    this.pauseTime();
+                }
+            }
+        },
+
         _alert(msg){ // alert弹窗
             this.alertMsg = '';
             this.$nextTick(_=>{
@@ -338,30 +399,50 @@ export default {
             }
         },
 
-        onClickIconMe(evt){ // 点击【图标-我】 TODO
+        onClickIconCellRole(evt,role){ // 点击【图标-底部人物】 TODO
             this.pauseTime();
-            this.popOption(evt,1);
+            if(role.id==this.me.id){ // 点击我
+                this.popOption(evt,1,role);
+            }
+            else{ // 点击其他人物
+                this.choseRole = role;
+                this.popOption(evt,3);
+            }
         },
-        onClickCell(evt,cell,index){ // 点击【格子】 TODO
+        onClickCell(evt,cell,index,hidePop){ // 点击【格子】 TODO
             if(!this.calcMapClickable()){
                 return ;
             }
             this.pauseTime();
             this.choseCell = cell;
-            if(cell.type>=50||cell.type==0){
-                this.popOption(evt,2);
-            }
-            else{
-                this.onClickCloseOptionPop();
+
+            // 同步格子人物列表
+            let cellRoles = filterList(this.game.allRoles,role=>{
+                return role.mapID==this.curMap.id&&role.cellIndex==index&&role.id!=this.me.id;
+            });
+            this.cellRoles = [this.me,...cellRoles];
+            this.$nextTick(_=>{
+                this.renderCellRoles();
+            });
+
+            // 选项弹窗
+            if(!hidePop){
+                if(cell.type>=50||cell.type==0){
+                    this.popOption(evt,2);
+                }
+                else{
+                    this.onClickCloseOptionPop();
+                }
             }
         },
-        onClickRoleIcon(evt,role){ // 点击【人物图标】 TODO
+        onClickRoleIcon(evt,role,cell,index){ // 点击【人物图标】 TODO
             if(!this.calcMapClickable()){
                 return ;
             }
             this.pauseTime();
             this.choseRole = cloneObj(role);
             this.popOption(evt,3);
+            this.onClickCell(evt,cell,index,1);
         },
         onClickMap(evt,map){ // 点击【世界地图上的地图】
             this.pauseTime();
@@ -396,15 +477,15 @@ export default {
             }
             return res;
         },
-        popOption(evt,type){ // 弹出选项弹窗 TODO
+        popOption(evt,type,data){ // 弹出选项弹窗 TODO
             evt.stopPropagation();
             evt.preventDefault();
             let { pageX, pageY, } = evt;
             let options = [];
             let title;
             switch(type){
-                case 1: // 我
-                    title = `${this.me.name}：`;
+                case 1: // 底部人物
+                    title = `${data.name}：`;
                     options = [
                         { id:101, name:'我的位置', callback: _=>{
                             let curMap = getMatchList(this.game.allMaps,[['id',this.me.mapID]])[0];
@@ -458,51 +539,7 @@ export default {
                             this.onClickCloseWorldMap();
                         }},
                         { id:402, name:'移动至此', hide:toMap.id==this.me.mapID, callback: _=>{
-                            let graph = [];
-                            let fromMapIndex = -1;
-                            let toMapIndex = -1;
-                            for(let i=0;i<this.game.allMaps.length;i++){
-                                if(this.game.allMaps[i].id==this.me.mapID){
-                                    fromMapIndex = i;
-                                }
-                                else if(this.game.allMaps[i].id==toMap.id){
-                                    toMapIndex = i;
-                                }
-                            }
-                            for(let x=0;x<this.game.allMaps.length;x++){
-                                let xMap = this.game.allMaps[x];
-                                let line = [];
-                                for(let y=0;y<this.game.allMaps.length;y++){
-                                    let distance = 0;
-                                    let yMap = this.game.allMaps[y];
-                                    for(let i=0;i<yMap.roads.length;i++){
-                                        if(yMap.roads[i][0]==xMap.id){
-                                            distance = yMap.roads[i][1];
-                                        }
-                                    }
-                                    line.push(distance);
-                                }
-                                graph.push(line);
-                            }
-                            let { paths } = dijkstra(graph,fromMapIndex);
-                            let indexPath = paths[toMapIndex];
-                            if(indexPath[0]==fromMapIndex){
-                                let meMap = getMatchList(this.game.allMaps,[['id',this.me.mapID]])[0];
-                                let isConnected = this.getDistance(meMap,toMap)!=-1;
-                                if(isConnected){
-                                    this.moveToMap(indexPath);
-                                }
-                                else{
-                                    this.updateCvsWorldBg({indexPath});
-                                    this._confirm(`确定按照此路线移动至「${toMap.name}」吗？`,_=>{
-                                        this.moveToMap(indexPath);
-                                        this.onClickCancelConfirm();
-                                    });
-                                }
-                            }
-                            else{
-                                this._alert(`无法抵达`);
-                            }
+                            this.onClickMoveToByPop(toMap);
                         }},
                     ];
                 break;
@@ -525,14 +562,101 @@ export default {
                 }
             });
         },
-        moveToMap(indexPath){ // 根据路径移动到地图
-            let newOrder = {
-                type: 1, // 移动到地图
-                indexPath: indexPath,
+        onClickMoveToByPop(toMap){ // 点击【弹窗选项：移动至此】按钮
+            let graph = [];
+            let fromMapIndex = -1;
+            let toMapIndex = -1;
+            for(let i=0;i<this.game.allMaps.length;i++){
+                if(this.game.allMaps[i].id==this.me.mapID){
+                    fromMapIndex = i;
+                }
+                else if(this.game.allMaps[i].id==toMap.id){
+                    toMapIndex = i;
+                }
             }
-            this.me.privateOrders.push(newOrder);
-            this.resumeTime();
-            // this.onClickCloseWorldMap();
+            for(let x=0;x<this.game.allMaps.length;x++){
+                let xMap = this.game.allMaps[x];
+                let line = [];
+                for(let y=0;y<this.game.allMaps.length;y++){
+                    let distance = 0;
+                    let yMap = this.game.allMaps[y];
+                    for(let i=0;i<yMap.roads.length;i++){
+                        if(yMap.roads[i][0]==xMap.id){
+                            distance = yMap.roads[i][1];
+                        }
+                    }
+                    line.push(distance);
+                }
+                graph.push(line);
+            }
+            let { paths } = dijkstra(graph,fromMapIndex);
+            let indexPath = paths[toMapIndex];
+            if(indexPath[0]==fromMapIndex){
+                let meMap = getMatchList(this.game.allMaps,[['id',this.me.mapID]])[0];
+                let isConnected = this.getDistance(meMap,toMap)!=-1;
+                if(isConnected){
+                    this.pushOrder({roleID:this.me.id,type:1,data:indexPath});
+                    this.resumeTime();
+                }
+                else{
+                    this.updateCvsWorldBg({indexPath});
+                    let { step, cost, } = this.predictPathCost(indexPath);
+                    this._confirm(`共需花费 ${cost} 金钱，${step} 个小时<br/>确定按照此路线移动至「${toMap.name}」吗？`,_=>{
+                        this.pushOrder({roleID:this.me.id,type:1,data:indexPath});
+                        this.onClickCancelConfirm();
+                        this.resumeTime();
+                    });
+                }
+            }
+            else{
+                this._alert(`无法抵达`);
+            }
+        },
+
+        predictPathCost(indexPath){ // 计算路径消耗 [3,1,5]
+            let step = 0, cost = 0;
+            let path = [];
+            for(let i=1;i<indexPath.length;i++){
+                let fromMap = this.game.allMaps[indexPath[i-1]];
+                let toMap = this.game.allMaps[indexPath[i]];
+                let distance = this.getDistance(fromMap,toMap);
+                cost += Math.ceil(distance/5);
+                step += 1;
+            }
+            return { step, cost, };
+        },
+        pushOrder({roleID,isPublic,type,data}){ // 添加指令
+            let role = getMatchList(this.game.allRoles,[['id',roleID]])[0];
+            if(role){
+                let newOrder = {};
+                if(type==1){ // 添加【按照路径移动到地图】指令，data=[3,1,5,]
+                    let path = [];
+                    for(let i=1;i<data.length;i++){
+                        let { cost } = this.predictPathCost([data[i-1],data[i]]);
+                        let toMap = this.game.allMaps[data[i]];
+                        path.push({
+                            map: toMap,
+                            cost,
+                        })
+                    }
+                    newOrder = {
+                        type: 1, // 移动到地图
+                        stat: 0,
+                        path,
+                        pathProgress: 0,
+                    }
+                }
+                else if(type==2){ // TODO
+
+                }
+                // 添加到对应的指令列表
+                if(isPublic){
+                    role.publicOrders.push(newOrder);
+                }
+                else{
+                    role.privateOrders.push(newOrder);
+                }
+            }
         },
 
         resumeTime(){ // 时间流逝
@@ -575,6 +699,12 @@ export default {
                 });
             }
         },
+        renderCellRoles(){ // 渲染格子人物列表
+            for(let i=0;i<this.cellRoles.length;i++){
+                let role = this.cellRoles[i];
+                this.printAvatar(`cvsIconCellRole${i}`,role.avatarData);
+            }
+        },
         printMapRoleAvatars(){ // 绘制地图中的人物
             for(let role of this.curMap.roles){
                 this.printAvatar(`cvsIconMe${role.id}`,role.avatarData);
@@ -582,7 +712,7 @@ export default {
         },
 
         onClickTest(){ // 点击【测试】按钮
-            this.everyHour();
+            this.game.allRoles[0].balance = 100;
             this.saveGame();
         },
     },
@@ -595,475 +725,7 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
     @import '../style/common.css';
-    .mappage{
-        position: relative;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-    }
-    .map{
-        position: relative;
-        background-color: #343434;
-        width: 100%;
-        height: 100%;
-    }
-    /* 时间面板 */
-    .time-board{
-        position: absolute;
-        display: flex;
-        justify-content: flex-start;
-        align-items: center;
-        left: 40px;
-        width: 220px;
-        height: 85px;
-        top: 0;
-        margin: 0;
-        z-index: 1000;
-        background-color: rgba(255,255,255,.1);
-        border-bottom-right-radius: 30px;
-        animation: msflash 1s linear infinite;
-    }
-    .btn-timer{
-        display: block;
-        width: 85px;
-        height: 85px;
-        padding-top: 10px;
-        font-weight: bold;
-        text-align: center;
-        line-height: 85px;
-    }
-    .timer-elapsing{
-        background-image: linear-gradient(to right, rgba(255,255,255,0) 0, rgba(255,255,255,.5) 100%);
-    }
-    @keyframes msflash {
-        to{
-            background-position: -220px 0;
-        }
-    }
-    .btn-timer .iconfont{
-        display: block;
-        height: 40px;
-        line-height: 40px;
-        font-size: 30px;
-    }
-    .timer-stat{
-        height: 35px;
-        line-height: 35px;
-        display: block;
-        font-size: 17px;
-    }
-    .btn-timer-elapsing{
-        color: #fff;
-    }
-    .btn-timer-elapsing .iconfont{
-        animation: timer .5s linear infinite alternate;
-    }
-    @keyframes timer {
-        50%{
-            transform: translateY(8%);
-        }
-        100%{
-            transform: translateY(-8%);
-        }
-    }
-    .btn-timer-paused{
-        color: #ccc;
-    }
-    .time{
-        display: block;
-        width: 160px;
-        height: 85px;
-        padding: 10px;
-        line-height: 30px;
-        color: #ccc;
-        font-size: 20px;
-        text-shadow: 0 0 12px #000;
-    }
-    .time b{
-        font-size: 40px;
-        text-shadow: 0 0 8px #000;
-    }
-    /* 头部面板 */
-    .header-board{
-        position: absolute;
-        left: 0;
-        top: 0;
-        right: 0;
-        margin: 0 auto;
-        color: #fff;
-        width: 50%;
-        height: 50px;
-        text-align: center;
-        padding-top: 10px;
-        letter-spacing: 10px;
-        line-height: 50px;
-        font-size: 20px;
-        text-shadow: 0 0 12px #000;
-    }
-    .header-board h1{
+    @import './mappage.css';
 
-    }
-    /* 钱包面板 */
-    .wallet-board{
-        position: absolute;
-        left: 285px;
-        top: 10px;
-        width: 240px;
-        height: 40px;
-        line-height: 40px;
-        color: #c7d047;
-        /* border-left: 4px solid #c7d047; */
-        border-bottom: 4px double #fff;
-    }
-    .wallet-board h1{
-        position: absolute;
-        top: 20%;
-        left: 2%;
-        height: 40px;
-        line-height: 40px;
-        width: 20px;
-        font-size: 40px;
-        text-shadow: 0 0 12px #000;
-    }
-    .wallet-board b{
-        width: 100%;
-        height: 100%;
-        padding-left: 40px;
-        font-size: 30px;
-        display: inline-block;
-        white-space: nowrap;
-        word-break: keep-all;
-    }
-    /* 地图 */
-    .map-wrap{
-        position: absolute;
-        left: 0;
-        right: 0;
-        top: 100px;
-        margin: 0 auto;
-        width: 80%;
-        height: calc( 100% - 320px );
-        box-shadow: 0 0 12px 12px #131313;
-        /* border: 2px solid #a81313; */
-    }
-    .btn-view-roles{
-        position: absolute;
-        top: 0;
-        right: -60px;
-        width: 60px;
-        height: 30px;
-        line-height: 30px;
-        text-align: center;
-        font-size: 20px;
-        font-weight: bold;
-    }
-    .cells-wrap{
-        position: absolute;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        right: 0;
-        width: 100%;
-        height: 100%;
-    }
-    .btn-cell{
-        position: absolute;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        color: #fff;
-        margin: 0;
-        text-shadow: 0 0 8px #000;
-    }
-    .btn-cell-bd{
-        border: 1px dashed rgba(255,255,255,.3);
-    }
-    .roles-cell{
-        position: absolute;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        color: #fff;
-        height: 0;
-        margin: 0;
-    }
-    .btn-cell .role-icon{
-        position: absolute;
-    }
-    .btn-role-icon{
-        position: absolute;
-        display: block;
-        margin: 0;
-        width: 60px;
-        height: 60px;
-        transition: .5s all;
-        background-color: transparent;
-        transform: translate(0,-55px);
-    }
-    .btn-role-icon:hover{
-        opacity: 1;
-    }
-    .btn-role-icon::after{
-        content: '';
-        position: absolute;
-        height: 25px;
-        width: 2px;
-        border-radius: 1px;
-        background-image: linear-gradient(to bottom, rgba(255,255,255,0) 0%, #fff 100%);
-        bottom: -25px;
-        left: 0;
-        right: 0;
-        margin: 0 auto;
-    }
-    .cvs-icon-role{
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background-color: rgba(0,0,0,.4);
-        border: 1px solid #fff;
-        /* box-shadow: 0 0 4px 4px #fff; */
-    }
-    .cvs-role-name{
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        margin: 0 auto;
-        display: flex;
-        justify-content: center;
-        align-items: baseline;
-        width: 60px;
-        height: 15px;
-        background-image: linear-gradient(to right, rgba(255,255,255,0) 0%, #000 15%, #000 85%, rgba(255,255,255,0) 100%);
-        line-height: 15px;
-        white-space: nowrap;
-        word-break: keep-all;
-        text-align: center;
-        font-size: 11px;
-    }
-    /* 世界地图 */
-    .worldmap{
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        width: 100%;
-        height: 100%;
-        transform: scaleX(0);
-        transform-origin: -50% 0 0;
-        background-color: #343434;
-        animation: worldmap .15s ease-out forwards;
-        z-index: 350;
-    }
-    @keyframes worldmap {
-        to{
-            transform: scaleX(1);
-        }
-    }
-    .worldmap .btn-close,
-    .btn-open-worldmap{
-        position: absolute;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100%;
-        width: 40px;
-        font-size: 24px;
-        text-align: center;
-        z-index: 300;
-    }
-    .world-wrap{
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        margin: auto;
-        background-color: #343434;
-        width: 800px;
-        height: 800px;
-    }
-    .cvs-world-bg{
-        position: absolute;
-        z-index: 105;
-        width: 800px;
-        height: 800px;
-        background-color: #343434;
-    }
-    .worldmap-item{
-        position: absolute;
-        z-index: 110;
-        border-radius: 50%;
-        border: 2px solid #ddd;
-        transform: translate(-50%,-50%);
-    }
-    .worldmap-item h3{
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 18px;
-        line-height: 30px;
-        white-space: nowrap;
-        word-break: keep-all;
-        color: #ddd;
-        text-align: center;
-        text-shadow: 0 0 8px #000;
-    }
-    .worldmap-item-wild{
-        border: 2px solid #e81313;
-    }
-    .worldmap-item-wild h3{
-        color: #e81313;
-    }
-    .worldmap-item-choose{
-        border-width: 10px;
-        border-style: dashed;
-    }
-    .worldmap-item-name{
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        height: 30px;
-        line-height: 30px;
-        text-align: center;
-        margin: auto;
-        z-index: 55;
-    }
-    .loc{
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        right: 0;
-        left: 0;
-        margin: auto;
-        border-radius: 50%;
-        width: 50px;
-        height: 50px;
-        text-align: center;
-        line-height: 50px;
-        font-size: 40px;
-        text-shadow: 0 0 10px #000;
-        color: OrangeRed;
-        z-index: 54;
-        transition: .5s all;
-        animation: ani-cvs-world-loc .4s ease-in-out infinite alternate;
-    }
-    @keyframes ani-cvs-world-loc{
-        100%{
-            box-shadow: 0 0 8px 8px OrangeRed;
-        }
-    }
-    /* 底部面板 */
-    .bottom-board{
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        width: 100%;
-        height: 220px;
-        overflow-x: auto;
-        background-image: linear-gradient(to bottom, rgba(255,255,255,0) 0%, #131313 100%);
-        background-color: transparent;
-        z-index: 100;
-    }
-    .me{
-        display: block;
-        position: relative;
-        left: 40px;
-        width: 220px;
-        height: 220px;
-        background-color: transparent;
-        cursor: pointer;
-        transform-origin: 50% 100% 0;
-        transition: all .15s;
-    }
-    .me:hover{
-        transform: scale(1.1);
-    }
-    .cvs-icon-me{
-        position: absolute;
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        margin: 0 auto;
-        width: 220px;
-        height: 220px;
-        z-index: 101;
-    }
-    .me .name{
-        position: absolute;
-        bottom: 6px;
-        left: 0;
-        right: 0;
-        margin: 0 auto;
-        text-shadow: 0 0 8px #000;
-        background-image: linear-gradient(to right, rgba(255,255,255,0) 0%, #131313 20%, #131313 80%,rgba(255,255,255,0) 100%);
-        font-weight: bold;
-        font-size: 20px;
-        color: #fff;
-        text-align: center;
-        width: 100%;
-        height: 30px;
-        line-height: 30px;
-        z-index: 102;
-    }
-    /* 选项弹窗 */
-    .option-pop{
-        position: absolute;
-        width: 150px;
-        min-height: 30px;
-        min-width: 100px;
-        background-color: transparent;
-        z-index: 10000;
-    }
-    .option-pop-flip{
-        transform: translate(-100%,-100%);
-    }
-    .option-pop-title{
-        display: inline-block;
-        color: #aaa;
-        font-size: 15px;
-        font-weight: normal;
-        line-height: 20px;
-        margin-bottom: 2px;
-        background-image: linear-gradient(to right, #131313 0%, #131313 70%, rgba(255,255,255,0) 100%);
-        width: auto;
-        padding: 4px 6px;
-        text-shadow: 0 0 4px #000;
-    }
-    .option-pop .btn-option{
-        display: inline-block;
-        width: 100%;
-        height: 30px;
-        line-height: 30px;
-        background-color: rgba(0,0,0,.8);
-        text-align: center;
-        /* border: 1px outset #555; */
-        color: #fff;
-        text-shadow: 0 0 4px #000;
-        font-weight: normal;
-        font-size: 17px;
-        white-space: nowrap;
-        word-break: keep-all;
-        margin: 0;
-        margin-bottom: 2px;
-        box-shadow: 0 0 12px 2px #000;
-    }
-    .option-pop .btn-option:hover{
-        background-color: OrangeRed;
-    }
-    /* test */
-    .btn-test{
-        position: absolute;
-        right: 0;
-        top: 20px;
-        width: 50px;
-        height: 20px;
-        line-height: 20px;
-    }
 
 </style>

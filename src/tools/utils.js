@@ -262,6 +262,15 @@ export function getMatchList(arr,matchList){ // 根据匹配获取列表 matchLi
     });
     return res;
 }
+export function filterList(arr,func){ // 根据方法获取列表中的所有匹配元素
+    let res = [];
+    Array.from(arr,(data,index)=>{
+        if(func(data,index)){
+            res.push(data);
+        }
+    });
+    return res;
+}
 export function removeFromList(value,valueName,arr){ // 从列表中移除
     let res = [];
     Array.from(arr,inst=>{

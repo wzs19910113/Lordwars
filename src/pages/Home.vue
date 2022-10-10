@@ -267,8 +267,8 @@ export default {
                 IDB.initIDB({callback: event=>{
                     IDB.updateIDB({
                         game: this.game,
-                        success: game=>{
-                            console.log(`保存游戏数据`,game);
+                        success: event=>{
+                            console.log(`保存游戏数据`,this.game);
                         },
                         callback: event=>{
                             this.loading = false;

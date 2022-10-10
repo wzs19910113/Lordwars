@@ -625,7 +625,7 @@ export function moneyFormat(money,dollar){ // 金币格式
     return res;
 }
 
-export function genRandomPerson({gender,age,level,weaponID,viceWeaponID,skillIDs,}){ // 随机生成一个人
+export function genRandomPerson({gender,age,level,weaponID,viceWeaponID,skillIDs,time,}){ // 随机生成一个人
     if(!gender){
         gender = r(1,2);
     }
@@ -646,6 +646,9 @@ export function genRandomPerson({gender,age,level,weaponID,viceWeaponID,skillIDs
     }
     if(!level){
         level = 1;
+    }
+    if(!time){
+        time = 2500;
     }
     // @TEST
     // age = 15;
@@ -785,9 +788,15 @@ export function genRandomPerson({gender,age,level,weaponID,viceWeaponID,skillIDs
     baseAttack = r(1,abilities[0]/3);
     baseAttack = Math.round(baseAttack/3);
 
+    // 生日
+    let year = time[0]-age;
+    let month = r(1,12);
+    let day = r(1,CONFIG.monthDayMap[month-1]);
+
     /* 数据整合并输出 */
     let res = {
         gender,
+        birthday: [year,month,day],
         age,
         name: genRoleName(gender),
         hp,
@@ -801,6 +810,8 @@ export function genRandomPerson({gender,age,level,weaponID,viceWeaponID,skillIDs
         clubID: 0,
         press: 0,
         strikingLevel: 100,
+
+        memories: [],
         privateOrders: [],
         publicOrders: [],
         job: {
