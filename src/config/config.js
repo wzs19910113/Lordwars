@@ -687,35 +687,36 @@ person:{
 
 	avatarData, // 头像数据
 
-	personalities: [10,20,30,40,50,], // 性格五维（0-100）
+	personalities: [10,20,30,40,50,], // 性格五维（ 0 - 100 ）
 	// ['野心','无欲'],
 	// ['邪恶','善良'],
 	// ['自卑','自信'],
 	// ['鲁莽','冷静'],
 	// ['沉闷','开朗'],
 
-	abilities: [222,444,222,180,30], // 能力五维（>0） [力量，精准，速度，智力，经验]
+	abilities: [222,444,222,180,30], // 能力五维（ > 0 ） [力量，精准，速度，智力，经验]
 	hp: 200,
 	pow: 100,
 	imm: 22, // 状态抗性
 	baseAttack: 8, // 基础攻击力
-	fixawareness: 1300, // 固有存在感（0-10000）
+	fixawareness: 1300, // 固有存在感（ 0 - 10000 ）
 	weaponID: 1, // 武器 ID
 	viceWeaponID: 0, // 副手武器 ID
 	skillIDs: [1,], // 技能 ID 数组
 
 	balance: 1200, // 余额
+	emotion: 3300, // 心情（ -10000 - 10000 ）
 	passed: false, // 已辞世
-	clubID: 4, // 所属公会 ID（0：无公会）
-	press: 0, // 压力百分比（0-无限）
-	strikingLevel: 50, // 地图存在感百分比（0-100）
+	clubID: 4, // 所属公会 ID（ 0：无公会 ）
+	press: 0, // 压力百分比（ 0 - 无限 ）
+	strikingLevel: 5000, // 地图存在感百分比（ 0 - 10000 ）
 
 	mapID: 12, // 当前所在地图 ID
 	cellIndex: 47, // 当前所在格子序号
 
 	job: {
 		cover: [1,4,10,], // 担任职位 ID 数组
-		authLevel: 0, // 权利级别（0-9,0:无权利）
+		authLevel: 0, // 权利级别（ 0 - 9, 0:无权利 ）
 		mapID: 12, // 工作所属地图 ID
 	},
 
@@ -726,15 +727,16 @@ person:{
 	relations: [ // 与其他角色的关系
 		{
 			id: 144, // 对应人物 ID
-			values: [220,150,-338], // [熟悉度(0,无限),喜爱度(-无限,无限),信任度(-无限,无限)]
 			family: 0, // 亲属关系 [0:无|1:子女|2:父母|3:兄弟姐妹]
-			remark: {
-				name: '',
-				birthday: [2480,1,1,],
-				gender: 1,
-				personalities: [1,1,1,1,1,],
-				balance: 1,
-			},
+
+			familiarity: 220, // 熟悉度( 0 , 无限 )
+			like: 150, // 喜爱度( -无限 , 无限 )
+			trust: -338, //  信任度( -无限 , 无限 )
+
+			name: '',
+			birthday: [2480,1,1,],
+			personalities: [1,1,1,1,1,],
+			balance: 1,
 		},
 	],
 

@@ -32,7 +32,7 @@
                 <div class="roles-cell" :style="{width:`${cellWidthPct}%`,left:`${cell.x*cellWidthPct}%`,top:`${cell.y*cellHeightPct+.5*cellHeightPct}%`}" v-show="showRoleCells&&calcMapClickable()" v-for="(cell,index) in curMap.cells">
                     <a class="btn btn-role-icon" v-if="role.id!=me.id" :style="{left:`calc( -30px + ${role.style.offsetX}% )`}" @click="onClickRoleIcon($event,role,cell,index)" v-for="role in cell.roles">
                         <canvas class="cvs-icon-role" :ref="`cvsIconMe${role.id}`" width="58" height="60"></canvas>
-                        <h5 class="cvs-role-name">{{role.name}}</h5>
+                        <h5 class="cvs-role-name">{{getRelation(me,role).name?role.name:'???'}}</h5>
                     </a>
                 </div>
                 <a class="btn btn-view-roles" @click="onClickViewRoles" v-if="calcMapClickable()" :title="`${showRoleCells?'隐藏':'显示'}人物头像`">
@@ -40,11 +40,19 @@
                     <i class="iconfont" v-else>&#xe633;</i>
                 </a>
             </div>
+            <!-- 我的位置 -->
+            <a class="btn btn-loc" @click="onClickLoc($event)" title="回到我的位置" v-if="curMap.id!=me.mapID">
+                <i class="iconfont">&#xe647;</i>
+            </a>
             <!-- 主界面-底部面板 -->
             <div class="bottom-board">
+                <a class="bottom-role" @click="onClickIconCellRole($event,me)">
+                    <canvas class="cvs-icon-cellrole" ref="cvsIconCellRoleMe" width="220" height="220"></canvas>
+                    <h4 class="name">{{me.name}}</h4>
+                </a>
                 <a class="bottom-role" @click="onClickIconCellRole($event,role)" v-for="(role,index) in cellRoles">
                     <canvas class="cvs-icon-cellrole" :ref="`cvsIconCellRole${index}`" width="220" height="220"></canvas>
-                    <h4 class="name">{{role.name}}</h4>
+                    <h4 class="name">{{getRelation(me,role).name?role.name:'???'}}</h4>
                 </a>
             </div>
         </div>
@@ -76,6 +84,13 @@
             <a class="btn btn-confirm" @click="onClickConfirm">确认</a>
             <a class="btn btn-cancel" @click="onClickCancelConfirm">取消</a>
         </a>
+        <!-- 人物弹窗 -->
+        <a class="pop role-pop" v-if="showRolePop&&choseRole" @click="onClickRolePop">
+            <p class="avatar">
+                <canvas class="cvs-avatar" ref="popAvatar" width="500" height="600"></canvas>
+                <span class="name">{{getRelation(me,choseRole).name?choseRole.name:'???'}}</span>
+            </p>
+        </a>
         <!-- 测试按钮 -->
         <a class="btn btn-test" @click="onClickTest" v-if="DEBUG">TEST</a>
     </div>
@@ -103,7 +118,6 @@ export default {
             choseCellIndex: -1, // 选中的格子序号
             cellRoles: [], // 选中的格子中的人物列表
             choseRole: null, // 选中的人物
-            showRoleCells: true, // 地图上显示人物
 
             me: {},
             meMap: {},
@@ -125,6 +139,9 @@ export default {
             gameTime: 0, // 一小时内的游戏时间
             gameTimeAcc: 0, // 游戏时间增量
 
+            showRoleCells: true, // 地图上显示人物
+            showRolePop: false, // 显示人物弹窗
+
             DEBUG,
             CONFIG,
             common,
@@ -141,10 +158,15 @@ export default {
     methods: {
         init(){
             this.me = this.game.allRoles[0];
-            this.renderMap(this.me.mapID);
             this.meMap = getMatchList(this.game.allMaps,[['id',this.me.mapID]])[0];
             this.initGameItv();
             this.initKeyboard();
+            this.$nextTick(_=>{
+                this.renderMap(this.me.mapID);
+                this.$nextTick(_=>{
+                    this.renderCellRoles();
+                });
+            });
         },
         initKeyboard(){ // 初始化键盘事件
             if(!document.onkeyup){
@@ -176,7 +198,7 @@ export default {
             let ctx = ele.getContext(`2d`);
             ctx.width = ele.clientWidth;
             ctx.height = ele.clientHeight;
-            paintAvatar(ctx,data,ele.clientWidth,ele.clientHeight,0);
+            paintAvatar(ctx,data,ele.clientWidth,ele.clientHeight,showBg);
         },
         updateCvsWorldBg({mapID,indexPath}={}){ // 同步世界地图背景画板
             this.ctxWorldBg = this.$refs.cvsWorldBg.getContext(`2d`);
@@ -398,6 +420,18 @@ export default {
                 });
             }
         },
+        onClickLoc(){ // 点击【我的位置】按钮
+            if(this.curMap.id!=this.me.mapID){
+                let curMap = getMatchList(this.game.allMaps,[['id',this.me.mapID]])[0];
+                if(curMap){ // 回到我所在的地图
+                    this.curMap = curMap;
+                    this.renderMap(curMap.id);
+                }
+            }
+        },
+        onClickRolePop(){ // 点击【人物弹窗】按钮
+            this.showRolePop = false;
+        },
 
         onClickIconCellRole(evt,role){ // 点击【图标-底部人物】 TODO
             this.pauseTime();
@@ -420,7 +454,7 @@ export default {
             let cellRoles = filterList(this.game.allRoles,role=>{
                 return role.mapID==this.curMap.id&&role.cellIndex==index&&role.id!=this.me.id;
             });
-            this.cellRoles = [this.me,...cellRoles];
+            this.cellRoles = cellRoles;
             this.$nextTick(_=>{
                 this.renderCellRoles();
             });
@@ -477,27 +511,24 @@ export default {
             }
             return res;
         },
+        getRelation(role1,role2){ // 获取 role1 对 role2 的关系
+            return getMatchList(role1.relations,[['id',role2.id]])[0]||{};
+        },
         popOption(evt,type,data){ // 弹出选项弹窗 TODO
             evt.stopPropagation();
             evt.preventDefault();
             let { pageX, pageY, } = evt;
             let options = [];
             let title;
+            let relation;
             switch(type){
                 case 1: // 底部人物
                     title = `${data.name}：`;
                     options = [
-                        { id:101, name:'我的位置', callback: _=>{
-                            let curMap = getMatchList(this.game.allMaps,[['id',this.me.mapID]])[0];
-                            if(curMap){ // 回到我所在的地图
-                                this.curMap = curMap;
-                                this.renderMap(curMap.id);
-                            }
-                        }},
-                        { id:102, name:'查看状态', callback: _=>{
+                        { id:101, name:'查看状态', callback: _=>{
                             console.log(`我-查看状态`,title,this.me);
                         }},
-                        { id:103, name:'查看背包', callback: _=>{
+                        { id:102, name:'查看背包', callback: _=>{
                             console.log(`我-查看背包`,title,this.me);
                         }},
                     ];
@@ -514,32 +545,35 @@ export default {
                     ];
                 break;
                 case 3: // 人物图标
-                    title = `${this.choseRole.name}：`;
+                    relation = this.getRelation(this.me,this.choseRole);
+                    title = `${relation.name?this.choseRole.name:'???'}：`;
                     options = [
-                        { id:301, name:'闲聊', callback: _=>{
-                            console.log(`人物-闲聊`,title,this.choseRole);
-                        }},
-                        { id:302, name:'偷袭', callback: _=>{
-                            console.log(`人物-偷袭`,title,this.choseRole);
-                        }},
-                        { id:303, name:'决斗', callback: _=>{
-                            console.log(`人物-决斗`,title,this.choseRole);
-                        }},
-                        { id:304, name:'请求', callback: _=>{
-                            console.log(`人物-请求`,title,this.choseRole);
+                        { id:301, name:'观察', callback: _=>{
+                            this.optionViewRole(this.choseRole);
                         }},
                     ];
+                    if(!relation.name){
+                        options.push({ id:311, name:'询问姓名', callback: _=>{
+                            console.log(`人物-询问姓名`,title,this.choseRole);
+                        }});
+                    }
+                    if(!relation.birthday){
+                        options.push({ id:311, name:'询问年龄', callback: _=>{
+                            console.log(`人物-询问年龄`,title,this.choseRole);
+                        }});
+                    }
                 break;
                 case 4: // 世界地图
                     let toMap = getMatchList(this.game.allMaps,[['id',this.choseMapID]])[0];
                     title = `${toMap.name}：`;
                     options = [
                         { id:401, name:'查看', callback: _=>{
+                            this.cellRoles = [];
                             this.renderMap(toMap.id);
                             this.onClickCloseWorldMap();
                         }},
                         { id:402, name:'移动至此', hide:toMap.id==this.me.mapID, callback: _=>{
-                            this.onClickMoveToByPop(toMap);
+                            this.optionMoveTo(toMap);
                         }},
                     ];
                 break;
@@ -562,7 +596,13 @@ export default {
                 }
             });
         },
-        onClickMoveToByPop(toMap){ // 点击【弹窗选项：移动至此】按钮
+        optionViewRole(role){ // 点击【弹窗选项：观察人物】按钮
+            this.showRolePop = true;
+            this.$nextTick(_=>{
+                this.printAvatar(`popAvatar`,role.avatarData,1);
+            });
+        },
+        optionMoveTo(toMap){ // 点击【弹窗选项：移动至此】按钮
             let graph = [];
             let fromMapIndex = -1;
             let toMapIndex = -1;
@@ -700,6 +740,7 @@ export default {
             }
         },
         renderCellRoles(){ // 渲染格子人物列表
+            this.printAvatar(`cvsIconCellRoleMe`,this.me.avatarData);
             for(let i=0;i<this.cellRoles.length;i++){
                 let role = this.cellRoles[i];
                 this.printAvatar(`cvsIconCellRole${i}`,role.avatarData);

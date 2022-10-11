@@ -631,7 +631,7 @@ export function genRandomPerson({gender,age,level,weaponID,viceWeaponID,skillIDs
     }
     if(!age){
         let r1 = r(1,100);
-        if(r1<5){ // 未成年
+        if(r1<15){ // 未成年
             age = r(5,17);
         }
         else if(r1<78){ // 青年
