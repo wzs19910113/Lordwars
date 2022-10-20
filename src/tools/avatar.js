@@ -359,7 +359,7 @@ export const femaleForeHairTemplates = [
     {
         name: '公主切',
         center: [500,231],
-        outline:[[0,500,210],[2,396,206,322,282],[2,282,338,282,444],[2,298,736,300,910],[2,322,874,344,872],[2,340,508,348,420],[2,344,576,346,630],[2,382,576,416,580],[2,388,498,396,424],[2,402,384,422,362],[2,400,402,398,424],[1,440,424],[1,446,368],[1,440,424],[1,470,424],[1,476,366],[1,472,424],[1,500,424],[0,500,210],[0,500,210],[2,604,206,678,282],[2,718,338,718,444],[2,702,736,700,910],[2,678,874,656,872],[2,660,508,652,420],[2,656,576,654,630],[2,618,576,584,580],[2,612,498,604,424],[2,598,384,578,362],[2,600,402,602,424],[1,560,424],[1,554,368],[1,560,424],[1,530,424],[1,524,366],[1,528,424],[1,500,424],[0,500,210]],
+        outline:[[0,500,210],[2,400,206,330,282],[2,292,338,274,484],[2,246,740,266,812],[2,324,832,370,830],[2,332,738,356,420],[2,352,506,354,534],[2,372,520,396,522],[2,390,456,400,424],[2,406,384,426,362],[2,404,402,400,434],[1,430,428],[1,448,368],[1,438,424],[1,472,424],[1,478,366],[1,476,424],[1,500,424],[0,500,210],[0,500,210],[2,600,206,670,282],[2,708,338,726,484],[2,754,740,734,812],[2,676,832,630,830],[2,668,738,644,420],[2,648,506,646,534],[2,628,520,604,522],[2,610,456,600,424],[2,594,384,574,362],[2,596,402,600,434],[1,570,428],[1,552,368],[1,562,424],[1,528,424],[1,522,366],[1,524,424],[1,500,424],[0,500,210]],
         fixed: true,
     },
     {
@@ -697,9 +697,10 @@ export function genRandomAvatar(person){ // 随机生成肖像
     let eyesData = genEyesData(faceData,gender,age,personalities);
     // 生成双眼皮
     let eyeskinsData;
-    if(r(0,100)<90&&(gender==1||age<60)){
-        eyeskinsData = genEyeSkinsData(eyesData,gender);
-    }
+    // if(r(0,100)<90&&(gender==1||age<60)){
+    //     eyeskinsData = genEyeSkinsData(eyesData,gender);
+    // }
+    eyeskinsData = genEyeSkinsData(eyesData,gender);
     // 生成睫毛
     let lashData;
     if(gender==2){
@@ -2989,6 +2990,7 @@ function genEyesData(faceData,gender,age,personalities){ // 生成双眼
             b: 255,
         },
         alpha: 1,
+        noStroke: true,
     };
 
     res.outline.push([0,a[0],a[1]]); // 移动
@@ -3019,9 +3021,13 @@ function genEyeSkinsData(eyeData){ // 生成双眼皮
     }
 
     // 生成双眼皮轮廓
-    res.outline.push([0,d[0],d[1]]); // 移动
+    res.outline.push([0,a[0],a[1]]); // 移动至 a1
+    res.outline.push([2,cp1[0],cp1[1],b[0],b[1]]); // 曲线 a1-b1
+    res.outline.push([0,d[0],d[1]]); // 移动至 d1
     res.outline.push([2,cp1[0],cp1[1]-dw,e[0],e[1]]); // 曲线 d1-e1
-    res.outline.push([0,mirX(d[0]),d[1]]); // 移动
+    res.outline.push([0,mirX(a[0]),a[1]]); // 移动至 a2
+    res.outline.push([2,mirX(cp1[0]),cp1[1],mirX(b[0]),b[1]]); // 曲线 a2-b2
+    res.outline.push([0,mirX(d[0]),d[1]]); // 移动至 d2
     res.outline.push([2,mirX(cp1[0]),cp1[1]-dw,mirX(e[0]),e[1]]); // 曲线 d2-e2
 
     return res;
@@ -3755,28 +3761,31 @@ function genBreastData(bodyData,gender,age){ // 生成乳房
         res.outline.push([1,mirX(e[0]),e[1]]); // 直线 d1-e1
     }
     else if(gender==2){ // 乳房
-        let size; // [1.25,5.3]
+        let size; // [1.75,5.3]
         if(age>=50){
-            size = r(30,150-age)*.05;
+            size = r(35,150-age)*.05;
         }
         else if(age>=18){
             size = r(50,106)*.05;
         }
         else if(age>=14){
-            size = r(25,80)*.05;
+            size = r(35,80)*.05;
         }
         else{
-            size = r(25,40)*.05;
+            size = r(35,40)*.05;
         }
 
         let qtSize = Math.round(size); // [1,3.16]
-        let left = (3.2-qtSize)*8;
-        let weight = r(1,10); // [1,10]
+        let left = (3.2-qtSize)*.8;
+        let weight = r(1,10-ysr*25); // [1,10]
         if(age>=50){
             weight += age/5;
         }
         if(weight>10){
             weight = 10;
+        }
+        if(weight<1){
+            weight = 1;
         }
 
         // size = 5.5; // TODO

@@ -48,6 +48,7 @@
                     <a class="btn" @click="onClickSelectiItemStyle(3)">选择后头发</a>
                     <a class="btn" @click="onClickSelectiItemStyle(4)">选择眼镜</a>
                     <a class="btn" @click="onClickChangeCloth()">换衣服</a>
+                    <a class="btn" @click="onClickTakeoffCloth()">*</a>
                 </div>
                 <br/>
                 <a class="btn" @click="onClickSave">保存的头像</a>
@@ -651,6 +652,11 @@ export default {
             avatarData.clothData = clothData;
             paintAvatar(this.ctx,avatarData,CVSWIDTH,CVSHEIGHT,1);
         },
+        onClickTakeoffCloth(){ // 点击【*】按钮
+            let avatarData = this.person.avatarData;
+            avatarData.clothData = undefined;
+            paintAvatar(this.ctx,avatarData,CVSWIDTH,CVSHEIGHT,1);
+        },
         onClickRandom(gender){ // 点击【随机人物】按钮
             // this.inputs[this.inputsIndex] = [];
             // for(let i=1;i<500;i++){
@@ -658,7 +664,7 @@ export default {
             // }
             // this.drawInput();
 
-            // let person = common.genRandomPerson({gender,age:r(5,10)});
+            // let person = common.genRandomPerson({gender,age:r(5,40)});
             let person = common.genRandomPerson({gender});
             let avatarData = genRandomAvatar(person);
             person.avatarData = avatarData;

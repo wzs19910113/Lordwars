@@ -548,20 +548,28 @@ export default {
                     relation = this.getRelation(this.me,this.choseRole);
                     title = `${relation.name?this.choseRole.name:'???'}：`;
                     options = [
-                        { id:301, name:'观察', callback: _=>{
+                        { id:301, name:'看看', callback: _=>{
                             this.optionViewRole(this.choseRole);
                         }},
-                    ];
-                    if(!relation.name){
-                        options.push({ id:311, name:'询问姓名', callback: _=>{
+                        { id:311, name:'你叫什么名字？', callback: _=>{
                             console.log(`人物-询问姓名`,title,this.choseRole);
-                        }});
-                    }
-                    if(!relation.birthday){
-                        options.push({ id:311, name:'询问年龄', callback: _=>{
+                        }},
+                        { id:312, name:'你多大了？', callback: _=>{
                             console.log(`人物-询问年龄`,title,this.choseRole);
-                        }});
-                    }
+                        }},
+                        { id:313, name:'你住在哪里？', callback: _=>{
+                            console.log(`人物-询问住址`,title,this.choseRole);
+                        }},
+                        { id:314, name:'你在做什么？', callback: _=>{
+                            console.log(`人物-询问任务`,title,this.choseRole);
+                        }},
+                        { id:315, name:'我想打听一个人？', callback: _=>{
+                            console.log(`人物-询问关系`,title,this.choseRole);
+                        }},
+                        { id:315, name:'我想打听一件事？', callback: _=>{
+                            console.log(`人物-询问记忆`,title,this.choseRole);
+                        }},
+                    ];
                 break;
                 case 4: // 世界地图
                     let toMap = getMatchList(this.game.allMaps,[['id',this.choseMapID]])[0];
