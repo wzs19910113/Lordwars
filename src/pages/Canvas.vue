@@ -117,7 +117,7 @@
 // Copyright (c) 2018 Copyright Holder All Rights Reserved.
 import { query, r, exptr, bulbsort, cloneObj, getParentNode, getMatchList, removeFromList, arrContains, rr, fullScreen, exitFullScreen, isFullScreen, calcDistance, } from '../tools/utils';
 import * as common from '../tools/common';
-import { genRandomAvatar, paintAvatar, genForeHairData, genBangsData, genBackHairData, genGlassData, generalForeHairTemplates, genClothData, maleForeHairTemplates, femaleForeHairTemplates, generalBangsTemplates, maleBangsTemplates, femaleBangsTemplates, generalBackHairTemplates, maleBackHairTemplates, femaleBackHairTemplates, glassTemplates, } from '../tools/avatar';
+import { genRandomAvatar, paintAvatar, genForeHairData, genBangsData, genBackHairData, genGlassData, generalForeHairTemplates, genForeClothData, genBackClothData, maleForeHairTemplates, femaleForeHairTemplates, generalBangsTemplates, maleBangsTemplates, femaleBangsTemplates, generalBackHairTemplates, maleBackHairTemplates, femaleBackHairTemplates, glassTemplates, } from '../tools/avatar';
 import * as ai from '../tools/ai';
 import { DEBUG, CONFIG, CACHE, } from '../config/config';
 const CVSWIDTH = 500;
@@ -648,13 +648,21 @@ export default {
             let gender = this.person.gender;
             let age = this.person.age;
             let { faceData, bodyData, breastData, } = avatarData;
-            let clothData = genClothData(bodyData,breastData,gender,age);
-            avatarData.clothData = clothData;
+            let clothForeData = genForeClothData(bodyData,breastData,gender,age);
+            let clothBackData;
+            for(let frag of clothForeData){
+                if(frag.hasBackPart){
+                    clothBackData = genBackClothData(clothForeData);
+                }
+            }
+            avatarData.clothForeData = clothForeData;
+            avatarData.clothBackData = clothBackData;
             paintAvatar(this.ctx,avatarData,CVSWIDTH,CVSHEIGHT,1);
         },
         onClickTakeoffCloth(){ // 点击【*】按钮
             let avatarData = this.person.avatarData;
-            avatarData.clothData = undefined;
+            avatarData.clothForeData = undefined;
+            avatarData.clothBackData = undefined;
             paintAvatar(this.ctx,avatarData,CVSWIDTH,CVSHEIGHT,1);
         },
         onClickRandom(gender){ // 点击【随机人物】按钮
@@ -664,7 +672,7 @@ export default {
             // }
             // this.drawInput();
 
-            // let person = common.genRandomPerson({gender,age:r(5,40)});
+            // let person = common.genRandomPerson({gender,age:r(5,12)});
             let person = common.genRandomPerson({gender});
             let avatarData = genRandomAvatar(person);
             person.avatarData = avatarData;
@@ -912,7 +920,7 @@ export default {
         position: absolute;
         background-color: rgba(255,255,255,.5);
         width: 600px;
-        height: 650px;
+        height: 750px;
         left: 0;
         right: 0;
         top: 0;
@@ -935,7 +943,6 @@ export default {
     }
     .pop .panel{
         width: 100%;
-        height: 100%;
         padding: 12px;
     }
     .pop .panel .hair-icon{
