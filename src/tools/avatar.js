@@ -2667,17 +2667,17 @@ export function genForeClothData(bodyData,breastData,gender,age){ // 生成前�
     let underwearType; // [1:长T|2:短T|3:背心|4:裹胸]
     let underwearRandomPool;
     if(gender==1){
-        underwearRandomPool = [1,2,3,5,6,7];
-        // underwearRandomPool = [5,6];
+        underwearRandomPool = [1,2,3,5,6,7,9,];
+        // underwearRandomPool = [9];
     }
     else if(gender==2){
-        underwearRandomPool = [1,1,1,1,2,2,2,2,3,3,4,5,5,5,6,6,6,7,7,7,7,8,];
-        // underwearRandomPool = [8];
+        underwearRandomPool = [1,1,1,1,2,2,2,2,3,3,4,5,5,5,6,6,6,7,7,7,7,8,9,9,9,];
+        // underwearRandomPool = [9];
     }
     underwearType = underwearRandomPool[r(0,underwearRandomPool.length-1)];
     let outline;
     let midPoint;
-    let temp1 = 0,temp2 = 0,temp3 = 0, temp4;
+    let temp1 = 0,temp2 = 0,temp3 = 0, temp4 = 0, temp5 = 0;
     let clothColor;
     let shortRange;
     switch(underwearType){
@@ -2944,6 +2944,49 @@ export function genForeClothData(bodyData,breastData,gender,age){ // 生成前�
             // outline[5][2] -= temp1;
             pasteGallus({outline,clothColor,});
         break;
+        case 9: // 高领
+            clothColor = [
+                { r:r(50,140),g:r(50,140),b:r(140,180), },
+                { r:r(150,225),g:r(150,225),b:r(240,255), },
+            ][r(0,1)];
+            midPoint = [500,c1[1]+r(45,100)];
+            temp1 = r(50,150); // 领宽
+            temp2 = i21[0]-i11[0]; // 宽松度1
+            temp3 = j1[0]-h1[0]; // 宽松度2
+            temp4 = r(0,15); // 开口程度
+            midPoint[1] += temp4*10;
+            outline = [
+                [0,midPoint[0],midPoint[1]],
+                [2,midPoint[0]-temp4*4,midPoint[1]-temp4*5,midPoint[0]-temp4*4,midPoint[1]-temp4*10],
+                [2,c1[0]-temp1*.3,midPoint[1]-temp4*10-25,c1[0]-temp1*.3,midPoint[1]-temp4*10-50],
+                [2,cp21[0]-40,cp21[1],d1[0]-2,d1[1]-3],
+                [2,cp31[0],cp31[1],e1[0]-35,e1[1]], [2,cp41[0],cp41[1],f1[0],f1[1]],
+                [2,cp51[0],cp51[1],g1[0],1200], [1,h1[0],1200],
+                [2,cp61[0],cp61[1],i11[0],i11[1]], [2,cpi1[0]-temp2*.3,cpi1[1],i21[0]-temp2*.5,i21[1]],
+                [2,cp71[0]-temp3*.5,cp71[1],j1[0]-temp3*.5,j1[1]], [2,cp81[0]-temp3*.5,cp81[1],k1[0]-temp3*.5,k1[1]],
+                [1,500,1200],
+                [0,midPoint[0],midPoint[1]],
+                [2,midPoint[0]+temp4*4,midPoint[1]-temp4*5,midPoint[0]+temp4*4,midPoint[1]-temp4*10],
+                [2,c2[0]+temp1*.3,midPoint[1]-temp4*10-25,c2[0]+temp1*.3,midPoint[1]-temp4*10-50],
+                [2,cp22[0]+40,cp22[1],d2[0]+2,d2[1]-3],
+                [2,cp32[0],cp32[1],e2[0]+35,e2[1]], [2,cp42[0],cp42[1],f2[0],f2[1]],
+                [2,cp52[0],cp52[1],g2[0],1200], [1,h2[0],1200],
+                [2,cp62[0],cp62[1],i12[0],i12[1]], [2,cpi2[0]+temp2*.3,cpi2[1],i22[0]+temp2*.3,i22[1]],
+                [2,cp72[0]+temp3*.5,cp72[1],j2[0]+temp3*.5,j2[1]], [2,cp82[0]+temp3*.5,cp82[1],k2[0]+temp3*.5,k2[1]],
+                [1,500,1200]
+            ];
+            underwearData.outline = outline;
+            underwearData.color = clothColor;
+            underwearData.hasBackPart = true;
+            if(size&&weight){ // 乳房扩撑
+                breastExpand({outline,clothColor,i11_idx:8,i21_idx:9,j1_idx:10,k1_idx:11,i12_idx:21,i22_idx:22,j2_idx:23,k2_idx:24});
+            }
+            // 线
+            if(r(0,5)){
+                let skew = r(0,1)?1:-1;
+                pasteCollarLine({outline,skew});
+            }
+        break;
     }
     underwearData.name = `underwear-${underwearType}`;
     // 生成外套
@@ -3049,7 +3092,21 @@ export function genBackClothData(clothForeData){ // 生成后衣服
     let res;
     let fragList = [];
     for(let frag of clothForeData){
-        if(frag.name=='collar'){ // 衣领
+        if(frag.name=='underwear-9'){ // 高衣领
+            let { color, strokeColor, outline, } = frag;
+            let newFrag = {
+                outline: [],
+                color,
+                strokeColor,
+            };
+            newFrag.outline.push([0,outline[2][3],outline[2][4]]);
+            newFrag.outline.push([2,500,outline[2][4]-r(20,50),mirX(outline[2][3]),outline[2][4]]);
+            newFrag.outline.push([1,mirX(outline[2][3]),outline[2][4]+200]);
+            newFrag.outline.push([1,outline[2][3],outline[2][4]+200]);
+            newFrag.outline.push([1,outline[2][3],outline[2][4]]);
+            fragList.push(newFrag);
+        }
+        else if(frag.name=='collar'){ // 衬衫衣领
             let { color, strokeColor, outline, } = frag;
             let newFrag = {
                 outline: [],
