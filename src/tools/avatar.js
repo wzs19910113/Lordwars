@@ -732,7 +732,7 @@ export const femaleBackHairTemplates = [
     {
         name: '高弯双马尾',
         center: [500,258],
-        outline:[[0,418,286],[2,398,250,362,254],[2,302,262,306,326],[2,316,376,392,348],[2,422,320,414,282],[0,342,354],[2,298,476,210,526],[2,82,600,50,684],[2,4,848,142,936],[2,92,874,96,806],[2,96,908,212,904],[2,158,884,134,796],[2,152,864,264,864],[2,218,854,180,806],[2,152,748,172,676],[2,184,628,258,562],[2,338,514,370,354],[0,582,286],[2,602,250,638,254],[2,698,262,694,326],[2,684,376,608,348],[2,578,320,586,282],[0,658,354],[2,702,476,790,526],[2,918,600,950,684],[2,996,848,858,936],[2,908,874,904,806],[2,904,908,788,904],[2,842,884,866,796],[2,848,864,736,864],[2,782,854,820,806],[2,848,748,828,676],[2,816,628,742,562],[2,662,514,630,354]]
+        outline:[[0,448,286],[2,438,250,406,240],[2,328,234,340,330],[2,348,380,434,348],[2,450,320,446,282],[0,404,354],[2,376,476,322,526],[2,242,600,224,684],[2,196,848,280,936],[2,250,874,252,806],[2,252,908,324,904],[2,290,884,276,796],[2,286,864,356,864],[2,328,854,304,806],[2,286,748,298,676],[2,306,628,352,562],[2,400,514,420,354],[0,552,286],[2,562,250,588,244],[2,670,224,666,326],[2,658,374,566,348],[2,550,320,554,282],[0,596,354],[2,624,476,678,526],[2,758,600,776,684],[2,804,848,720,936],[2,750,874,748,806],[2,748,908,676,904],[2,710,884,724,796],[2,714,864,644,864],[2,672,854,696,806],[2,714,748,702,676],[2,694,628,648,562],[2,600,514,580,354]]
     },
     {
         name: '高直双马尾',
@@ -742,7 +742,7 @@ export const femaleBackHairTemplates = [
     {
         name: '低弯双马尾',
         center: [500,202],
-        outline:[[0,396,296],[2,380,272,320,280],[2,272,300,284,336],[2,344,372,364,352],[2,404,336,392,296],[0,332,336],[2,160,384,112,520],[2,72,664,120,832],[2,140,920,76,1000],[2,196,924,176,848],[2,196,924,144,976],[2,228,916,236,832],[2,244,880,220,944],[2,292,852,296,748],[2,292,680,240,616],[2,196,536,244,464],[2,284,404,380,344],[0,436,308],[0,608,296],[2,624,272,684,280],[2,732,300,716,336],[2,660,372,636,352],[2,600,336,608,296],[0,672,336],[2,840,384,888,520],[2,928,664,880,832],[2,860,920,928,1000],[2,808,924,828,848],[2,804,924,860,976],[2,772,916,764,832],[2,760,880,784,944],[2,708,852,704,748],[2,708,680,760,616],[2,804,536,760,464],[2,720,404,624,344],[0,564,308]]
+        outline:[[0,428,420],[2,432,412,418,402],[2,300,326,270,390],[2,234,480,398,440],[2,422,432,428,420],[0,380,432],[2,278,450,250,520],[2,228,568,254,638],[2,268,674,230,710],[2,300,676,286,644],[2,300,676,268,700],[2,318,672,316,638],[2,320,664,314,680],[2,342,640,334,608],[2,324,580,322,550],[2,322,520,340,486],[2,350,458,406,436],[0,428,424],[0,572,420],[2,568,412,582,402],[2,700,326,730,390],[2,766,480,602,440],[2,578,432,572,420],[0,620,432],[2,722,450,750,520],[2,772,568,746,638],[2,732,674,770,710],[2,700,676,714,644],[2,700,676,732,700],[2,682,672,684,638],[2,680,664,686,680],[2,658,640,666,608],[2,676,580,678,550],[2,678,520,660,486],[2,650,458,594,436],[0,572,424]]
     },
     {
         name: '低直双马尾',
@@ -950,7 +950,7 @@ export function genRandomAvatar(person){ // 随机生成肖像
 
     let eyeShadowData, eyeShadowData1, eyeShadowData2;
     // 生成眼影
-    if(r(0,30)<(50-age)&&gender==2&&age>18&&age<55){
+    if(r(0,30)<(50-age)&&gender==2&&age>=12&&age<55){
         eyeShadowData = genEyeShadowData(faceData,eyesData);
         eyeShadowData1 = eyeShadowData.res1;
         eyeShadowData2 = eyeShadowData.res2;
@@ -963,7 +963,7 @@ export function genRandomAvatar(person){ // 随机生成肖像
 
     let cheekData, cheekData1, cheekData2;
     // 生成腮红
-    if(r(0,180)<(50-age)&&gender==2&&age>15&&age<60){
+    if(r(0,180)<(50-age)&&gender==2&&age<60){
         cheekData = genCheekData(faceData);
         cheekData1 = cheekData.res1;
         cheekData2 = cheekData.res2;
@@ -2492,7 +2492,7 @@ export function genForeClothData(bodyData,breastData,gender,age){ // 生成前�
             fragList.push(newFrag2);
         }
     }
-    let pasteCollar = ({outline}) =>{ // 衣领
+    let pasteCollar1 = ({outline}) =>{ // 衣领1
         let newFrag = {
             outline: [],
             color: {r:255,g:255,b:255,},
@@ -2522,11 +2522,11 @@ export function genForeClothData(bodyData,breastData,gender,age){ // 生成前�
         ]);
         newFrag.outline.push([1,mirX(outline[0][1]),outline[0][2]]);
 
-        newFrag.name = 'collar';
+        newFrag.name = 'collar-1';
         newFrag.hasBackPart = true;
         fragList.push(newFrag);
     };
-    let pasteCollarLine = ({outline,skew}) =>{ // 衣线
+    let pasteCollar1Line = ({outline,skew}) =>{ // 衣线
         let newFrag = {
             outline: [],
             strokeColor: {r:0,g:0,b:0,},
@@ -2662,12 +2662,56 @@ export function genForeClothData(bodyData,breastData,gender,age){ // 生成前�
         newFrag.name = 'gallus';
         fragList.push(newFrag);
     };
+    let pasteCollar2 = ({outline,clothColor,}) =>{ // 衣领2
+        let newFrag = {
+            outline: [],
+            color: {r:mid(clothColor.r,255),g:mid(clothColor.g,255),b:mid(clothColor.b,255),},
+            strokeColor: {r:0,g:0,b:0,},
+        }
+        let height = r(40,60);
+        let width = r(5,50);
+        let maxHeight = outline[3][4]-outline[2][4];
+        let maxWidth = (outline[2][3]-outline[3][3])/2;
+        let bottomCurve = r(20,30);
+        let bottomOffsetY = r(70,125);
+        if(width>maxWidth){
+            width = maxWidth;
+        }
+        if(height>maxHeight){
+            height = maxHeight;
+        }
+        newFrag.outline.push([0,outline[1][3],outline[1][4]]);
+        newFrag.outline.push([2,outline[2][1],outline[2][2],outline[2][3],outline[2][4]]);
+        newFrag.outline.push([1,outline[3][3]+width,outline[2][4]+height]);
+        newFrag.outline.push([2,
+            mid(outline[3][3]-30,outline[1][3]),
+            mid(outline[3][4]-bottomCurve,outline[1][4]+bottomOffsetY)+bottomCurve,
+            outline[1][3]-35,
+            outline[1][4]+bottomOffsetY,
+        ]);
+        newFrag.outline.push([1,outline[1][3],outline[1][4]]);
+
+        newFrag.outline.push([0,mirX(outline[1][3]),outline[1][4]]);
+        newFrag.outline.push([2,mirX(outline[2][1]),outline[2][2],mirX(outline[2][3]),outline[2][4]]);
+        newFrag.outline.push([1,mirX(outline[3][3]+width),outline[2][4]+height]);
+        newFrag.outline.push([2,
+            mirX(mid(outline[3][3]-30,outline[1][3])),
+            mid(outline[3][4]-bottomCurve,outline[1][4]+bottomOffsetY)+bottomCurve,
+            mirX(outline[1][3]-35),
+            outline[1][4]+bottomOffsetY,
+        ]);
+        newFrag.outline.push([1,mirX(outline[1][3]),outline[1][4]]);
+
+        newFrag.name = 'collar-2';
+        newFrag.hasBackPart = true;
+        fragList.push(newFrag);
+    };
 
     // 生成内衣
     let underwearType; // [1:长T|2:短T|3:背心|4:裹胸]
     let underwearRandomPool;
     if(gender==1){
-        underwearRandomPool = [1,2,3,5,6,7,9,];
+        underwearRandomPool = [0,1,2,3,5,6,7,9,];
         // underwearRandomPool = [9];
     }
     else if(gender==2){
@@ -2830,14 +2874,14 @@ export function genForeClothData(bodyData,breastData,gender,age){ // 生成前�
             // 线
             if(r(0,2)){
                 let skew = r(0,1)?1:-1;
-                pasteCollarLine({outline,skew});
+                pasteCollar1Line({outline,skew});
                 if(r(0,2)){ // 纽扣
                     pasteButton({outline,clothColor,skew,});
                 }
             }
             // 衣领
             if(r(0,2)){
-                pasteCollar({outline});
+                pasteCollar1({outline});
             }
         break;
         case 6: // 短袖白领
@@ -2871,14 +2915,14 @@ export function genForeClothData(bodyData,breastData,gender,age){ // 生成前�
             // 线
             if(r(0,2)){
                 let skew = r(0,1)?1:-1;
-                pasteCollarLine({outline,skew});
+                pasteCollar1Line({outline,skew});
                 if(r(0,2)){ // 纽扣
                     pasteButton({outline,clothColor,skew,});
                 }
             }
             // 衣领
             if(r(0,2)){
-                pasteCollar({outline});
+                pasteCollar1({outline});
             }
         break;
         case 7: // 卫衣
@@ -2947,13 +2991,13 @@ export function genForeClothData(bodyData,breastData,gender,age){ // 生成前�
         case 9: // 高领
             clothColor = [
                 { r:r(50,140),g:r(50,140),b:r(140,180), },
-                { r:r(150,225),g:r(150,225),b:r(240,255), },
+                { r:r(150,225),g:r(150,225),b:r(160,255), },
             ][r(0,1)];
             midPoint = [500,c1[1]+r(45,100)];
             temp1 = r(50,150); // 领宽
             temp2 = i21[0]-i11[0]; // 宽松度1
             temp3 = j1[0]-h1[0]; // 宽松度2
-            temp4 = r(0,15); // 开口程度
+            temp4 = r(1,15); // 开口程度
             midPoint[1] += temp4*10;
             outline = [
                 [0,midPoint[0],midPoint[1]],
@@ -2977,14 +3021,18 @@ export function genForeClothData(bodyData,breastData,gender,age){ // 生成前�
             ];
             underwearData.outline = outline;
             underwearData.color = clothColor;
-            underwearData.hasBackPart = true;
             if(size&&weight){ // 乳房扩撑
                 breastExpand({outline,clothColor,i11_idx:8,i21_idx:9,j1_idx:10,k1_idx:11,i12_idx:21,i22_idx:22,j2_idx:23,k2_idx:24});
             }
-            // 线
-            if(r(0,5)){
+            if(r(0,5)){ // 线
                 let skew = r(0,1)?1:-1;
-                pasteCollarLine({outline,skew});
+                pasteCollar1Line({outline,skew});
+            }
+            if(r(0,4)){ // 衣领
+                pasteCollar2({outline,clothColor});
+            }
+            else{
+                underwearData.hasBackPart = true;
             }
         break;
     }
@@ -3006,6 +3054,10 @@ export function genForeClothData(bodyData,breastData,gender,age){ // 生成前�
                 let bandHeight = 40;
                 let a,b,c,d,e,l;
                 let cp1,cp2;
+                let breastExpandRate = 0;
+                if(size&&size>=2.5){
+                    breastExpandRate = (size+(10-weight))*4.5;
+                }
                 a = [midPoint[0]-gap,midPoint[1]+bandHeight];
                 b = [a[0]+bandWidth,a[1]+30];
                 c = [b[0],b[1]-bandHeight];
@@ -3028,8 +3080,8 @@ export function genForeClothData(bodyData,breastData,gender,age){ // 生成前�
 
                     [2,cp41[0]-5,e1[1],f1[0]-5,mid(e1[1],f1[1])],
                     [2,cp51[0]-10,cp51[1],g1[0]-30,1200], [1,h1[0],h1[1]],
-                    [2,cp61[0]-(size||0)*11,cp61[1],i11[0],mid(i11[1],e[1])+45], [1,i11[0]+1,mid(i11[1],e[1])+45],
-                    [2,cp61[0]-(size||0)*11,cp61[1],h1[0]+2,h1[1]],
+                    [2,cp61[0]-breastExpandRate,cp61[1],i11[0],mid(i11[1],e[1])+45], [1,i11[0]+1,mid(i11[1],e[1])+45],
+                    [2,cp61[0]-breastExpandRate,cp61[1],h1[0]+2,h1[1]],
                     [1,l[0],l[1]],
                     [2,cp2[0],cp2[1],a[0],a[1]],
 
@@ -3038,8 +3090,8 @@ export function genForeClothData(bodyData,breastData,gender,age){ // 生成前�
 
                     [2,cp42[0]+5,e2[1],f2[0]+5,mid(e2[1],f2[1])],
                     [2,cp52[0]+10,cp52[1],g2[0]+30,1200], [1,h2[0],h2[1]],
-                    [2,cp62[0]+(size||0)*11,cp62[1],i12[0],mid(i12[1],e[1])+45], [1,i12[0]-1,mid(i12[1],e[1])+45],
-                    [2,cp62[0]+(size||0)*11,cp62[1],h2[0]-2,h2[1]],
+                    [2,cp62[0]+breastExpandRate,cp62[1],i12[0],mid(i12[1],e[1])+45], [1,i12[0]-1,mid(i12[1],e[1])+45],
+                    [2,cp62[0]+breastExpandRate,cp62[1],h2[0]-2,h2[1]],
                     [1,mirX(l[0]),l[1]],
                     [2,mirX(cp2[0]),cp2[1],mirX(d[0]),d[1]],
                 ];
@@ -3092,61 +3144,77 @@ export function genBackClothData(clothForeData){ // 生成后衣服
     let res;
     let fragList = [];
     for(let frag of clothForeData){
-        if(frag.name=='underwear-9'){ // 高衣领
-            let { color, strokeColor, outline, } = frag;
-            let newFrag = {
-                outline: [],
-                color,
-                strokeColor,
-            };
-            newFrag.outline.push([0,outline[2][3],outline[2][4]]);
-            newFrag.outline.push([2,500,outline[2][4]-r(20,50),mirX(outline[2][3]),outline[2][4]]);
-            newFrag.outline.push([1,mirX(outline[2][3]),outline[2][4]+200]);
-            newFrag.outline.push([1,outline[2][3],outline[2][4]+200]);
-            newFrag.outline.push([1,outline[2][3],outline[2][4]]);
-            fragList.push(newFrag);
-        }
-        else if(frag.name=='collar'){ // 衬衫衣领
-            let { color, strokeColor, outline, } = frag;
-            let newFrag = {
-                outline: [],
-                color,
-                strokeColor,
-            };
-            newFrag.outline.push([0,outline[1][1],outline[1][2]]);
-            newFrag.outline.push([2,500,outline[1][2]+r(-40,40),mirX(outline[1][1]),outline[1][2]]);
-            newFrag.outline.push([1,mirX(outline[1][1]),outline[1][2]+200]);
-            newFrag.outline.push([1,outline[1][1],outline[1][2]+200]);
-            newFrag.outline.push([1,outline[1][1],outline[1][2]]);
-            fragList.push(newFrag);
-        }
-        else if(frag.name=='hat'){ // 卫帽
-            let { color, strokeColor, outline, } = frag;
-            let newFrag = {
-                outline: [],
-                color,
-                strokeColor,
-            };
-            newFrag.outline.push([0,outline[1][3],outline[1][4]]);
-            newFrag.outline.push([2,500,outline[1][4]+r(-40,40),mirX(outline[1][3]),outline[1][4]]);
-            newFrag.outline.push([1,mirX(outline[1][3]),outline[1][4]+200]);
-            newFrag.outline.push([1,outline[1][3],outline[1][4]+200]);
-            newFrag.outline.push([1,outline[1][3],outline[1][4]]);
-            fragList.push(newFrag);
-        }
-        else if(frag.name=='coatCollar'){ // 外套衣领
-            let { color, strokeColor, outline, } = frag;
-            let newFrag = {
-                outline: [],
-                color,
-                strokeColor,
-            };
-            newFrag.outline.push([0,outline[1][3],outline[1][4]]);
-            newFrag.outline.push([2,500,outline[1][4]+r(-40,40),mirX(outline[1][3]),outline[1][4]]);
-            newFrag.outline.push([1,mirX(outline[1][3]),outline[1][4]+200]);
-            newFrag.outline.push([1,outline[1][3],outline[1][4]+200]);
-            newFrag.outline.push([1,outline[1][3],outline[1][4]]);
-            fragList.push(newFrag);
+        if(frag.hasBackPart){
+            if(frag.name=='underwear-9'){ // 高衣领1
+                let { color, strokeColor, outline, } = frag;
+                let newFrag = {
+                    outline: [],
+                    color,
+                    strokeColor,
+                };
+                newFrag.outline.push([0,outline[2][3],outline[2][4]]);
+                newFrag.outline.push([2,500,outline[2][4]-r(20,50),mirX(outline[2][3]),outline[2][4]]);
+                newFrag.outline.push([1,mirX(outline[2][3]),outline[2][4]+200]);
+                newFrag.outline.push([1,outline[2][3],outline[2][4]+200]);
+                newFrag.outline.push([1,outline[2][3],outline[2][4]]);
+                fragList.push(newFrag);
+            }
+            else if(frag.name=='collar-2'){ // 高衣领2
+                let { color, strokeColor, outline, } = frag;
+                let newFrag = {
+                    outline: [],
+                    color,
+                    strokeColor,
+                };
+                newFrag.outline.push([0,outline[1][3],outline[1][4]]);
+                newFrag.outline.push([2,500,outline[1][4]-r(20,50),mirX(outline[1][3]),outline[1][4]]);
+                newFrag.outline.push([1,mirX(outline[1][3]),outline[1][4]+200]);
+                newFrag.outline.push([1,outline[1][3],outline[1][4]+200]);
+                newFrag.outline.push([1,outline[1][3],outline[1][4]]);
+                fragList.push(newFrag);
+            }
+            else if(frag.name=='collar-1'){ // 衬衫衣领
+                let { color, strokeColor, outline, } = frag;
+                let newFrag = {
+                    outline: [],
+                    color,
+                    strokeColor,
+                };
+                newFrag.outline.push([0,outline[1][1],outline[1][2]]);
+                newFrag.outline.push([2,500,outline[1][2]+r(-40,40),mirX(outline[1][1]),outline[1][2]]);
+                newFrag.outline.push([1,mirX(outline[1][1]),outline[1][2]+200]);
+                newFrag.outline.push([1,outline[1][1],outline[1][2]+200]);
+                newFrag.outline.push([1,outline[1][1],outline[1][2]]);
+                fragList.push(newFrag);
+            }
+            else if(frag.name=='hat'){ // 卫帽
+                let { color, strokeColor, outline, } = frag;
+                let newFrag = {
+                    outline: [],
+                    color,
+                    strokeColor,
+                };
+                newFrag.outline.push([0,outline[1][3],outline[1][4]]);
+                newFrag.outline.push([2,500,outline[1][4]+r(-40,40),mirX(outline[1][3]),outline[1][4]]);
+                newFrag.outline.push([1,mirX(outline[1][3]),outline[1][4]+200]);
+                newFrag.outline.push([1,outline[1][3],outline[1][4]+200]);
+                newFrag.outline.push([1,outline[1][3],outline[1][4]]);
+                fragList.push(newFrag);
+            }
+            else if(frag.name=='coatCollar'){ // 外套衣领
+                let { color, strokeColor, outline, } = frag;
+                let newFrag = {
+                    outline: [],
+                    color,
+                    strokeColor,
+                };
+                newFrag.outline.push([0,outline[1][3],outline[1][4]]);
+                newFrag.outline.push([2,500,outline[1][4]+r(-40,40),mirX(outline[1][3]),outline[1][4]]);
+                newFrag.outline.push([1,mirX(outline[1][3]),outline[1][4]+200]);
+                newFrag.outline.push([1,outline[1][3],outline[1][4]+200]);
+                newFrag.outline.push([1,outline[1][3],outline[1][4]]);
+                fragList.push(newFrag);
+            }
         }
     }
     res = [...fragList];
@@ -3319,7 +3387,7 @@ function genFaceData(gender,age,bald){ // 生成脸
         e = [d[0],d[1]+r(42,48-ysr*8)+ysr*2]; // 左眼下
         f = [500,e[1]+r(107,117-ysr*5)-ysr*9]; // 鼻下
         g = [500,f[1]+r(34,51-ysr*4)-ysr*10]; // 唇上
-        h = [r(422,432-ysr*9)+ysr*16-fat*4,c[1]+r(248,257-ysr*4)-ysr*20]; // 颊左
+        h = [r(422,432)+ysr*21-fat*4,c[1]+r(248,257-ysr*4)-ysr*20]; // 颊左
         i = [500,h[1]+r(35,45-ysr*4)-ysr*15+fat*1.5]; // 下巴
 
         let colorDeep = r(2,7);
@@ -3971,7 +4039,7 @@ function genLipData(faceData,gender,age,emotion){ // 生成嘴唇
         //     strokeColor = lipColor.color;
         //     lineWidth = r(1,3);
         // }
-        if(age>=16&&age<60){
+        if(age>=12&&age<60){
             color = {
                 r: 255,
                 g: 99,
@@ -4118,7 +4186,7 @@ function genCheekData(faceData){ // 生成腮红
 
     let weight = e[0]-r(10,40);
     let yShift = e[1]+r(55,65);
-    let radius = r(55,85);
+    let radius = r(45,65);
 
     radial1.x1 = weight;
     radial1.y1 = yShift;
