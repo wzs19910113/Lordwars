@@ -672,8 +672,8 @@ export default {
             // }
             // this.drawInput();
 
-            let person = common.genRandomPerson({gender,age:r(5,12)});
-            // let person = common.genRandomPerson({gender});
+            // let person = common.genRandomPerson({gender,age:r(5,12)});
+            let person = common.genRandomPerson({gender});
             let avatarData = genRandomAvatar(person);
             person.avatarData = avatarData;
             paintAvatar(this.ctx,avatarData,CVSWIDTH,CVSHEIGHT,1);
