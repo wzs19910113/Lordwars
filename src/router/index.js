@@ -4,6 +4,7 @@ import Home from '@/pages/Home'
 import Start from '@/pages/Start'
 import Canvas from '@/pages/Canvas'
 import Canvas1 from '@/pages/Canvas1'
+import Index from '@/pages/Index'
 import Test from '@/pages/Test'
 import Rank from '@/pages/Rank'
 
@@ -25,6 +26,11 @@ export default new Router({
             path: '/canvas',
             name: 'Canvas',
             component: Canvas
+        },
+        {
+            path: '/index',
+            name: 'Index',
+            component: Index
         },
 
         {
