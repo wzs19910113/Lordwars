@@ -32,7 +32,8 @@
                 <div class="roles-cell" :style="{width:`${cellWidthPct}%`,left:`${cell.x*cellWidthPct}%`,top:`${cell.y*cellHeightPct+.5*cellHeightPct}%`}" v-show="showRoleCells&&calcMapClickable()" v-for="(cell,index) in curMap.cells">
                     <a class="btn btn-role-icon" v-if="role.id!=me.id" :style="{left:`calc( -30px + ${role.style.offsetX}% )`}" @click="onClickRoleIcon($event,role,cell,index)" v-for="role in cell.roles">
                         <canvas class="cvs-icon-role" :ref="`cvsIconMe${role.id}`" width="58" height="60"></canvas>
-                        <h5 class="cvs-role-name">{{getRelation(me,role).name?role.name:'???'}}</h5>
+                        <!-- <h5 class="cvs-role-name">{{getRelation(me,role).name?role.name:'???'}}</h5> -->
+                        <h5 class="cvs-role-name">{{role.name}}</h5>
                     </a>
                 </div>
                 <a class="btn btn-view-roles" @click="onClickViewRoles" v-if="calcMapClickable()" :title="`${showRoleCells?'隐藏':'显示'}人物头像`">

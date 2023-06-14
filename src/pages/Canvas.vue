@@ -48,6 +48,7 @@
                     <a class="btn" @click="onClickSelectiItemStyle(3)">选择后头发</a>
                     <a class="btn" @click="onClickSelectiItemStyle(4)">选择眼镜</a>
                     <a class="btn" @click="onClickChangeCloth()">换衣服</a>
+                    <a class="btn" @click="onClickShowText()">数据文本</a>
                     <a class="btn" @click="onClickTakeoffCloth()">*</a>
                 </div>
                 <br/>
@@ -664,6 +665,9 @@ export default {
             avatarData.clothForeData = undefined;
             avatarData.clothBackData = undefined;
             paintAvatar(this.ctx,avatarData,CVSWIDTH,CVSHEIGHT,1);
+        },
+        onClickShowText(){ // 点击【数据文本】按钮
+            console.log(JSON.stringify(this.person.avatarData));
         },
         onClickRandom(gender){ // 点击【随机人物】按钮
             // this.inputs[this.inputsIndex] = [];
