@@ -669,23 +669,20 @@ export function genRandomPerson({gender,age,level,weaponID,viceWeaponID,skillIDs
     abilities[3] = exptr(0,750,20)+r(5,250); // 智力
     abilities[4] = exptr(0,750,20)+r(1,250); // 经验
     let personalities = [];
-    personalities[0] = 50+(r(0,1)?1:-1)*exptr(0,50,10); // 无欲度
-    personalities[1] = 50+(r(0,1)?1:-1)*exptr(0,50,10); // 善良度
-    personalities[2] = 50+(r(0,1)?1:-1)*exptr(0,50,10); // 自信度
+    personalities[0] = 50+(r(0,1)?1:-1)*exptr(0,50,2); // 无欲度
+    personalities[1] = 50+(r(0,1)?1:-1)*exptr(0,50,2); // 善良度
+    personalities[2] = 50+(r(0,1)?1:-1)*exptr(0,50,2); // 自信度
     personalities[3] = r((abilities[3]/500)*50,100); // 冷静度
-    personalities[4] = 50+(r(0,1)?1:-1)*exptr(0,50,10); // 开朗度
+    personalities[4] = 50+(r(0,1)?1:-1)*exptr(0,50,2); // 开朗度
     /* 根据性别修正数据 */
     if(gender==2){ // 女
         hp = Math.round(hp*.85);
         abilities[0] = Math.round(abilities[0]*.8);
         abilities[1] = Math.round(abilities[1]*1.15);
-        personalities[0] = personalities[0]+r(0,45);
-        personalities[1] = personalities[1]+r(0,10);
     }
     else{ // 男
         abilities[0] = Math.round(abilities[0]*1.1);
         abilities[1] = Math.round(abilities[1]*.9);
-        personalities[0] = personalities[0]-r(0,45);
     }
     // /* 根据年龄修正数据 */
     // // ----未成年能力整体降低
@@ -710,7 +707,6 @@ export function genRandomPerson({gender,age,level,weaponID,viceWeaponID,skillIDs
     }
 
     /* 其他修正 */
-    // personalities[3] = Math.round(personalities[3]+(abilities[3]-300)/4);
     pow += Math.round(pow*(personalities[3]/25-1));
 
     /* 精锐化 */

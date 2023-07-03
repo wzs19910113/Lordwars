@@ -848,7 +848,13 @@ export const glassTemplates = [
 export function genRandomAvatar(person){ // 随机生成肖像
     let res;
     let { personalities, gender, age, } = person;
-    let emotion = Math.round(personalities[2]*.25+personalities[4]*.75); // 0-100
+    let emotion; // 0-100
+    if(personalities){
+        emotion = Math.round(personalities[2]*.25+personalities[4]*.75);
+    }
+    else{
+        emotion = r(0,100);
+    }
     let bald = (r(0,100)<5&&gender==1);
     // 生成发色
     let hairColor = genHairColor(gender);
@@ -878,7 +884,7 @@ export function genRandomAvatar(person){ // 随机生成肖像
     // 生成睫毛
     let lashData;
     if(gender==2){
-        lashData = genLashData(eyesData,gender,age);
+        lashData = genLashData(eyesData,gender,age,color);
     }
     // 生成外双瞳
     let eyeoutballsData = genEyeoutballsData(eyesData,gender,age);
@@ -892,8 +898,12 @@ export function genRandomAvatar(person){ // 随机生成肖像
     // 生成嘴唇
     let lipData = genLipData(faceData,gender,age,emotion);
     let bottomLipData;
-    if(!lipData.strokeColor){ // 生成下嘴唇
+    let toothData;
+    if(!lipData.strokeColor&&!lipData.open){ // 生成下嘴唇
         bottomLipData = genBottomLipData(faceData,lipData,gender);
+    }
+    if((lipData.arcDeg<-4||lipData.arcDeg>7)&&lipData.open){ // 生成舌头
+        toothData = genTongueData(faceData,lipData);
     }
     let topMoustacheData;
     if((r(0,100)<age&&age>=30&&gender==1)){ // 生成上胡子
@@ -950,10 +960,13 @@ export function genRandomAvatar(person){ // 随机生成肖像
 
     let eyeShadowData, eyeShadowData1, eyeShadowData2;
     // 生成眼影
-    if(r(0,30)<(50-age)&&gender==2&&age>=12&&age<55){
-        eyeShadowData = genEyeShadowData(faceData,eyesData);
-        eyeShadowData1 = eyeShadowData.res1;
-        eyeShadowData2 = eyeShadowData.res2;
+    if(gender==2&&age>=14&&age<55){
+        if((age<40&&r(0,100)<50)
+        ||(age<55&&r(0,50)<(60-age))){
+            eyeShadowData = genEyeShadowData(faceData,eyesData);
+            eyeShadowData1 = eyeShadowData.res1;
+            eyeShadowData2 = eyeShadowData.res2;
+        }
     }
     let eyeSocketData, eyeSocketData1, eyeSocketData2;
     // 生成眼窝
@@ -997,6 +1010,7 @@ export function genRandomAvatar(person){ // 随机生成肖像
         noseData,
         lipData,
         bottomLipData,
+        toothData,
         topMoustacheData,
         bracketsData,
         nasoData,
@@ -1137,6 +1151,7 @@ export function paintAvatar(ctx,avatarData,canvasWidth,canvasHeight,showBg){ // 
         noseData,
         lipData,
         bottomLipData,
+        toothData,
         topMoustacheData,
         bracketsData,
         nasoData,
@@ -1270,10 +1285,28 @@ export function paintAvatar(ctx,avatarData,canvasWidth,canvasHeight,showBg){ // 
         drawData(lashData);
     }
     drawData(noseData);
-    drawData(lipData);
     if(bottomLipData){
         drawData(bottomLipData);
     }
+
+
+    drawData(lipData);
+
+    ctx.save();
+    drawData({ // 嘴唇裁剪
+        outline: lipData.outline,
+        noStroke: true,
+    });
+    ctx.clip();
+    if(toothData){
+        drawData(toothData);
+    }
+    ctx.restore();
+
+    // if(toothData){
+    //     drawData(toothData);
+    // }
+
     if(bracketsData){
         drawData(bracketsData);
     }
@@ -1326,6 +1359,7 @@ function transferAvatarSize(data,canvasWidth){
     let noseData = cloneObj(data.noseData);
     let lipData = cloneObj(data.lipData);
     let bottomLipData = cloneObj(data.bottomLipData);
+    let toothData = cloneObj(data.toothData);
     let topMoustacheData = cloneObj(data.topMoustacheData);
     let bracketsData = cloneObj(data.bracketsData);
     let nasoData = cloneObj(data.nasoData);
@@ -1399,6 +1433,10 @@ function transferAvatarSize(data,canvasWidth){
 
     if(bottomLipData){
         bottomLipData.outline = formatPx(bottomLipData.outline,canvasWidth);
+    }
+
+    if(toothData){
+        toothData.outline = formatPx(toothData.outline,canvasWidth);
     }
 
     if(topMoustacheData){
@@ -1642,6 +1680,7 @@ function transferAvatarSize(data,canvasWidth){
         noseData,
         lipData,
         bottomLipData,
+        toothData,
         topMoustacheData,
         bracketsData,
         nasoData,
@@ -2129,7 +2168,7 @@ export function genGlassData(faceData,gender,glassName){ // 生成眼镜
     }
     return res;
 }
-export function genForeClothData(bodyData,breastData,gender,age){ // 生成前衣服
+export function genForeClothData(bodyData,breastData,gender,age,defaultUnderwearType){ // 生成前衣服
     let res,rCloth;
     let {size,weight,} = breastData||{};
     let {
@@ -2495,6 +2534,9 @@ export function genForeClothData(bodyData,breastData,gender,age){ // 生成前�
         // underwearRandomPool = [9];
     }
     underwearType = underwearRandomPool[r(0,underwearRandomPool.length-1)];
+    if(defaultUnderwearType){
+        underwearType = defaultUnderwearType;
+    }
     let outline;
     let midPoint;
     let temp1 = 0,temp2 = 0,temp3 = 0, temp4 = 0, temp5 = 0;
@@ -2503,7 +2545,7 @@ export function genForeClothData(bodyData,breastData,gender,age){ // 生成前�
     switch(underwearType){
         case 1: // 长T
             clothColor = { r:r(50,255),g:r(50,255),b:r(50,255), };
-            midPoint = [500,e1[1]+r(50,(gender==2?197:80))];
+            midPoint = [500,e1[1]+r(50,(gender==2?(197-ysr*110):80))];
             temp1 = r(50,150);
             temp2 = r(0,i21[0]-i11[0]); // 宽松度1
             temp3 = r(0,j1[0]-h1[0]); // 宽松度2
@@ -2532,7 +2574,7 @@ export function genForeClothData(bodyData,breastData,gender,age){ // 生成前�
         break;
         case 2: // 短T
             clothColor = { r:r(50,255),g:r(50,255),b:r(50,255), };
-            midPoint = [500,e1[1]+r(50,(gender==2?197:80))];
+            midPoint = [500,e1[1]+r(50,(gender==2?(197-ysr*110):80))];
             temp1 = r(50,150);
             temp2 = r(0,i21[0]-i11[0]); // 宽松度1
             temp3 = r(0,j1[0]-h1[0]); // 宽松度2
@@ -2564,7 +2606,7 @@ export function genForeClothData(bodyData,breastData,gender,age){ // 生成前�
                 { r:r(240,255),g:r(240,255),b:r(240,255), },
                 { r:r(30,50),g:r(30,50),b:r(30,100), },
             ][r(0,1)];
-            midPoint = [500,e1[1]+r(150,(gender==2?197:180))];
+            midPoint = [500,e1[1]+r(150,(gender==2?(197-ysr*25):180))];
             temp1 = r(120,150); // 开衫
             temp2 = r(0,i21[0]-i11[0]); // 宽松度1
             temp3 = r(0,j1[0]-h1[0]); // 宽松度2
@@ -2622,7 +2664,7 @@ export function genForeClothData(bodyData,breastData,gender,age){ // 生成前�
         case 5: // 长袖白领
             clothColor = { r:r(200,255),g:r(200,255),b:r(200,255), };
             midPoint = [500,e1[1]+r(40,70)];
-            temp1 = r(50,150);
+            temp1 = r(50,150-ysr*90);
             temp2 = r(0,i21[0]-i11[0]); // 宽松度1
             temp3 = r(0,j1[0]-h1[0]); // 宽松度2
             // temp3 = 0;
@@ -2663,7 +2705,7 @@ export function genForeClothData(bodyData,breastData,gender,age){ // 生成前�
         case 6: // 短袖白领
             clothColor = { r:r(200,255),g:r(200,255),b:r(200,255), };
             midPoint = [500,e1[1]+r(40,120)];
-            temp1 = r(50,150);
+            temp1 = r(50,150-ysr*90);
             temp2 = r(0,i21[0]-i11[0]); // 宽松度1
             temp3 = r(0,j1[0]-h1[0]); // 宽松度2
             shortRange = r(10,1205-i11[1]);
@@ -2704,7 +2746,7 @@ export function genForeClothData(bodyData,breastData,gender,age){ // 生成前�
         case 7: // 卫衣
             clothColor = { r:r(50,255),g:r(50,255),b:r(50,255), };
             midPoint = [500,e1[1]+r(40,70)];
-            temp1 = r(50,150);
+            temp1 = r(50,150-ysr*50);
             temp2 = i21[0]-i11[0]; // 宽松度1
             temp3 = j1[0]-h1[0]; // 宽松度2
             // temp3 = 0;
@@ -2997,7 +3039,7 @@ export function genBackClothData(clothForeData){ // 生成后衣服
     return res;
 }
 
-function genHairColor(gender){ // 生成发色
+export function genHairColor(gender){ // 生成发色
     let color, grd;
     let basicColor = [{ // 黑
         r: r(10,30),
@@ -3412,7 +3454,7 @@ function genBodyData(faceData,gender,age){ // 生成身体
 
     return res;
 }
-function genEarsData(faceData,gender,age){ // 生成双耳朵
+export function genEarsData(faceData,gender,age){ // 生成双耳朵
     let a,b,c,d;
     let ysr = 1-shrinkYoung(age); // 年幼影响比率
     if(gender==2){ // 女
@@ -3453,20 +3495,33 @@ function genEarsData(faceData,gender,age){ // 生成双耳朵
 
     return res;
 }
-function genBrowsData(faceData,gender,color){ // 生成双眉
+export function genBrowsData(faceData,gender,color){ // 生成双眉
     let a,b,c,d;
+    let tilt;
+    let split;
     if(gender==2){ // 女
         a = [faceData.d[0]+r(25,35),faceData.d[1]+r(-5,20)];
-        b = [faceData.d[0]+r(-5,5),faceData.d[1]-r(0,5)];
+        b = [faceData.d[0]+r(-5,5),faceData.d[1]+r(-15,5)];
         c = [faceData.d[0]-r(50,55),faceData.d[1]+r(-15,5)];
-        d = [faceData.d[0]+r(-5,5),faceData.d[1]+r(0,8)];
+        d = [faceData.d[0]+r(-5,5),b[1]+r(3,8)];
+        tilt = r(0,5);
+        split = r(0,5);
     }
     else{ // 男
         a = [faceData.d[0]+r(25,35),faceData.d[1]+r(-5,20)];
-        b = [faceData.d[0]+r(-5,5),faceData.d[1]-r(0,10)];
+        b = [faceData.d[0]+r(-5,5),faceData.d[1]+r(-15,5)];
         c = [faceData.d[0]-r(70,95),faceData.d[1]+r(-15,5)];
-        d = [faceData.d[0]+r(-5,5),faceData.d[1]+r(0,8)];
+        d = [faceData.d[0]+r(-5,5),b[1]+r(4,12)];
+        tilt = r(0,3);
+        split = r(0,3);
     }
+
+    a[1] -= tilt*2;
+    c[1] += tilt*2.5;
+
+    b[0] -= split*7;
+    c[0] -= split*8;
+    d[0] -= split*10;
 
     let res = {
         a,b,c,d,
@@ -3494,7 +3549,7 @@ function genBrowsData(faceData,gender,color){ // 生成双眉
 
     return res;
 }
-function genEyesData(faceData,gender,age,personalities){ // 生成双眼
+export function genEyesData(faceData,gender,age,personalities){ // 生成双眼
     let a,b,c,lineWidth;
     let min,max;
     let calmness = personalities[3],
@@ -3581,7 +3636,7 @@ function genEyesData(faceData,gender,age,personalities){ // 生成双眼
 
     return res;
 }
-function genEyeSkinsData(eyeData){ // 生成双眼皮
+export function genEyeSkinsData(eyeData){ // 生成双眼皮
     let { lineWidth, cp1, cp2, a, b, c, } = eyeData;
     let d,e;
     let dw = r(3,9);
@@ -3611,90 +3666,132 @@ function genEyeSkinsData(eyeData){ // 生成双眼皮
 
     return res;
 }
-function genLashData(eyeData,gender,age){ // 生成睫毛
+export function genLashData(eyeData,gender,age,color){ // 生成睫毛
     let { lineWidth, cp1, cp2, a, b, c, } = eyeData;
     let eyeWidth = a[0]-b[0];
     let eyeHeight = cp2[1]-cp1[1];
-    let lashMode = r(0,1); // [0:上部|1:下部]
-    let lashCount;
-    let ysr = 1-shrinkYoung(age); // 年幼影响比率
+    let lashMode = [1,1,1,1,1,2,3,][r(0,6)]; // [0:无|1:上部|2:下部|3:上下都有]
+    // let lashMode = 3; // [0:无|1:上部|2:下部|3:上下都有]
     if(age<=13){
-        lashMode = 0;
+        lashMode = 1;
     }
-    if(lashMode==0){ // 睫毛在上部
-        lashCount = r(6,9);
+    let upperLashCount = r(4,7); // 上睫毛数量
+    let lowerLashCount = r(2,3); // 下睫毛数量
+    let ysr = 1-shrinkYoung(age); // 年幼影响比率
+    let upperXRange,upperYRange,
+        lowerXRange,lowerYRange,
+        xItv,yItv;
+    let lashXLength = r(0,5-2*ysr); // 睫毛横向长度
+    let lashYLength = r(0,6-2*ysr); // 睫毛纵向长度
+    let lashWidth = r(5,10); // 睫毛宽度
+    let strokeColor = null;
+    if(r(0,100)<15||lashYLength>4){ // 纯色睫毛
+        strokeColor = color;
     }
-    else{ // 睫毛在下部
-        lashCount = r(2,3);
+    if(lashMode==1||lashMode==3){ // 有上睫毛
+        upperXRange = [b[0]-4-lashXLength,a[0]-lashXLength];
+        upperYRange = [cp1[1]-eyeHeight/5-lashYLength+10,cp1[1]+eyeHeight/5-lashYLength+10];
     }
-    let xRange,yRange,xItv,yItv;
-    if(lashMode==0){ // 睫毛在上部
-        xRange = [b[0]-12,a[0]-5];
-        yRange = [cp1[1]-eyeHeight/5,cp1[1]+eyeHeight/5];
-    }
-    else{ // 睫毛在下部
-        xRange = [b[0]-12,c[0]];
-        yRange = [c[1]+4,cp2[1]+5];
+    if(lashMode==2||lashMode==3){ // 有下睫毛
+        lowerXRange = [b[0]-12,c[0]];
+        lowerYRange = [c[1]+4,cp2[1]+5];
     }
     // 起始点为 a，终点为 ep
-    let eps = [];
-    if(lashMode==0){ // 睫毛在上部
-        xItv = Math.round((xRange[1]-xRange[0])/(lashCount+0));
-        yItv = Math.round((yRange[1]-yRange[0])/(lashCount+0));
-        for(let i=0;i<lashCount;i++){
-            let newEp = [xRange[1]-i*xItv-i*3,yRange[0]+i*yItv];
-            eps.push(newEp);
+    let upperEps = [], lowerEps = [];
+    if(lashMode==1||lashMode==3){ // 有上睫毛
+        xItv = Math.round((upperXRange[1]-upperXRange[0])/(upperLashCount+0));
+        yItv = Math.round((upperYRange[1]-upperYRange[0])/(upperLashCount+0));
+        for(let i=0;i<upperLashCount;i++){
+            let newEp = [upperXRange[1]-i*xItv-i*3,upperYRange[0]+i*yItv];
+            upperEps.push(newEp);
         }
-        for(let i=0;i<2;i++){
-            eps[i][1] += Math.round((c[1]-eps[i][1])*.4);
+        // 前三根拉短
+        if(upperEps.length>=3){
+            upperEps[0][0] += Math.round((c[0]-upperEps[0][0])*.2);
+            upperEps[0][1] += Math.round((c[1]-upperEps[0][1])*.6);
+            upperEps[1][0] += Math.round((c[0]-upperEps[0][0])*.1);
+            upperEps[1][1] += Math.round((c[1]-upperEps[1][1])*.3);
+            upperEps[2][1] += Math.round((c[1]-upperEps[2][1])*.2);
         }
     }
-    else{ // 睫毛在下部
-        xItv = Math.round((xRange[1]-xRange[0])/(lashCount+0));
-        yItv = Math.round((yRange[1]-yRange[0])/(lashCount+2));
-        for(let i=0;i<lashCount;i++){
-            let newEp = [xRange[0]+i*xItv,yRange[0]+i*yItv];
-            eps.push(newEp);
+    if(lashMode==2||lashMode==3){ // 有下睫毛
+        xItv = Math.round((lowerXRange[1]-lowerXRange[0])/(lowerLashCount+0));
+        yItv = Math.round((lowerYRange[1]-lowerYRange[0])/(lowerLashCount+2));
+        for(let i=0;i<lowerLashCount;i++){
+            let newEp = [lowerXRange[0]+i*xItv,lowerYRange[0]+i*yItv];
+            lowerEps.push(newEp);
         }
     }
 
     let res = {
-        lashCount,
+        upperLashCount,
+        lowerLashCount,
         outline: [],
         lineWidth: 1,
+        color,
+        strokeColor,
         alpha: .5,
     };
 
-    // 生成睫毛轮廓
-    for(let i=0;i<eps.length;i++){
-        let ep = eps[i];
-        if(lashMode==0){ // 上部
-            res.outline.push([0,a[0],a[1]]); // 移动
-            res.outline.push([2,c[0],c[1],ep[0],ep[1]]); // 曲线
-        }
-        else{ // 下部
-            res.outline.push([0,a[0],a[1]]); // 移动
-            res.outline.push([1,ep[0],ep[1]]); // 直线
-        }
+    // 生成上睫毛轮廓
+    for(let i=0;i<upperEps.length;i++){
+        let ep = upperEps[i];
+        res.outline.push([0,a[0],a[1]]); // 移动
+        res.outline.push([2,c[0],c[1],ep[0],ep[1]]); // 曲线
+        res.outline.push([2,b[0]+lashWidth,b[1],ep[0]-lashWidth,ep[1]]); // 曲线
     }
-    for(let i=0;i<eps.length;i++){
-        let ep = eps[i];
-        if(lashMode==0){ // 上部
-            res.outline.push([0,mirX(a[0]),a[1]]); // 移动
-            res.outline.push([2,mirX(c[0]),c[1],mirX(ep[0]),ep[1]]); // 曲线
-        }
-        else{ // 下部
-            res.outline.push([0,mirX(a[0]),a[1]]); // 移动
-            res.outline.push([1,mirX(ep[0]),ep[1]]); // 直线
-        }
+    for(let i=0;i<upperEps.length;i++){
+        let ep = upperEps[i];
+        res.outline.push([0,mirX(a[0]),a[1]]); // 移动
+        res.outline.push([2,mirX(c[0]),c[1],mirX(ep[0]),ep[1]]); // 曲线
+        res.outline.push([2,mirX(b[0]+lashWidth),b[1],mirX(ep[0]-lashWidth),ep[1]]); // 曲线
     }
+    // 生成下睫毛轮廓
+    for(let i=0;i<lowerEps.length;i++){
+        let ep = lowerEps[i];
+        res.outline.push([0,a[0],a[1]]); // 移动
+        res.outline.push([2,c[0],c[1],ep[0],ep[1]]); // 曲线
+        res.outline.push([2,c[0],c[1],ep[0]+lashWidth,ep[1]]); // 曲线
+    }
+    for(let i=0;i<lowerEps.length;i++){
+        let ep = lowerEps[i];
+        res.outline.push([0,mirX(a[0]),a[1]]); // 移动
+        res.outline.push([2,mirX(c[0]),c[1],mirX(ep[0]),ep[1]]); // 曲线
+        res.outline.push([2,mirX(c[0]),c[1],mirX(ep[0]+lashWidth),ep[1]]); // 曲线
+    }
+
+    // for(let i=0;i<eps.length;i++){
+    //     let ep = eps[i];
+    //     if(lashMode==1||lashMode==3){ // 有上睫毛
+    //         res.outline.push([0,a[0],a[1]]); // 移动
+    //         res.outline.push([2,c[0],c[1],ep[0],ep[1]]); // 曲线
+    //         res.outline.push([2,c[0],c[1],ep[0]+lashWidth,ep[1]]); // 曲线
+    //     }
+    //     if(lashMode==2||lashMode==3){ // 有下睫毛
+    //         res.outline.push([0,a[0],a[1]]); // 移动
+    //         res.outline.push([1,ep[0],ep[1]]); // 直线
+    //     }
+    // }
+    // for(let i=0;i<eps.length;i++){
+    //     let ep = eps[i];
+    //     if(lashMode==1||lashMode==3){ // 有上睫毛
+    //         res.outline.push([0,mirX(a[0]),a[1]]); // 移动
+    //         res.outline.push([2,mirX(c[0]),c[1],mirX(ep[0]),ep[1]]); // 曲线
+    //         res.outline.push([2,mirX(c[0]),c[1],mirX(ep[0]+lashWidth),ep[1]]); // 曲线
+    //     }
+    //     if(lashMode==2||lashMode==3){ // 有下睫毛
+    //         res.outline.push([0,mirX(a[0]),a[1]]); // 移动
+    //         res.outline.push([1,mirX(ep[0]),ep[1]]); // 直线
+    //     }
+    // }
 
     return res;
 }
-function genEyeoutballsData(eyeData,gender,age){ // 生成外双瞳
+export function genEyeoutballsData(eyeData,gender,age){ // 生成外双瞳
     let radius;
     let c = eyeData.c;
     let oldImpact = 0;
+    let yShift = 0;
     if(gender==2){ // 女
         if(age>=50){
             oldImpact = age*.14;
@@ -3707,6 +3804,7 @@ function genEyeoutballsData(eyeData,gender,age){ // 生成外双瞳
         }
         radius = r(7,24-oldImpact);
     }
+    yShift = r(-radius/2,+radius/2);
     let eyeColor = genEyeColor(1);
     let {color,grd,} = eyeColor;
 
@@ -3715,22 +3813,24 @@ function genEyeoutballsData(eyeData,gender,age){ // 生成外双瞳
         outline: [],
         color,
         grd,
-        topY: c[1]-15,
-        bottomY: c[1]+15,
+        y: yShift,
+        topY: c[1]-15+yShift,
+        bottomY: c[1]+15+yShift,
         alpha: 1,
     };
 
     // 生成双瞳
-    res.outline.push([0,c[0],c[1]]); // 移动
-    res.outline.push([3,radius,c[0],c[1]]); // 左外瞳
-    res.outline.push([0,mirX(c[0]),c[1]]); // 移动
-    res.outline.push([3,radius,mirX(c[0]),c[1]]); // 右外瞳
+    res.outline.push([0,c[0],c[1]+yShift]); // 移动
+    res.outline.push([3,radius,c[0],c[1]+yShift]); // 左外瞳
+    res.outline.push([0,mirX(c[0]),c[1]+yShift]); // 移动
+    res.outline.push([3,radius,mirX(c[0]),c[1]+yShift]); // 右外瞳
     return res;
 }
-function genEyeinballsData(eyeData,eyeoutballsData,gender,age){ // 生成内双瞳
+export function genEyeinballsData(eyeData,eyeoutballsData,gender,age){ // 生成内双瞳
     let radius;
     let outRadius = eyeoutballsData.radius;
     let c = eyeData.c;
+    let y = eyeoutballsData.y;
     if(gender==2){ // 女
         radius = Math.round(outRadius*r(40,80)/100);
     }
@@ -3745,19 +3845,20 @@ function genEyeinballsData(eyeData,eyeoutballsData,gender,age){ // 生成内双�
         outline: [],
         color,
         grd,
-        topY: c[1]-5,
-        bottomY: c[1]+5,
+        y,
+        topY: c[1]-5+y,
+        bottomY: c[1]+5+y,
         alpha: 1,
     };
 
     // 生成双瞳
-    res.outline.push([0,c[0],c[1]]); // 移动
-    res.outline.push([3,radius,c[0],c[1]]); // 左内瞳
-    res.outline.push([0,mirX(c[0]),c[1]]); // 移动
-    res.outline.push([3,radius,mirX(c[0]),c[1]]); // 右内瞳
+    res.outline.push([0,c[0],c[1]+y]); // 移动
+    res.outline.push([3,radius,c[0],c[1]+y]); // 左内瞳
+    res.outline.push([0,mirX(c[0]),c[1]]+y); // 移动
+    res.outline.push([3,radius,mirX(c[0]),c[1]+y]); // 右内瞳
     return res;
 }
-function genNoseData(faceData,gender,age){ // 生成鼻子
+export function genNoseData(faceData,gender,age){ // 生成鼻子
     let a,b,c,lineWidth;
     let dir;
     let ysr = 1-shrinkYoung(age);
@@ -3792,12 +3893,16 @@ function genNoseData(faceData,gender,age){ // 生成鼻子
         cp1 = [r(a[0],(a[0]+10)*dir),r(midY-25,midY)];
         cp2 = [r(c[0],(c[0]+7)*dir),r(b[1],b[1]+16)];
     }
-
+    let rStrokeColor = r(35,100);
     let res = {
         a,b,c,
         outline: [],
         lineWidth,
-        strokeColor: '#747443',
+        strokeColor: {
+            r: rStrokeColor,
+            g: rStrokeColor,
+            b: rStrokeColor,
+        }
     };
 
     res.outline.push([0,a[0],a[1]]); // 移动
@@ -3806,23 +3911,20 @@ function genNoseData(faceData,gender,age){ // 生成鼻子
 
     return res;
 }
-function genLipData(faceData,gender,age,emotion){ // 生成嘴唇
+export function genLipData(faceData,gender,age,emotion){ // 生成嘴唇
     let a,b;
     let lipWidth;
     let lipColor = genLipColor();
     let strokeColor,color;
     let colorPool = [];
-    let closed = r(1,100)<8;
+    let open = r(1,100)<40; // 是否张开
     let ysr = 1-shrinkYoung(age);
+    let bottomY = 0;
     if(gender==2){ // 女
-        lipWidth = r(25,50-ysr*10);
+        lipWidth = r(25,60-ysr*10);
         a = [faceData.g[0]+lipWidth,faceData.g[1]];
         b = [faceData.g[0]-lipWidth,faceData.g[1]];
-        // if(age>=18&&age<50&&r(0,100)<10){
-        //     strokeColor = lipColor.color;
-        //     lineWidth = r(1,3);
-        // }
-        if(age>=12&&age<60){
+        if(age>=14&&age<60){
             colorPool = [
                 { r: r(99,255), g: 99, b: 71, },
                 { r: r(26,255), g: 14, b: 25, },
@@ -3846,24 +3948,37 @@ function genLipData(faceData,gender,age,emotion){ // 生成嘴唇
     let arcDeg = Math.round(emotion/100*24-9); // (-9 - 15)
     let cp1;
     if(gender==2){ // 女
-        cp1 = [faceData.g[0]+r(-25,25),faceData.g[1]+arcDeg*1.8];
+        cp1 = [faceData.g[0],faceData.g[1]+arcDeg*3];
     }
     else{ // 男
-        cp1 = [faceData.g[0]+r(-25,25),faceData.g[1]+arcDeg*2];
+        cp1 = [faceData.g[0],faceData.g[1]+arcDeg*3.5];
     }
-    if(arcDeg<-5||arcDeg>5){
-        closed = true;
+    if(arcDeg<-5||arcDeg>5){ // 嘴巴张太大，则取消口红
+        colorPool = [
+            faceData.color,
+        ];
     }
 
-    if(closed){
+    if(open){
         color = { r: 255, g: 255, b: 255, };
     }
     else{
         color = colorPool[r(0,colorPool.length-1)];
     }
 
+    // 设置 bottomY
+    if(arcDeg>0){
+        bottomY = cp1[1];
+    }
+    else{
+        bottomY = faceData.g[1];
+    }
+
     let res = {
-        a,b,
+        a,b,cp1,
+        arcDeg,
+        bottomY,
+        open,
         outline: [],
         lineWidth: 1,
         lipWidth,
@@ -3875,13 +3990,13 @@ function genLipData(faceData,gender,age,emotion){ // 生成嘴唇
     res.outline.push([0,a[0],a[1]]); // 移动
     res.outline.push([2,cp1[0],cp1[1],b[0],b[1]]); // 曲线 a-b
 
-    if(closed){
-        res.outline.push([1,a[0],a[1]]); // 移动
+    if(open){
+        res.outline.push([1,a[0],a[1]]); // 直线 b-a
     }
 
     return res;
 }
-function genBottomLipData(faceData,lipData,gender){ // 生成下嘴唇
+export function genBottomLipData(faceData,lipData,gender){ // 生成下嘴唇
     let a,b,lineWidth;
     let strokeColor = {
         r: 100,
@@ -3889,15 +4004,21 @@ function genBottomLipData(faceData,lipData,gender){ // 生成下嘴唇
         b: 100,
     };
     let lipWidth = lipData.lipWidth/3+r(-4,4);
-    let marginTop = r(9,15);
+    let marginTop = r(2,7);
+    if(lipData.arcDeg>8){ // 微笑值高
+        marginTop = 0;
+        if(lipData.arcDeg>11){ // 微笑值过高
+            marginTop = -lipData.arcDeg+2;
+        }
+    }
     if(gender==2){ // 女
-        a = [faceData.g[0]+lipWidth,faceData.g[1]+marginTop];
-        b = [faceData.g[0]-lipWidth,faceData.g[1]+marginTop];
+        a = [faceData.g[0]+lipWidth,lipData.bottomY+marginTop];
+        b = [faceData.g[0]-lipWidth,lipData.bottomY+marginTop];
         lineWidth = 1;
     }
     else{ // 男
-        a = [faceData.g[0]+lipWidth,faceData.g[1]+marginTop];
-        b = [faceData.g[0]-lipWidth,faceData.g[1]+marginTop];
+        a = [faceData.g[0]+lipWidth,lipData.bottomY+marginTop];
+        b = [faceData.g[0]-lipWidth,lipData.bottomY+marginTop];
         lineWidth = 1;
     }
     // 生成嘴唇轮廓
@@ -3910,7 +4031,7 @@ function genBottomLipData(faceData,lipData,gender){ // 生成下嘴唇
     }
 
     let res = {
-        a,b,
+        a,b,cp1,
         outline: [],
         lineWidth,
         strokeColor,
@@ -3921,7 +4042,45 @@ function genBottomLipData(faceData,lipData,gender){ // 生成下嘴唇
 
     return res;
 }
-function genTopMoustacheData(faceData,lipData,color,grd){ // 生成上胡子
+export function genTongueData(faceData,lipData){ // 生成牙齿
+    let a,b,c,d,cp1;
+    let lipDir = lipData.arcDeg>0; // 嘴唇弯曲方向 [0:向上|1:向下]
+    let toothGap = r(0,1); // 是否有齿缝
+    let color = {
+        r: r(80,150),
+        g: 40,
+        b: 10,
+    };
+
+    if(lipDir){ // 嘴唇向下弯曲（笑）
+        a = [lipData.a[0],lipData.a[1]+lipData.arcDeg*.3];
+        b = [lipData.b[0],lipData.a[1]+lipData.arcDeg*.3];
+        cp1 = [lipData.cp1[0],lipData.cp1[1]-Math.round((lipData.bottomY-lipData.a[1])/1.5)];
+    }
+    else{ // 嘴唇向上弯曲
+        a = [lipData.a[0],lipData.a[1]+lipData.arcDeg*.6];
+        b = [lipData.b[0],lipData.a[1]+lipData.arcDeg*.6];
+        cp1 = [lipData.cp1[0],lipData.a[1]-5];
+    }
+    c = [lipData.b[0],lipData.bottomY];
+    d = [lipData.a[0],lipData.bottomY];
+
+    let res = {
+        a,b,c,d,cp1,
+        outline: [],
+        color,
+        noStroke: true,
+    };
+
+    res.outline.push([0,a[0],a[1]]); // 移动
+    res.outline.push([2,cp1[0],cp1[1],b[0],b[1]]); // 曲线 a-b
+    res.outline.push([1,c[0],c[1]]); // 直线 b-c
+    res.outline.push([1,d[0],d[1]]); // 直线 c-d
+    res.outline.push([1,a[0],a[1]]); // 直线 d-a
+
+    return res;
+}
+export function genTopMoustacheData(faceData,lipData,color,grd){ // 生成上胡子
     let { lineWidth, lipWidth, } = lipData;
     let halfLipWidth = lipWidth/2;
     let strokeColor = {
@@ -3955,7 +4114,7 @@ function genTopMoustacheData(faceData,lipData,color,grd){ // 生成上胡子
 
     return res;
 }
-function genNasoData(faceData,eyeData,gender,age){ // 生成法令纹
+export function genNasoData(faceData,eyeData,gender,age){ // 生成法令纹
     let a,b;
     a = [eyeData.a[0]+r(0,10),eyeData.a[1]+r(5,20)];
     b = [a[0]-r(35,60),a[1]+r(70,100)+age*.4];
@@ -3980,7 +4139,7 @@ function genNasoData(faceData,eyeData,gender,age){ // 生成法令纹
 
     return res;
 }
-function genCheekData(faceData){ // 生成腮红
+export function genCheekData(faceData){ // 生成腮红
     let radial1 = {},radial2 = {};
     let { c, e, } = faceData;
 
@@ -4027,7 +4186,7 @@ function genCheekData(faceData){ // 生成腮红
     res2.outline.push([3,radial2.r2,radial2.x1,radial2.y1]); // 右内瞳
     return { res1, res2, };
 }
-function genFaceShadowData(faceData,gender,age){ // 生成脸部阴影
+export function genFaceShadowData(faceData,gender,age){ // 生成脸部阴影
     let { c:fc, h:fh, i:fi, cp2:fcp2, cp3:fcp3, } = faceData;
     let occupyRate;
     if(gender==1){ // 男
@@ -4096,7 +4255,7 @@ function genFaceShadowData(faceData,gender,age){ // 生成脸部阴影
     }
     return { res1, res2, };
 }
-function genEyeShadowData(faceData,eyeData){ // 生成眼影
+export function genEyeShadowData(faceData,eyeData){ // 生成眼影
     let res1 = {}, res2 = {};
     let { a, b, c, cp1, cp2, } = eyeData;
     let { color, } = faceData;
@@ -4147,7 +4306,7 @@ function genEyeShadowData(faceData,eyeData){ // 生成眼影
 
     return { res1, res2, };
 }
-function genEyeSocketData(faceData,eyeData,gender,age){ // 生成眼窝
+export function genEyeSocketData(faceData,eyeData,gender,age){ // 生成眼窝
     let res1 = {}, res2 = {};
     let { a, b, c, cp1, cp2, } = eyeData;
     let { color, } = faceData;
@@ -4214,7 +4373,7 @@ function genEyeSocketData(faceData,eyeData,gender,age){ // 生成眼窝
 
     return { res1, res2, };
 }
-function genBracketsData(faceData,lipData){ // 生成括号
+export function genBracketsData(faceData,lipData){ // 生成括号
     let res;
     let { a, b, } = lipData;
     let _a, _b, cp1;
@@ -4255,26 +4414,24 @@ function genCollarData(bodyData,gender,age){ // 生成锁骨
     d = [bodyData.b1[0],bodyData.b1[1]];
     e = [bodyData.c1[0],bodyData.c1[1]];
     f = [bodyData.c1[0]-width*.18,bodyData.d1[1]-width*.01];
-    // g = [f[0]-width*.03,f[1]-width*.06];
     i = [bodyData.cpi1[0],bodyData.cpi1[1]+25];
     j = [i[0]-width*.05,i[1]-width*.17];
 
-    if(c[0]>492){
-        c[0] = 492;
+    if(c[0]>487){
+        c[0] = 487;
     }
-    // if(f[0]>bodyData.c[0]-20){
-    //     f[0] = bodyData.c[0]-20;
-    // }
 
     let arc = [20,10];
     let arc2 = bodyData.c1[0]-bodyData.d1[0];
     cp1 = [mid(a[0],b[0])-arc[0]*1.5,a[1]+arc[1]*1.8];
     cp2 = [mid(b[0],c[0])+arc[0],b[1]+arc[1]*.43];
-    // h = [cp2[0]+width*.05,cp2[1]-width*.01];
     cp3 = [bodyData.cp11[0],bodyData.cp11[1]];
     cp4 = [bodyData.c1[0]-arc2*.12,f[1]-arc[1]*.8];
-    // cp5 = [f[0]-arc2*.22,f[1]+arc2*.14];
     cp6 = [mid(i[0],j[0])+arc2*.05,j[1]+arc2*.05];
+
+    if(cp2[0]>492){
+        cp2[0] = 492;
+    }
 
     res = {
         outline: [],
@@ -4291,8 +4448,6 @@ function genCollarData(bodyData,gender,age){ // 生成锁骨
     res.outline.push([0,d[0],d[1]]); // 移动 d1
     res.outline.push([2,cp3[0],cp3[1],e[0],e[1]]); // 曲线 d1-e1
     res.outline.push([2,cp4[0],cp4[1],f[0],f[1]]); // 曲线 e1-f1
-    // res.outline.push([0,g[0],g[1]]); // 移动到 g1
-    // res.outline.push([2,cp5[0],cp5[1],h[0],h[1]]); // 曲线 f1-g1
     res.outline.push([0,i[0],i[1]]); // 移动到 i1
     res.outline.push([2,cp6[0],cp6[1],j[0],j[1]]); // 曲线 j1-j1
 
@@ -4302,8 +4457,6 @@ function genCollarData(bodyData,gender,age){ // 生成锁骨
     res.outline.push([0,mirX(d[0]),d[1]]); // 移动 d2
     res.outline.push([2,mirX(cp3[0]),cp3[1],mirX(e[0]),e[1]]); // 曲线 d2-e2
     res.outline.push([2,mirX(cp4[0]),cp4[1],mirX(f[0]),f[1]]); // 曲线 e2-f2
-    // res.outline.push([0,mirX(g[0]),g[1]]); // 移动到 g2
-    // res.outline.push([2,mirX(cp5[0]),cp5[1],mirX(h[0]),h[1]]); // 曲线 g2-h2
     res.outline.push([0,mirX(i[0]),i[1]]); // 移动到 i1
     res.outline.push([2,mirX(cp6[0]),cp6[1],mirX(j[0]),j[1]]); // 曲线 j1-j1
 
@@ -4386,7 +4539,6 @@ function genBreastData(bodyData,gender,age){ // 生成乳房
             weight = 1;
         }
 
-        // size = 5.5; // TODO
         // qtSize = Math.round(size); // TODO
         // weight = 1; //  TODO
 

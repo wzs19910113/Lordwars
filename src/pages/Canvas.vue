@@ -2,6 +2,7 @@
     <div class="main">
         <h1 class="title"><i>Canvas</i></h1>
         <div class="side side-left">
+            <h5 class="side-title">画笔操作</h5>
             <a class="btn" :class="strokeMode==0?'btn-on':''" @click="onClickMoveTo">移动</a>
             <a class="btn" :class="strokeMode==1?'btn-on':''" @click="onClickLineTo">直线</a>
             <a class="btn" :class="strokeMode==2?'btn-on':''" @click="onClickCurveTo">曲线<i v-if="strokeMode==2">({{curveStep}})</i></a>
@@ -10,6 +11,37 @@
             <br/>
             <a class="btn" @click="onClickPrevStep">上一步({{inputsIndex}})</a>
             <!-- <a class="btn" @click="onClickNextStep">下一步</a> -->
+        </div>
+        <div class="side side-bottom" v-show="person.avatarData">
+            <h5 class="side-title">细节重刷</h5>
+            <a class="btn btn-tn" @click="onClickReroll(1)">双耳</a>
+            <a class="btn btn-tn" @click="onClickReroll(2)">双眉</a>
+            <a class="btn btn-tn" @click="onClickReroll(3)">双眼</a>
+            <a class="btn btn-tn" @click="onClickReroll(4)">双眼皮</a>
+            <a class="btn btn-tn" @click="onClickReroll(5)">外双瞳</a>
+            <a class="btn btn-tn" @click="onClickReroll(6)">鼻子</a>
+            <a class="btn btn-tn" @click="onClickReroll(7)">嘴唇</a>
+            <a class="btn btn-tn" @click="onClickReroll(8)">脸影</a>
+            <a class="btn btn-tn" @click="onClickReroll(9)">眼窝</a>
+            <a class="btn btn-tn" @click="onClickReroll(26)">毛发色</a>
+            <br/>
+            <br/>
+            <a class="btn btn-tn" @click="onClickReroll(10)">内双瞳</a>
+            <a class="btn btn-tn" @click="onClickReroll(11)">\</a>
+            <a class="btn btn-tn" @click="onClickReroll(12)">睫毛</a>
+            <a class="btn btn-tn" @click="onClickReroll(13)">\</a>
+            <a class="btn btn-tn" @click="onClickReroll(14)">下嘴唇</a>
+            <a class="btn btn-tn" @click="onClickReroll(15)">\</a>
+            <a class="btn btn-tn" @click="onClickReroll(16)">胡子</a>
+            <a class="btn btn-tn" @click="onClickReroll(17)">\</a>
+            <a class="btn btn-tn" @click="onClickReroll(18)">法令纹</a>
+            <a class="btn btn-tn" @click="onClickReroll(19)">\</a>
+            <a class="btn btn-tn" @click="onClickReroll(20)">腮红</a>
+            <a class="btn btn-tn" @click="onClickReroll(21)">\</a>
+            <a class="btn btn-tn" @click="onClickReroll(22)">眼影</a>
+            <a class="btn btn-tn" @click="onClickReroll(23)">\</a>
+            <a class="btn btn-tn" @click="onClickReroll(24)">括号</a>
+            <a class="btn btn-tn" @click="onClickReroll(25)">\</a>
         </div>
         <div class="side side-right">
             <textarea class="output" ref="txt" v-model="output"></textarea>
@@ -48,8 +80,8 @@
                     <a class="btn" @click="onClickSelectiItemStyle(3)">选择后头发</a>
                     <a class="btn" @click="onClickSelectiItemStyle(4)">选择眼镜</a>
                     <a class="btn" @click="onClickChangeCloth()">换衣服</a>
+                    <a class="btn" @click="onClickTakeoffCloth()">裸体</a>
                     <a class="btn" @click="onClickShowText()">数据文本</a>
-                    <a class="btn" @click="onClickTakeoffCloth()">*</a>
                 </div>
                 <br/>
                 <a class="btn" @click="onClickSave">保存的头像</a>
@@ -71,9 +103,9 @@
             {{JSON.stringify(modifyPoint)}}
         </div> -->
         <div class="wrap board" v-if="person.name">
-            <h4>{{person.name}}</h4>
+            <h4><input v-model="person.name" /></h4>
             <div><label>性别：</label><span>{{person.gender==1?'男':'女'}}</span></div>
-            <div><label>年龄：</label><span>{{person.age}}</span></div>
+            <div><label>年龄：</label><input v-model="person.age" type="number" /></div>
             <div><label>性格：</label><span>{{common.genPersonalityTip(person)}}</span></div>
             <div><label>能力介绍：</label><span>{{common.genAbilityTip(person)}}</span></div>
             <!-- <div><label>精锐化次数：</label><span>{{person.power}}</span></div> -->
@@ -118,11 +150,12 @@
 // Copyright (c) 2018 Copyright Holder All Rights Reserved.
 import { query, r, exptr, bulbsort, cloneObj, getParentNode, getMatchList, removeFromList, arrContains, rr, fullScreen, exitFullScreen, isFullScreen, calcDistance, } from '../tools/utils';
 import * as common from '../tools/common';
-import { genRandomAvatar, paintAvatar, genForeHairData, genBangsData, genBackHairData, genGlassData, generalForeHairTemplates, genForeClothData, genBackClothData, maleForeHairTemplates, femaleForeHairTemplates, generalBangsTemplates, maleBangsTemplates, femaleBangsTemplates, generalBackHairTemplates, maleBackHairTemplates, femaleBackHairTemplates, glassTemplates, } from '../tools/avatar';
+import * as avatar from '../tools/avatar';
 import * as ai from '../tools/ai';
 import { DEBUG, CONFIG, CACHE, } from '../config/config';
 const CVSWIDTH = 500;
 const CVSHEIGHT = 600;
+
 export default {
     name: 'Canvas',
     data(){
@@ -294,6 +327,7 @@ export default {
         onClickNextStep(){ // 下一步
             this.drawInput();
         },
+
         onClickCanvas(e){ // 点击【Canvas】
             let input = cloneObj(this.inputs[this.inputsIndex],[]);
             // let lastInput = input[input.length-1];
@@ -568,6 +602,224 @@ export default {
             this.asynAllPoints();
             this.drawInput();
         },
+
+        onClickReroll(flag){ // 点击【重刷】按钮
+            let avatarData = this.person.avatarData;
+            let { gender, age, personalities, } = this.person;
+            let { faceData, eyesData, bodyData, breastData, lipData, } = avatarData;
+            let { color, grd, } = avatarData.hairColor;
+            let emotion = r(0,100); // 0-100
+            if(flag==1){ // 双耳
+                let earsData = avatar.genEarsData(faceData,gender,age);
+                avatarData.earsData = earsData;
+            }
+            else if(flag==2){ // 双眉
+                let browsData = avatar.genBrowsData(faceData,gender,color);
+                avatarData.browsData = browsData;
+            }
+            else if(flag==3){ // 双眼
+                let eyesData = avatar.genEyesData(faceData,gender,age,personalities);
+                let eyeskinsData = avatar.genEyeSkinsData(eyesData,gender);
+                let eyeoutballsData = avatar.genEyeoutballsData(eyesData,gender,age);
+                let eyeSocketData = avatar.genEyeSocketData(faceData,eyesData,gender,age);
+                let eyeSocketData1 = eyeSocketData.res1;
+                let eyeSocketData2 = eyeSocketData.res2;
+                avatarData.eyesData = eyesData;
+                avatarData.eyeskinsData = eyeskinsData;
+                avatarData.eyeoutballsData = eyeoutballsData;
+                avatarData.eyeSocketData = eyeSocketData;
+                avatarData.eyeSocketData1 = eyeSocketData1;
+                avatarData.eyeSocketData2 = eyeSocketData2;
+                if(gender==2){ // 顺带生成睫毛
+                    let lashData = avatar.genLashData(eyesData,gender,age,color);
+                    avatarData.lashData = lashData;
+                }
+                else{
+                    avatarData.lashData = undefined;
+                }
+                if(r(0,100)<90){ // 顺带生成内双瞳
+                    let eyeinballsData = avatar.genEyeinballsData(eyesData,eyeoutballsData,gender,age);
+                    avatarData.eyeinballsData = eyeinballsData;
+                }
+                else{
+                    avatarData.eyeinballsData = undefined;
+                }
+                if(r(0,30)<(50-age)&&gender==2&&age>=12&&age<55){ // 顺带生成眼影
+                    let eyeShadowData = avatar.genEyeShadowData(faceData,eyesData);
+                    let eyeShadowData1 = eyeShadowData.res1;
+                    let eyeShadowData2 = eyeShadowData.res2;
+                    avatarData.eyeShadowData = eyeShadowData;
+                    avatarData.eyeShadowData1 = eyeShadowData1;
+                    avatarData.eyeShadowData2 = eyeShadowData2;
+                }
+                else{
+                    avatarData.eyeShadowData = undefined;
+                    avatarData.eyeShadowData1 = undefined;
+                    avatarData.eyeShadowData2 = undefined;
+                }
+            }
+            else if(flag==4){ // 双眼皮
+                let eyeskinsData = avatar.genEyeSkinsData(eyesData,gender);
+                avatarData.eyeskinsData = eyeskinsData;
+            }
+            else if(flag==5){ // 外双瞳
+                let eyeoutballsData = avatar.genEyeoutballsData(eyesData,gender,age);
+                avatarData.eyeoutballsData = eyeoutballsData;
+                if(r(0,100)<90){ // 顺带生成内双瞳
+                    let eyeinballsData = avatar.genEyeinballsData(eyesData,eyeoutballsData,gender,age);
+                    avatarData.eyeinballsData = eyeinballsData;
+                }
+                else{
+                    avatarData.eyeinballsData = undefined;
+                }
+            }
+            else if(flag==6){ // 鼻子
+                let noseData = avatar.genNoseData(faceData,gender,age);
+                avatarData.noseData = noseData;
+            }
+            else if(flag==7){ // 嘴唇
+                let lipData = avatar.genLipData(faceData,gender,age,emotion);
+                avatarData.lipData = lipData;
+                if((r(0,100)<age&&age>=30&&gender==1)){ // 顺带生成上胡子
+                    let topMoustacheData = avatar.genTopMoustacheData(faceData,lipData,color,grd);
+                    avatarData.topMoustacheData = topMoustacheData;
+                }
+                else{
+                    avatarData.topMoustacheData = undefined;
+                }
+                if(!lipData.strokeColor&&!lipData.open){ // 顺带生成下嘴唇
+                    let bottomLipData = avatar.genBottomLipData(faceData,lipData,gender);
+                    avatarData.bottomLipData = bottomLipData;
+                }
+                else{
+                    avatarData.bottomLipData = undefined;
+                }
+                if((lipData.arcDeg<-4||lipData.arcDeg>7)&&lipData.open){ // 生成牙齿
+                    avatarData.toothData = avatar.genTongueData(faceData,lipData);
+                }
+                else{
+                    avatarData.toothData = undefined;
+                }
+                if(age>=60){ // 顺带生成括号
+                    let bracketsData = avatar.genBracketsData(faceData,lipData);
+                    avatarData.bracketsData = bracketsData;
+                }
+                else{
+                    avatarData.bracketsData = undefined;
+                }
+            }
+            else if(flag==8){ // 脸影
+                let faceShadowData = avatar.genFaceShadowData(faceData,gender,age);
+                let faceShadowData1 = faceShadowData.res1;
+                let faceShadowData2 = faceShadowData.res2;
+                avatarData.faceShadowData = faceShadowData;
+                avatarData.faceShadowData1 = faceShadowData1;
+                avatarData.faceShadowData2 = faceShadowData2;
+            }
+            else if(flag==9){ // 眼窝
+                let eyeSocketData = avatar.genEyeSocketData(faceData,eyesData,gender,age);
+                let eyeSocketData1 = eyeSocketData.res1;
+                let eyeSocketData2 = eyeSocketData.res2;
+                avatarData.eyeSocketData = eyeSocketData;
+                avatarData.eyeSocketData1 = eyeSocketData1;
+                avatarData.eyeSocketData2 = eyeSocketData2;
+            }
+            else if(flag==26){ // 毛发色
+                let { color, grd, } = avatar.genHairColor(gender);
+                avatarData.hairColor = { color, grd, };
+                if(avatarData.browsData){ // 眉毛色
+                    avatarData.browsData.color = color;
+                }
+                if(avatarData.topMoustacheData){ // 胡子色
+                    avatarData.topMoustacheData.color = color;
+                }
+                if(avatarData.foreHairData){ // 前发色
+                    avatarData.foreHairData.color = color;
+                    avatarData.foreHairData.grd = grd;
+                }
+                if(avatarData.backHairData){ // 后发色
+                    avatarData.backHairData.color = color;
+                    avatarData.backHairData.grd = grd;
+                }
+                if(avatarData.bangsData){ // 刘海色
+                    avatarData.bangsData.color = color;
+                    avatarData.bangsData.grd = grd;
+                }
+                if(avatarData.lashData){ // 刘海色
+                    avatarData.lashData.color = color;
+                }
+            }
+            else if(flag==10){ // 内双瞳
+                let eyeinballsData = avatar.genEyeinballsData(eyesData,avatarData.eyeoutballsData,gender,age);
+                avatarData.eyeinballsData = eyeinballsData;
+            }
+            else if(flag==11){ // 删除内双瞳
+                avatarData.eyeinballsData = undefined;
+            }
+            else if(flag==12){ // 睫毛
+                let lashData = avatar.genLashData(eyesData,gender,age,color);
+                avatarData.lashData = lashData;
+            }
+            else if(flag==13){ // 删除睫毛
+                avatarData.lashData = undefined;
+            }
+            else if(flag==14){ // 下嘴唇
+                let bottomLipData = avatar.genBottomLipData(faceData,lipData,gender);
+                avatarData.bottomLipData = bottomLipData;
+            }
+            else if(flag==15){ // 删除下嘴唇
+                avatarData.bottomLipData = undefined;
+            }
+            else if(flag==16){ // 胡子
+                let topMoustacheData = avatar.genTopMoustacheData(faceData,lipData,color,grd);
+                avatarData.topMoustacheData = topMoustacheData;
+            }
+            else if(flag==17){ // 删除胡子
+                avatarData.topMoustacheData = undefined;
+            }
+            else if(flag==18){ // 法令纹
+                let nasoData = avatar.genNasoData(faceData,eyesData,gender,age);
+                avatarData.nasoData = nasoData;
+            }
+            else if(flag==19){ // 删除法令纹
+                avatarData.nasoData = undefined;
+            }
+            else if(flag==20){ // 腮红
+                let cheekData = avatar.genCheekData(faceData);
+                let cheekData1 = cheekData.res1;
+                let cheekData2 = cheekData.res2;
+                avatarData.cheekData = cheekData;
+                avatarData.cheekData1 = cheekData1;
+                avatarData.cheekData2 = cheekData2;
+            }
+            else if(flag==21){ // 删除腮红
+                avatarData.cheekData = undefined;
+                avatarData.cheekData1 = undefined;
+                avatarData.cheekData2 = undefined;
+            }
+            else if(flag==22){ // 眼影
+                let eyeShadowData = avatar.genEyeShadowData(faceData,eyesData);
+                let eyeShadowData1 = eyeShadowData.res1;
+                let eyeShadowData2 = eyeShadowData.res2;
+                avatarData.eyeShadowData = eyeShadowData;
+                avatarData.eyeShadowData1 = eyeShadowData1;
+                avatarData.eyeShadowData2 = eyeShadowData2;
+            }
+            else if(flag==23){ // 删除眼影
+                avatarData.eyeShadowData = undefined;
+                avatarData.eyeShadowData1 = undefined;
+                avatarData.eyeShadowData2 = undefined;
+            }
+            else if(flag==24){ // 括号
+                let bracketsData = avatar.genBracketsData(faceData,lipData);
+                avatarData.bracketsData = bracketsData;
+            }
+            else if(flag==25){ // 删除括号
+                avatarData.bracketsData = undefined;
+            }
+            avatar.paintAvatar(this.ctx,avatarData,CVSWIDTH,CVSHEIGHT,1);
+        },
+
         onClickSelectiItemStyle(flag){ // 点击【选择发型】按钮
             if(!this.person.name){
                 return;
@@ -577,16 +829,16 @@ export default {
             let itemTemplates = [];
             switch(flag){
                 case 1:
-                    itemTemplates = [...generalForeHairTemplates,...maleForeHairTemplates,...femaleForeHairTemplates];
+                    itemTemplates = [...avatar.generalForeHairTemplates,...avatar.maleForeHairTemplates,...avatar.femaleForeHairTemplates];
                 break;
                 case 2:
-                    itemTemplates = [...generalBangsTemplates,...maleBangsTemplates,...femaleBangsTemplates];
+                    itemTemplates = [...avatar.generalBangsTemplates,...avatar.maleBangsTemplates,...avatar.femaleBangsTemplates];
                 break;
                 case 3:
-                    itemTemplates = [...generalBackHairTemplates,...maleBackHairTemplates,...femaleBackHairTemplates];
+                    itemTemplates = [...avatar.generalBackHairTemplates,...avatar.maleBackHairTemplates,...avatar.femaleBackHairTemplates];
                 break;
                 case 4:
-                    itemTemplates = [...glassTemplates];
+                    itemTemplates = [...avatar.glassTemplates];
                 break;
                 case 5:
                     // itemTemplates = [...generalClothTemplates,...maleClothTemplates,...femaleClothTemplates];
@@ -603,19 +855,19 @@ export default {
                 this.itemStylePop = [];
                 switch(this.itemStyleMode){
                     case 1: // 前头发
-                        let foreHairData = genForeHairData(faceData,gender,color,grd,itemStyle.name);
+                        let foreHairData = avatar.genForeHairData(faceData,gender,color,grd,itemStyle.name);
                         avatarData.foreHairData = foreHairData;
                     break;
                     case 2: // 刘海
-                        let bangsData = genBangsData(faceData,gender,color,grd,itemStyle.name);
+                        let bangsData = avatar.genBangsData(faceData,gender,color,grd,itemStyle.name);
                         avatarData.bangsData = bangsData;
                     break;
                     case 3: // 后头发
-                        let backHairData = genBackHairData(faceData,gender,color,grd,itemStyle.name);
+                        let backHairData = avatar.genBackHairData(faceData,gender,color,grd,itemStyle.name);
                         avatarData.backHairData = backHairData;
                     break;
                     case 4: // 眼镜
-                        let glassData = genGlassData(faceData,gender,itemStyle.name);
+                        let glassData = avatar.genGlassData(faceData,gender,itemStyle.name);
                         avatarData.glassData = glassData;
                     break;
                 }
@@ -636,7 +888,7 @@ export default {
                     break;
                 }
             }
-            paintAvatar(this.ctx,avatarData,CVSWIDTH,CVSHEIGHT,1);
+            avatar.paintAvatar(this.ctx,avatarData,CVSWIDTH,CVSHEIGHT,1);
             this.onClickCloseItemStylePop();
             console.log(`更换样式`,this.person);
         },
@@ -649,48 +901,60 @@ export default {
             let gender = this.person.gender;
             let age = this.person.age;
             let { faceData, bodyData, breastData, } = avatarData;
-            let clothForeData = genForeClothData(bodyData,breastData,gender,age);
+            let clothForeData = avatar.genForeClothData(bodyData,breastData,gender,age);
             let clothBackData;
             for(let frag of clothForeData){
                 if(frag.hasBackPart){
-                    clothBackData = genBackClothData(clothForeData);
+                    clothBackData = avatar.genBackClothData(clothForeData);
                 }
             }
             avatarData.clothForeData = clothForeData;
             avatarData.clothBackData = clothBackData;
-            paintAvatar(this.ctx,avatarData,CVSWIDTH,CVSHEIGHT,1);
+            avatar.paintAvatar(this.ctx,avatarData,CVSWIDTH,CVSHEIGHT,1);
         },
         onClickTakeoffCloth(){ // 点击【*】按钮
             let avatarData = this.person.avatarData;
-            avatarData.clothForeData = undefined;
-            avatarData.clothBackData = undefined;
-            paintAvatar(this.ctx,avatarData,CVSWIDTH,CVSHEIGHT,1);
+            let { gender, age, } = this.person;
+            if(this.person.gender==1){ // 男
+                avatarData.clothForeData = undefined;
+                avatarData.clothBackData = undefined;
+            }
+            else{ // 女
+                // let { bodyData, breastData } = avatarData;
+                // let clothForeData = avatar.genForeClothData(bodyData,breastData,gender,age,4);
+                // let clothBackData = avatar.genBackClothData(clothForeData);
+                // if(clothBackData.length<=0){
+                //     clothBackData = undefined;
+                // }
+                // avatarData.clothForeData = clothForeData;
+                // avatarData.clothBackData = clothBackData;
+                avatarData.clothForeData = undefined;
+                avatarData.clothBackData = undefined;
+            }
+            avatar.paintAvatar(this.ctx,avatarData,CVSWIDTH,CVSHEIGHT,1);
         },
         onClickShowText(){ // 点击【数据文本】按钮
             console.log(JSON.stringify(this.person.avatarData));
         },
-        onClickRandom(gender){ // 点击【随机人物】按钮
-            // this.inputs[this.inputsIndex] = [];
-            // for(let i=1;i<500;i++){
-            //     this.inputs[this.inputsIndex].push([1,i,500-exptr(i,0,500,2)]);
-            // }
-            // this.drawInput();
 
-            // let person = common.genRandomPerson({gender,age:r(5,12)});
-            let person = common.genRandomPerson({gender});
-            let avatarData = genRandomAvatar(person);
+        onClickRandom(gender){ // 点击【随机人物】按钮
+            let age;
+            let person;
+            let avatarData;
+            if(this.person&&this.person.avatarData){
+                age = this.person.age;
+                person = common.genRandomPerson({gender,age});
+            }
+            else{
+                person = common.genRandomPerson({gender});
+            }
+            avatarData = avatar.genRandomAvatar(person);
             person.avatarData = avatarData;
-            paintAvatar(this.ctx,avatarData,CVSWIDTH,CVSHEIGHT,1);
+            avatar.paintAvatar(this.ctx,avatarData,CVSWIDTH,CVSHEIGHT,1);
             this.person = person;
             console.log(`生成一个人`,person);
-
-            // let t1 = {
-            //     name: '基本款',
-            //     outline: [[0,586,382],[1,498,386],[1,498,486],[1,596,478],[1,586,382],[9,{"color":{"r":40,"g":0,"b":0}}],[1,582,284],[1,672,288],[1,670,372],[1,586,382],[9,{"color":{"r":220,"g":0,"b":0}}]],
-            // };
-            // let t2 = cloneObj(t1);
-            // console.log(`t2======>`,t2)
         },
+
         onClickSave(){ // 点击【保存】按钮
             let _savedAvatars = localStorage.getItem(CACHE.savedAvatars);
             let savedAvatars = JSON.parse(_savedAvatars);
@@ -723,7 +987,8 @@ export default {
         },
         onClickImportSave(index){ // 点击【导入保存】按钮
             this.person.avatarData = this.savedAvatars[index];
-            paintAvatar(this.ctx,this.person.avatarData,CVSWIDTH,CVSHEIGHT,1);
+            console.log(JSON.stringify(this.person.avatarData));
+            avatar.paintAvatar(this.ctx,this.person.avatarData,CVSWIDTH,CVSHEIGHT,1);
         },
         onClickDeleteSave(index){ // 点击【删除保存】按钮
             this.savedAvatars.splice(index,1);
@@ -771,10 +1036,23 @@ export default {
         background-color: #ccc;
         padding: 10px;
     }
+    .side-title{
+        height: 20px;
+        line-height: 20px;
+        color: #444;
+        border-bottom: 1px solid OrangeRed;
+        margin-bottom: 6px;
+    }
     .side-left{
         left: 100px;
         width: 140px;
-        height: 600px;
+        height: 210px;
+    }
+    .side-bottom{
+        left: 100px;
+        width: 140px;
+        top: 280px;
+        height: 450px;
     }
     .side-right{
         right: 100px;
@@ -800,10 +1078,17 @@ export default {
         cursor: pointer;
         font-weight: bold;
         font-size: 14px;
+        white-space: nowrap;
+        word-break: keep-all;
     }
     .btn-sm{
         display: inline-block;
         width: 65px;
+    }
+    .btn-tn{
+        display: inline-block;
+        font-size: 10px;
+        width: 50px;
     }
     .side .btn-on{
         background-color: #000;

@@ -1,28 +1,35 @@
 <template>
     <div class="main">
-        <Header />
-        <h1>首页TEST</h1>
-        <div class="banner">
-            <div class="block user-wrap">
-                <a class="btn"><img src="" /></a>
+        <div v-if="mode==1">
+            <Header />
+            <h1>首页TEST</h1>
+            <div class="banner">
+                <div class="block user-wrap">
+                    <a class="btn"><img src="" /></a>
+                </div>
+            </div>
+            <div class="act-list-wrap">
+                <ol class="block act-list">
+                    <li class="block act" v-for="act in actList">
+                        <a class="btn">
+                            <div class="act-icon">
+                                <img :src="act.icon" />
+                            </div>
+                            <div class="act-detail">
+                                <h3>{{act.name}}</h3>
+                                <div>{{act.desc}}</div>
+                            </div>
+                        </a>
+                    </li>
+                </ol>
+            </div>
+            <Nav />
+        </div>
+        <div v-if="mode==2">
+            <div class="cell-wrap" :style="`width:${WI*20}px;height:${WI*20}px`">
+                <a class="cell" :class="cell.stat?'cell-on':'cell-off'" v-for="(cell,index) in cellList" @click="onClickCell(index)"></a>
             </div>
         </div>
-        <div class="act-list-wrap">
-            <ol class="block act-list">
-                <li class="block act" v-for="act in actList">
-                    <a class="btn">
-                        <div class="act-icon">
-                            <img :src="act.icon" />
-                        </div>
-                        <div class="act-detail">
-                            <h3>{{act.name}}</h3>
-                            <div>{{act.desc}}</div>
-                        </div>
-                    </a>
-                </li>
-            </ol>
-        </div>
-        <Nav />
     </div>
 </template>
 
@@ -32,17 +39,19 @@ import { query, r, exptr, bulbsort, cloneObj, getParentNode, getMatchList, remov
 import { DEBUG, CONFIG, CACHE } from '../config/config';
 import Header from '../components/Header';
 import Nav from '../components/Nav';
-const CVSWIDTH = 500;
-const CVSHEIGHT = 600;
+const WI = 15;
 export default {
     name: 'Canvas1',
     data(){
         return {
 
             loading: false,
+            mode: 2,
 
             actList: [],
+            cellList: [],
 
+            WI,
             CONFIG,
         };
     },
@@ -58,6 +67,18 @@ export default {
                     desc: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
                 });
             }
+
+            this.cellList = [];
+            let amount = WI*WI;
+            for(let i=0;i<amount;i++){
+                this.cellList.push({
+                    stat: r(0,1),
+                });
+            }
+        },
+        onClickCell(index){
+            let cell = this.cellList[index];
+            cell.stat = !cell.stat;
         },
     },
     components:{
@@ -109,5 +130,29 @@ export default {
     .act-detail{
         width: 100%;
         height: 100%;
+    }
+
+    .cell-wrap{
+        margin: 0 auto;
+        padding: 0;
+        line-height: 0;
+        background-color: #aaa;
+        box-shadow: 0 0 20px #a3a;
+    }
+    .cell{
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        margin: 0;
+        padding: 0;
+    }
+    .cell:hover{
+        opacity: .5;
+    }
+    .cell-off{
+        background-color: #000;
+    }
+    .cell-on{
+        background-color: #fff;
     }
 </style>
